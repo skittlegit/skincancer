@@ -1,0 +1,6 @@
+extends: e7_coral.yaml
+manifest: data/pilot/manifest.csv
+groups: data/pilot/groups.csv
+splits_dir: data/pilot/splits
+runs_dir: runs/pilot
+results_dir: results/pilot

@@ -11,6 +11,9 @@ The plan (10 Oct 2026) is out of date in these places. The reasons are in [DECIS
 | Methods → Texture | "About 130 features" | **78 features**, as specified (D9) |
 | Methods → Texture | Fusion vs texture-only | Add the embedding-only MLP control (D9) |
 | Methods → E4 | Prior-shift formula | Divide by the **effective** training prior (uniform under class-balanced loss); the benign share stays fixed (D7) |
-| Methods → E7 | "sweep λ on validation" | λ chosen on target_val; λ = 1 also reported untuned as the label-free number (D1) |
+| Methods → E7 | "sweep λ ∈ {0.1, 1, 10} on validation" | **λ ∈ {100, 1000, 10000}**: at λ ≤ 10 the CORAL term is ~0.1% of the loss (D13). λ chosen on target_val; λ = 1000 (the paper's balancing rule) also reported untuned as the label-free number (D1) |
+| Methods → Baseline | Stage-2 LR ~1e-5 | **3e-5**: 1e-5 doesn't converge in 30 epochs (D11) |
+| Methods → Image processing | Lesion crop by colour distance | Rulers and edge-connected dark background masked; failure rate by eye on 100 training crops (D12) |
+| Data plan → dedup | pHash + embedding similarity | pHash ≤ 2 OR cosine ≥ 0.90, both calibrated by eye (D10) |
 | Data plan → Fitzpatrick17k | "download from URL column" | DermaAmin links (≈3,400 of 4,491 neoplastic images) are dead. Request the full set with the authors' form (github.com/mattgroh/fitzpatrick17k). Atlas Dermatologico links still work. |
 | Deliverables / team table | Per-person ownership | No owners; the README work queue is shared |

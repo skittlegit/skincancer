@@ -13,7 +13,7 @@ The plan early-stopped every model on the FST IV–VI validation split. For E1 t
 | test splits | — | Never used to choose anything |
 
 - Source pool (FST I–III) splits 70 / 15 / 15 train / val / test. Target pool (FST IV–VI) splits 60 / 20 / 20, as in the plan.
-- **CORAL λ:** chosen on `target_val`, which uses target labels for selection only. So that the "zero labels" claim stays honest, E7 also reports λ = 1 (the Deep CORAL paper's default) untuned, as the strictly label-free number.
+- **CORAL λ:** chosen on `target_val`, which uses target labels for selection only. So that the "zero labels" claim stays honest, E7 also reports the untuned λ from the Deep CORAL paper's balancing rule (λ ≈ 1000 here, see D13) as the strictly label-free number.
 - E7 early-stops on `source_val`, so its checkpoint choice never sees a target label.
 
 ## D2. Actinic keratosis is not "benign"
@@ -87,6 +87,10 @@ Chosen on `source_val` only (pilot split, EfficientNet-B0, seed 0, 14 Oct 2026).
   - minimum lesion area 0.2% of the image instead of 1%.
 - **Tuning data:** contact sheets sample `source_train` / `target_train` only. Looking at test images to tune would be test-set peeking, and DDI's terms forbid showing its images.
 - **After the fixes,** ~5 of 60 training crops (~8%) are off target, mostly wide face shots where the lesion is tiny. The automatic fallback (`crop_ok`) almost never triggers, so it under-reports failures. E3 therefore reports the **by-eye failure rate on 100 training crops**, not `crop_ok`.
+
+## D13. CORAL λ grid: {100, 1000, 10000}, not {0.1, 1, 10}
+
+With 1280-d EfficientNet-B0 features and the paper's 1/(4d²) normalisation, the CORAL loss in the pilot sat at ~3×10⁻⁴, against a cross-entropy of 0.4–1.2. At λ = 1 the alignment term is ~0.1% of the loss, so the plan's grid would have tested a method that does nothing, three times over. Sun & Saenko (2016) choose λ so the two losses are about equal at the end of training, which gives λ ≈ 1000 here (0.37 / 3.5×10⁻⁴). The grid is that value ×0.1, ×1 and ×10. λ = 1000 is the untuned, label-free setting: the rule uses only source labels and unlabelled target images.
 
 ## D9. Small protocol details
 

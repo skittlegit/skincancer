@@ -1,6 +1,6 @@
 # E7: Deep CORAL with unlabelled target_train. Early stop on source_val (label-free);
-# λ is picked afterwards on target_val (D1).
-#   python -m skincancer.train --config configs/e7_coral.yaml --set train.coral_lambda=10 --seed 0
+# λ grid {100, 1000, 10000} (D13), picked afterwards on target_val (D1).
+#   python -m skincancer.train --config configs/e7_coral.yaml --set train.coral_lambda=10000 --seed 0
 extends: base.yaml
 name: e7_coral_l{train.coral_lambda}
 mode: coral

@@ -102,8 +102,9 @@ def train_mlp(Xtr, ytr, Xva, yva, k: int, seed: int, epochs=200, patience=15) ->
     return net.eval()
 
 
-def run_seed(source_exp: str, seed: int, eval_splits: list[str], final: list[str], force: bool, workers: int):
-    sdir = Path("runs") / source_exp / f"s{seed}"
+def run_seed(source_exp: str, seed: int, eval_splits: list[str], final: list[str], force: bool, workers: int,
+             runs_dir: str = "runs"):
+    sdir = Path(runs_dir) / source_exp / f"s{seed}"
     model, cfg = runs.load_run(sdir)
     manifest = pd.read_csv(cfg["manifest"])
     classes = runs.classes_of(cfg)
@@ -153,9 +154,10 @@ def main(argv=None):
     ap.add_argument("--final", nargs="*", default=[])
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--runs-dir", default="runs")
     args = ap.parse_args(argv)
     for s in args.seeds:
-        run_seed(args.source_exp, s, args.splits, args.final, args.force, args.workers)
+        run_seed(args.source_exp, s, args.splits, args.final, args.force, args.workers, args.runs_dir)
 
 
 if __name__ == "__main__":

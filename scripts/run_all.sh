@@ -22,14 +22,14 @@ for f in 10 25 50 100; do for s in $SEEDS; do
 # --- E6: texture fusion on cached features ----------------------------------------------
 python -m skincancer.fusion --source-exp e1_effb0 --seeds $SEEDS
 
-# --- E7: Deep CORAL; pick λ on target_val, keep λ=1 as the untuned number (D1) ----------
-for l in 0.1 1.0 10.0; do for s in $SEEDS; do
+# --- E7: Deep CORAL; pick λ on target_val; λ=1000 is the untuned label-free number (D13) --
+for l in 100.0 1000.0 10000.0; do for s in $SEEDS; do
   $T --config configs/e7_coral.yaml --seed $s --set train.coral_lambda=$l; done; done
 
 # --- Evaluate everything on the non-final splits ----------------------------------------
 python -m skincancer.evaluate --exp e1_effb0 e1_r50 e3_cc e3_clahe e3_crop e3_all e4_indian_loss \
   e5_f10 e5_f25 e5_f50 e5_f100 e6_fusion e6_embed_mlp e6_texture_lr \
-  e7_coral_l0.1 e7_coral_l1.0 e7_coral_l10.0
+  e7_coral_l100.0 e7_coral_l1000.0 e7_coral_l10000.0
 python -m skincancer.evaluate --exp e1_effb0 --prior-mix all
 
 # --- E8 and the test-only sets: by hand, once, after choosing on target_val --------------

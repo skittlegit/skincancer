@@ -44,7 +44,7 @@ One config per experiment in [configs/](configs/). `--set key=value` overrides a
 ```bash
 python -m skincancer.train --config configs/e1_effb0.yaml --seed 0
 python -m skincancer.train --config configs/e5_finetune.yaml --seed 0 --set data.fraction=25
-python -m skincancer.train --config configs/e7_coral.yaml --seed 0 --set train.coral_lambda=10
+python -m skincancer.train --config configs/e7_coral.yaml --seed 0 --set train.coral_lambda=10000
 python -m skincancer.fusion --source-exp e1_effb0 --seeds 0 1 2                     # E6
 python -m skincancer.evaluate --exp e1_effb0 [--prior-mix all]                       # E4 prior shift
 python -m skincancer.predict --run runs/e1_effb0/s0 --splits ddi_test dermacon_test --final
@@ -54,12 +54,12 @@ python -m skincancer.predict --run runs/e1_effb0/s0 --splits ddi_test dermacon_t
 
 ```bash
 python -m skincancer.report tables --ref e1_effb0          # results/summary.csv (with gap)
-python -m skincancer.report gap --exps e1_effb0 e3_all e6_fusion e7_coral_l1.0
+python -m skincancer.report gap --exps e1_effb0 e3_all e6_fusion e7_coral_l1000.0
 python -m skincancer.report curve --ref e1_effb0           # E5 data-size curve
 python -m skincancer.report confusion --exp e1_effb0 --split target_test
 python -m skincancer.analysis.lookalike --exp e1_effb0     # which lookalikes get confused
 python -m skincancer.analysis.gradcam --run runs/e1_effb0/s0 --split target_test
-python -m skincancer.analysis.probe --run runs/e1_effb0/s0 runs/e7_coral_l1.0/s0
+python -m skincancer.analysis.probe --run runs/e1_effb0/s0 runs/e7_coral_l1000.0/s0
 python -m skincancer.analysis.umap_plot --run runs/e1_effb0/s0
 ```
 
