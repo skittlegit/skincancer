@@ -50,7 +50,7 @@ python -m skincancer.evaluate --exp e1_effb0 [--prior-mix all]                  
 python -m skincancer.predict --run runs/e1_effb0/s0 --splits ddi_test dermacon_test --final
 ```
 
-[scripts/run_all.sh](scripts/run_all.sh) has every run in order. Analysis and figures:
+[scripts/run_all.sh](scripts/run_all.sh) runs every experiment block in order (`PY=.venv/Scripts/python bash scripts/run_all.sh [e1 e3 ...]`), scores each finished method once on the external test sets, and commits + pushes results after each block. Analysis and figures:
 
 ```bash
 python -m skincancer.report tables --ref e1_effb0          # results/summary.csv (with gap)

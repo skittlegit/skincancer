@@ -1,39 +1,90 @@
 #!/usr/bin/env bash
-# Every experiment in order, 3 seeds each. Safe to re-run: finished runs are skipped.
-# Run sections separately on Kaggle/Colab sessions; each section only needs the ones above it.
-set -euo pipefail
+# Every experiment in order, 3 seeds each, with an evaluate + commit + push checkpoint after
+# each block. Safe to re-run: finished runs are skipped and the ledger refuses double scoring.
+#   PY=.venv/Scripts/python bash scripts/run_all.sh          # Windows venv
+#   PY=python bash scripts/run_all.sh                         # Kaggle / Colab
+# Blocks can be run alone: bash scripts/run_all.sh e3 e4
+set -uo pipefail
+PY=${PY:-python}
 SEEDS="0 1 2"
-T="python -m skincancer.train"
 FINAL="ddi_test dermacon_test dermacon_other pad_dark_test"
+LOGS=runs/logs
+mkdir -p "$LOGS"
+export PYTHONUNBUFFERED=1
 
-# --- E1 / E2: source-only baselines (E2 = their target / test-only scores) --------------
-for s in $SEEDS; do $T --config configs/e1_effb0.yaml --seed $s; $T --config configs/e1_r50.yaml --seed $s; done
+train() {  # train <config> <seed> [--set k=v ...]
+  local cfg=$1 seed=$2; shift 2
+  local tag; tag=$(basename "$cfg" .yaml)_s${seed}$(printf '_%s' "$@" | tr -c 'A-Za-z0-9._-' '_')
+  echo "[$(date +%H:%M)] train $tag"
+  $PY -m skincancer.train --config "$cfg" --seed "$seed" "$@" > "$LOGS/$tag.log" 2>&1 || echo "  FAILED: see $LOGS/$tag.log"
+}
 
-# --- E3: image processing, one step at a time and all together -------------------------
-for c in cc clahe crop all; do for s in $SEEDS; do $T --config configs/e3_$c.yaml --seed $s; done; done
+final() {  # final <exp>: score each seed once on the external test sets (ledger-enforced)
+  for s in $SEEDS; do
+    [ -f "runs/$1/s$s/best.pt" ] && $PY -m skincancer.predict --run "runs/$1/s$s" --splits $FINAL --final \
+      >> "$LOGS/final_$1.log" 2>&1
+  done
+}
 
-# --- E4: Indian priors (weighted loss; prior-shift needs no training, see evaluate) ------
-for s in $SEEDS; do $T --config configs/e4_indian_loss.yaml --seed $s; done
+evaluate() { $PY -m skincancer.evaluate --exp "$@" >> "$LOGS/evaluate.log" 2>&1; }
 
-# --- E5: localized fine-tuning curve (0% = E1) ------------------------------------------
-for f in 10 25 50 100; do for s in $SEEDS; do
-  $T --config configs/e5_finetune.yaml --seed $s --set data.fraction=$f; done; done
+checkpoint() {  # commit + push results and the test-only ledger
+  git add -f results/*/metrics.csv runs/final_ledger.csv 2>/dev/null
+  if ! git diff --cached --quiet; then
+    git commit -q -m "Results: $1
 
-# --- E6: texture fusion on cached features ----------------------------------------------
-python -m skincancer.fusion --source-exp e1_effb0 --seeds $SEEDS
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git push -q && echo "  pushed: $1"
+  fi
+}
 
-# --- E7: Deep CORAL; pick λ on target_val; λ=1000 is the untuned label-free number (D13) --
-for l in 100.0 1000.0 10000.0; do for s in $SEEDS; do
-  $T --config configs/e7_coral.yaml --seed $s --set train.coral_lambda=$l; done; done
+block_e1() {
+  for s in $SEEDS; do train configs/e1_effb0.yaml $s; done
+  final e1_effb0; evaluate e1_effb0
+  $PY -m skincancer.evaluate --exp e1_effb0 --prior-mix all >> "$LOGS/evaluate.log" 2>&1   # E4 prior shift
+  checkpoint "E1/E2 EfficientNet-B0 baseline (+E4 prior-shift sweep)"
+  for s in $SEEDS; do train configs/e1_r50.yaml $s; done
+  final e1_r50; evaluate e1_r50
+  checkpoint "E1/E2 ResNet50 baseline"
+}
 
-# --- Evaluate everything on the non-final splits ----------------------------------------
-python -m skincancer.evaluate --exp e1_effb0 e1_r50 e3_cc e3_clahe e3_crop e3_all e4_indian_loss \
-  e5_f10 e5_f25 e5_f50 e5_f100 e6_fusion e6_embed_mlp e6_texture_lr \
-  e7_coral_l100.0 e7_coral_l1000.0 e7_coral_l10000.0
-python -m skincancer.evaluate --exp e1_effb0 --prior-mix all
+block_e3() {
+  for c in cc clahe crop all; do
+    for s in $SEEDS; do train configs/e3_$c.yaml $s; done
+    final e3_$c; evaluate e3_$c
+  done
+  checkpoint "E3 image processing ablation"
+}
 
-# --- E8 and the test-only sets: by hand, once, after choosing on target_val --------------
-#   edit configs/e8_combined.yaml, train it for both backbones, then for each finished method:
-#   for s in $SEEDS; do python -m skincancer.predict --run runs/<exp>/s$s --splits $FINAL --final; done
-#   python -m skincancer.fusion --source-exp e1_effb0 --seeds $SEEDS --final $FINAL
-#   python -m skincancer.evaluate --exp <exp> ...
+block_e4() {
+  for s in $SEEDS; do train configs/e4_indian_loss.yaml $s; done
+  final e4_indian_loss; evaluate e4_indian_loss
+  checkpoint "E4 Indian-prior weighted loss"
+}
+
+block_e5() {
+  for f in 10 25 50 100; do
+    for s in $SEEDS; do train configs/e5_finetune.yaml $s --set data.fraction=$f; done
+    final e5_f$f; evaluate e5_f$f
+  done
+  checkpoint "E5 localized fine-tuning curve"
+}
+
+block_e6() {
+  echo "[$(date +%H:%M)] fusion"
+  $PY -m skincancer.fusion --source-exp e1_effb0 --seeds $SEEDS --final $FINAL > "$LOGS/e6_fusion.log" 2>&1
+  evaluate e6_fusion e6_embed_mlp e6_texture_lr
+  checkpoint "E6 texture fusion"
+}
+
+block_e7() {
+  for l in 100.0 1000.0 10000.0; do
+    for s in $SEEDS; do train configs/e7_coral.yaml $s --set train.coral_lambda=$l; done
+    final e7_coral_l$l; evaluate e7_coral_l$l
+  done
+  checkpoint "E7 Deep CORAL lambda sweep"
+}
+
+# E8 is chosen by hand on target_val after E3-E7 (see configs/e8_combined.yaml).
+BLOCKS=${*:-e1 e3 e4 e5 e6 e7}
+for b in $BLOCKS; do "block_$b"; done
+echo "[$(date +%H:%M)] all done"
