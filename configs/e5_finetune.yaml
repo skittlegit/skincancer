@@ -1,0 +1,9 @@
+# E5: fine-tune the E1 model on a fraction of target_train; early stop on target_val (D1).
+#   python -m skincancer.train --config configs/e5_finetune.yaml --set data.fraction=25 --seed 0
+extends: base.yaml
+name: e5_f{data.fraction}
+mode: finetune
+init_from: runs/e1_effb0/s{seed}/best.pt
+train:
+  stages:
+    - {epochs: 30, unfreeze: 3, lr_head: 1.0e-4, lr_backbone: 1.0e-5, early_stop: true, patience: 5}

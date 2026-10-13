@@ -1,0 +1,8 @@
+# Pilot E1 on whatever data is present (validates the real-data path and timings).
+extends: e1_effb0.yaml
+manifest: data/pilot/manifest.csv
+groups: data/pilot/groups.csv
+splits_dir: data/pilot/splits
+runs_dir: runs/pilot
+results_dir: results/pilot
+name: e1_effb0

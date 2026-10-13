@@ -1,0 +1,5 @@
+# E4 (weighted-loss variant). The prior-shift variant needs no training:
+#   python -m skincancer.evaluate --exp e1_effb0 --prior-mix all
+extends: base.yaml
+name: e4_indian_loss
+train: {class_weighting: indian, prior_mix: consensus}

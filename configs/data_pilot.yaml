@@ -1,0 +1,5 @@
+# Pilot: same data, separate outputs, so the canonical manifest/splits stay untouched.
+extends: data.yaml
+manifest: data/pilot/manifest.csv
+groups: data/pilot/groups.csv
+splits_dir: data/pilot/splits

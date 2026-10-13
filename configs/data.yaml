@@ -1,0 +1,42 @@
+# Paths and dataset layouts. Every path is relative to the repo root unless noted.
+data_root: data/raw            # raw downloads; image paths in the manifest are relative to this
+manifest: data/manifest.csv
+label_map: data/label_map.csv
+groups: data/groups.csv
+splits_dir: data/splits
+cache_dir: data/cache          # preprocessed-image cache, keyed by preprocessing settings
+features_dir: data/features    # cached texture features
+
+datasets:
+  fitzpatrick17k:
+    csv: fitzpatrick17k/fitzpatrick17k.csv
+    image_dir: fitzpatrick17k/images          # <md5hash>.jpg, written by download_fitzpatrick17k
+  pad_ufes_20:
+    csv: pad_ufes_20/metadata.csv
+    image_dir: pad_ufes_20/images             # merge imgs_part_1..3 into this folder
+  ddi:
+    csv: ddi/ddi_metadata.csv
+    image_dir: ddi/images
+  dermacon_in:
+    # Harvard Dataverse doi:10.7910/DVN/W7OUZM (CC BY-NC-SA 4.0). Skin_Metadata.tab saved as CSV.
+    csv: dermacon_in/Skin_Metadata.csv
+    image_dir: dermacon_in/DATASET
+    columns:
+      image: Image_name
+      diagnosis: Disease_label
+      fst: Fitzpatrick          # "FST 1".."FST 6" / "N/A"
+      patient_id: Subject_ID
+      site: Body_part
+      quality: Quality          # "No, the quality is insufficient for diagnosis" -> excluded
+
+splits:
+  seed: 2026                   # split seed; independent of training seeds
+  source: [0.70, 0.15, 0.15]   # FST I-III  -> source_train / source_val / source_test   (D1)
+  target: [0.60, 0.20, 0.20]   # FST IV-VI  -> target_train / target_val / target_test
+  e5_fractions: [10, 25, 50]   # nested subsets of target_train, per training seed (D9)
+  e5_seeds: [0, 1, 2]
+  min_pad_dark: 20             # D4
+
+dedup:                         # calibrated by eye on real pairs (D10)
+  phash_max_distance: 2        # Hamming distance on 64-bit pHash; >=4 collides on unrelated lesions
+  embed_min_cosine: 0.90       # ImageNet EfficientNet-B0 embedding; >=0.90 was always the same lesion

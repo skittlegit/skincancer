@@ -1,0 +1,46 @@
+extends: data.yaml
+
+name: base                     # experiment name; runs go to runs/<name>/s<seed>/
+seed: 0
+runs_dir: runs
+results_dir: results
+
+mode: source                   # source | finetune | coral
+init_from: null                # checkpoint to start from (finetune); may use {seed}
+
+data:
+  label_col: label_4class      # label_3class after the D6 merge
+  img_size: 224
+  resize_short: 256
+  fraction: 100                # finetune only: % of target_train (E5)
+  preprocess:                  # E3; applied before augmentation, cached on disk
+    color_constancy: false
+    clahe: false
+    lesion_crop: false
+
+model:
+  backbone: efficientnet_b0
+  pretrained: true
+  drop: 0.2
+
+train:
+  batch_size: 32
+  num_workers: 4
+  weight_decay: 0.01
+  class_weighting: balanced    # balanced | indian | none   (D7)
+  prior_mix: consensus         # used when class_weighting = indian
+  coral_lambda: 1.0            # coral mode only
+  amp: true
+  stages:
+    - {epochs: 5, unfreeze: 0, lr_head: 1.0e-3, lr_backbone: 0.0, early_stop: false}
+    - {epochs: 30, unfreeze: 3, lr_head: 1.0e-4, lr_backbone: 1.0e-5, early_stop: true, patience: 5}
+
+eval:
+  # Predicted automatically after training. Test-only sets (ddi_test, dermacon_test,
+  # pad_dark_test) are never here: they go through `predict --final` (D9).
+  splits: [source_val, source_test, target_val, target_test, ak_side]
+  n_boot: 1000
+
+wandb:
+  enabled: false
+  project: skincancer-da

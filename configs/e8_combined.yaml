@@ -1,0 +1,7 @@
+# E8: fill in after E3-E7, choosing on target_val only. Example below: all preprocessing,
+# Indian-weighted loss, CORAL at the chosen λ. Copy to e8_r50.yaml with model.backbone: resnet50.
+extends: base.yaml
+name: e8_effb0
+mode: coral
+data: {preprocess: {color_constancy: true, clahe: true, lesion_crop: true}}
+train: {class_weighting: indian, coral_lambda: 1.0}

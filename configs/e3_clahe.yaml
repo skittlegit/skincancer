@@ -1,0 +1,4 @@
+# E3: one image-processing step on.
+extends: base.yaml
+name: e3_clahe
+data: {preprocess: {clahe: true}}

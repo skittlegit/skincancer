@@ -1,0 +1,21 @@
+# Kaggle/Colab already ship torch + torchvision; install the rest with
+#   pip install -r requirements.txt && pip install -e . --no-deps
+torch>=2.2
+torchvision>=0.17
+timm>=1.0
+albumentations>=2.0,<3
+opencv-python-headless>=4.8
+scikit-image>=0.22
+scikit-learn>=1.4
+numpy>=1.26
+pandas>=2.1
+pyyaml>=6.0
+pillow>=10.0
+imagehash>=4.3
+grad-cam>=1.5
+umap-learn>=0.5
+matplotlib>=3.8
+tqdm>=4.66
+requests>=2.31
+wandb>=0.17
+pytest>=8.0

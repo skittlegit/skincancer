@@ -1,0 +1,4 @@
+# E3: all three image-processing steps on.
+extends: base.yaml
+name: e3_all
+data: {preprocess: {color_constancy: true, clahe: true, lesion_crop: true}}

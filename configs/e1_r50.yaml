@@ -1,0 +1,7 @@
+extends: base.yaml
+name: e1_r50
+model: {backbone: resnet50}
+train:
+  stages:
+    - {epochs: 5, unfreeze: 0, lr_head: 1.0e-3, lr_backbone: 0.0, early_stop: false}
+    - {epochs: 30, unfreeze: 1, lr_head: 1.0e-4, lr_backbone: 1.0e-5, early_stop: true, patience: 5}
