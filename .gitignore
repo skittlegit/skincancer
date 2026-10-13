@@ -13,3 +13,6 @@ wandb/
 *.npz
 data/pilot/
 *.log
+# Committed deliberately at data checkpoints only (contain DDI metadata: private repo only)
+data/manifest.csv
+data/groups.csv
