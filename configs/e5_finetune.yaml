@@ -6,4 +6,4 @@ mode: finetune
 init_from: runs/e1_effb0/s{seed}/best.pt
 train:
   stages:
-    - {epochs: 30, unfreeze: 3, lr_head: 1.0e-4, lr_backbone: 1.0e-5, early_stop: true, patience: 5}
+    - {epochs: 30, unfreeze: 3, lr_head: 1.0e-4, lr_backbone: 3.0e-5, early_stop: true, patience: 5}

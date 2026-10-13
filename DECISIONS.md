@@ -73,6 +73,10 @@ Calibration used ~4,000 real images (PAD-UFES-20, DDI, the Fitzpatrick17k images
 - **Embedding cosine ≥ 0.90** (ImageNet EfficientNet-B0). Every pair at or above 0.90 was the same lesion: re-crops, watermarked copies, or a second photo of the same lesion. All of them were within one dataset. Below ~0.89, pairs are merely similar-looking skin.
 - A group is the union of: same patient, pHash ≤ 2, and cosine ≥ 0.90.
 
+## D11. Stage-2 learning rate: 3e-5, not 1e-5
+
+Chosen on `source_val` only (pilot split, EfficientNet-B0, seed 0, 14 Oct 2026). Best source_val macro AUC: 1e-5 → 0.858 (epoch 30 of 35, still rising at the cap); 3e-5 → 0.866 (epoch 17); 1e-4 → 0.867 (epoch 13). The AUC differences are within noise. The deciding factor is that 1e-5 doesn't converge within the epoch budget. 3e-5 was preferred to 1e-4 because it is gentler on the small E5 fine-tuning sets. The head learning rate stays at 1e-4. Applies to every config (base, ResNet50, E5).
+
 ## D9. Small protocol details
 
 - **E5 fractions are nested.** For each seed, 10% ⊂ 25% ⊂ 50% ⊂ 100% of `target_train`, sampled by group and stratified by class. The 0% point is E1 itself.

@@ -33,7 +33,7 @@ train:
   amp: true
   stages:
     - {epochs: 5, unfreeze: 0, lr_head: 1.0e-3, lr_backbone: 0.0, early_stop: false}
-    - {epochs: 30, unfreeze: 3, lr_head: 1.0e-4, lr_backbone: 1.0e-5, early_stop: true, patience: 5}
+    - {epochs: 30, unfreeze: 3, lr_head: 1.0e-4, lr_backbone: 3.0e-5, early_stop: true, patience: 5}
 
 eval:
   # Predicted automatically after training. Test-only sets (ddi_test, dermacon_test,
