@@ -52,7 +52,9 @@ Status (14 Oct 2026): first-pass review of all 443 rows done (`review_note` colu
 
 `count_check` recommends the 3-class view (`nmsc / mel / benign`) when `target_test` would hold **fewer than 15 SCC images**: one-vs-rest AUC on fewer positives than that is noise. The decision is made once in week 2 and recorded here. Switching is one config line (`data.label_col: label_3class`).
 
-> Week-2 result: _fill in_ (SCC count in target_test = __; label_col = __)
+> **Data v1 result (14 Oct 2026):** SCC in target_test = 16 (≥ 15), so `label_col = label_4class`. It's a near miss, so it gets re-checked when the full Fitzpatrick17k set arrives (data v2). Caveat: target_test holds only 6 benign images, so target-side benign recall and false-alarm rates have very wide CIs in v1.
+
+**Data v1 contents:** Fitzpatrick17k 1,919 of 4,491 neoplastic images (Atlas 1,083 + Wayback 836, all MD5-verified), PAD-UFES-20 complete, DDI complete, DermaCon-IN complete. Splits: source 1255 / 271 / 271, target 152 / 51 / 51, DDI 656, DermaCon-IN 65 + 5,379 non-cancer, pad_dark_test 60, ak_side 246. Twelve DermaCon-IN patients appear in both `dermacon_test` and `dermacon_other`. Both are external test sets, so nothing leaks, but don't pool the two sets.
 
 ## D7. How class priors work (E4)
 

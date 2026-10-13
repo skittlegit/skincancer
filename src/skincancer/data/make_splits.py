@@ -138,11 +138,17 @@ def make(manifest: pd.DataFrame, cfg: dict, groups: pd.DataFrame | None = None):
     return df.drop(columns="pool"), fractions
 
 
+EXTERNAL_TEST = {"ddi_test", "dermacon_test", "dermacon_other", "pad_dark_test"}
+
+
 def check_no_leakage(df: pd.DataFrame) -> None:
+    """No group may span two splits, unless every split it touches is an external test set
+    (e.g. a DermaCon-IN patient with a cancer and a non-cancer image): nothing trains or
+    selects on those, so sharing a patient between them cannot leak."""
     used = df[df["split"] != "excluded"]
-    per_group = used.groupby("group_id")["split"].nunique()
-    bad = per_group[per_group > 1]
-    assert bad.empty, f"{len(bad)} groups appear in more than one split"
+    splits = used.groupby("group_id")["split"].agg(set)
+    bad = splits[splits.map(lambda s: len(s) > 1 and not s <= EXTERNAL_TEST)]
+    assert bad.empty, f"{len(bad)} groups appear in more than one split: {bad.head().to_dict()}"
 
 
 def write(df: pd.DataFrame, fractions: dict, cfg: dict) -> None:

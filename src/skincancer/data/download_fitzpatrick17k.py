@@ -123,6 +123,17 @@ def fetch(url: str, expected_md5: str, dest: Path, wayback: bool = True) -> str 
         if data is not None and md5(data) == expected_md5:
             dest.write_bytes(data)
             return None
+        # The indexed capture can be broken; try every other 200 capture of this URL.
+        listing, _ = _get(f"https://web.archive.org/cdx/search/cdx?url={snap[0]}&filter=statuscode:200"
+                          f"&fl=original,timestamp", retries=2)
+        for line in (listing or b"").decode(errors="ignore").splitlines():
+            parts = line.split(" ")
+            if len(parts) < 2 or parts[1] == snap[1]:
+                continue
+            data, werr = _get(f"https://web.archive.org/web/{parts[1]}id_/{parts[0]}", retries=2)
+            if data is not None and md5(data) == expected_md5:
+                dest.write_bytes(data)
+                return None
         return f"{err}; wayback: {'md5_mismatch' if data is not None else werr}"
     # No index: snapshots were taken over http:// but the CSV says https://, and playback
     # doesn't match across schemes, so try both.

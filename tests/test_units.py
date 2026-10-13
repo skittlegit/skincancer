@@ -120,3 +120,13 @@ def test_set_trainable(backbone, unfreeze, expect_trainable):
                  for n, p in m.backbone.named_parameters() if p.requires_grad}
     assert trainable == {t for t in expect_trainable}
     assert all(p.requires_grad for p in m.head.parameters())
+
+
+def test_leakage_check_allows_external_tests_only():
+    import pandas as pd
+    from skincancer.data.make_splits import check_no_leakage
+    ok = pd.DataFrame({"group_id": ["a", "a", "b"], "split": ["dermacon_test", "dermacon_other", "source_train"]})
+    check_no_leakage(ok)
+    bad = pd.DataFrame({"group_id": ["a", "a"], "split": ["source_train", "ddi_test"]})
+    with pytest.raises(AssertionError):
+        check_no_leakage(bad)
