@@ -24,26 +24,39 @@ def clahe_l(img: np.ndarray, clip: float = 2.0, tile: int = 8) -> np.ndarray:
 
 
 def lesion_crop(img: np.ndarray, margin: float = 0.15, ring: float = 0.1,
-                min_area: float = 0.01, max_area: float = 0.9) -> tuple[np.ndarray, bool]:
+                min_area: float = 0.002, max_area: float = 0.9) -> tuple[np.ndarray, bool]:
     """Crop to the region most different in LAB from the surrounding skin.
 
-    Skin colour = median of an outer ring of the image. The distance map is Otsu-thresholded;
-    the component scoring highest on area x closeness to centre wins. Falls back to a
-    central 80% crop (returns ok=False) when nothing plausible is found.
+    Skin colour = median of an outer ring of the image. Pixels that are not skin-like
+    (rulers / paper: bright and colourless; background, clothing, hair: very dark) are
+    removed first, and a larger opening drops thin hairs. The distance map is
+    Otsu-thresholded; the component scoring highest on area x closeness to centre wins.
+    Falls back to a central 80% crop (returns ok=False) when nothing plausible is found.
     """
     h, w = img.shape[:2]
     small = cv2.resize(img, (256, int(256 * h / w))) if w > 256 else img
     sh, sw = small.shape[:2]
     lab = cv2.cvtColor(small, cv2.COLOR_RGB2LAB).astype(np.float32)
+    L, chroma = lab[..., 0], np.hypot(lab[..., 1] - 128, lab[..., 2] - 128)
+    # OpenCV LAB: L in 0..255, a/b centred at 128. Rulers/paper are masked anywhere; dark
+    # regions only if they touch the border (background, clothing), so a very dark lesion
+    # in the middle of the image is never masked.
+    paper = (L > 200) & (chroma < 12)
+    n_d, lab_d = cv2.connectedComponents((L < 25).astype(np.uint8))
+    edge_ids = set(np.unique(np.r_[lab_d[0], lab_d[-1], lab_d[:, 0], lab_d[:, -1]])) - {0}
+    dark_bg = np.isin(lab_d, list(edge_ids)) if edge_ids else np.zeros_like(paper)
+    not_skin = cv2.dilate((paper | dark_bg).astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool)
     r = max(1, int(ring * min(sh, sw)))
     mask_ring = np.zeros((sh, sw), bool)
     mask_ring[:r], mask_ring[-r:], mask_ring[:, :r], mask_ring[:, -r:] = True, True, True, True
-    skin = np.median(lab[mask_ring], axis=0)
+    ring_skin = mask_ring & ~not_skin
+    skin = np.median(lab[ring_skin if ring_skin.sum() > 50 else mask_ring], axis=0)
     dist = np.sqrt(((lab - skin) ** 2 * np.array([0.5, 1.0, 1.0])).sum(-1))
+    dist[not_skin] = 0.0
     dist = cv2.GaussianBlur(dist, (0, 0), 3)
     d8 = cv2.normalize(dist, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
     _, binary = cv2.threshold(d8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
     binary = cv2.morphologyEx(cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel), cv2.MORPH_CLOSE, kernel)
     n, labels, stats, cents = cv2.connectedComponentsWithStats(binary)
 
@@ -121,6 +134,9 @@ def main(argv=None):
     cfg = load_data_config(args.data_config)
     m = pd.read_csv(cfg["manifest"])
     m = m[m["split"].fillna("excluded") != "excluded"]
+    # Contact sheet from training splits only: tuning the crop by looking at test images
+    # would be test-set peeking, and DDI's terms forbid showing its images.
+    train_m = m[m["split"].isin(["source_train", "target_train"])]
     root = Path(cfg["data_root"])
     rows = []
     for r in m.itertuples():
@@ -131,7 +147,7 @@ def main(argv=None):
     res.to_csv("results/crop_check.csv", index=False)
     print("crop failure rate (fallback to centre crop):")
     print((1 - res.groupby(["dataset", "fst_bucket"])["crop_ok"].mean()).round(3).to_string())
-    sample = m.sample(min(args.n, len(m)), random_state=0)
+    sample = train_m.sample(min(args.n, len(train_m)), random_state=0)
     cols = 10
     rows_n = int(np.ceil(len(sample) / cols))
     fig, axes = plt.subplots(rows_n, cols, figsize=(cols * 1.4, rows_n * 1.5), dpi=120, squeeze=False)

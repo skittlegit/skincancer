@@ -77,6 +77,17 @@ Calibration used ~4,000 real images (PAD-UFES-20, DDI, the Fitzpatrick17k images
 
 Chosen on `source_val` only (pilot split, EfficientNet-B0, seed 0, 14 Oct 2026). Best source_val macro AUC: 1e-5 → 0.858 (epoch 30 of 35, still rising at the cap); 3e-5 → 0.866 (epoch 17); 1e-4 → 0.867 (epoch 13). The AUC differences are within noise. The deciding factor is that 1e-5 doesn't converge within the epoch budget. 3e-5 was preferred to 1e-4 because it is gentler on the small E5 fine-tuning sets. The head learning rate stays at 1e-4. Applies to every config (base, ResNet50, E5).
 
+## D12. Lesion crop: tuned on training images only; failure rate judged by eye
+
+- **First version:** latched onto white rulers, dark clothing or background, and hair in ~10% of crops.
+- **Fixes:**
+  - mask bright, colourless pixels (rulers, paper) anywhere;
+  - mask very dark pixels only where they touch the image border (background, clothing), so a dark central melanoma is never masked;
+  - a 9 px opening to remove thin hairs;
+  - minimum lesion area 0.2% of the image instead of 1%.
+- **Tuning data:** contact sheets sample `source_train` / `target_train` only. Looking at test images to tune would be test-set peeking, and DDI's terms forbid showing its images.
+- **After the fixes,** ~5 of 60 training crops (~8%) are off target, mostly wide face shots where the lesion is tiny. The automatic fallback (`crop_ok`) almost never triggers, so it under-reports failures. E3 therefore reports the **by-eye failure rate on 100 training crops**, not `crop_ok`.
+
 ## D9. Small protocol details
 
 - **E5 fractions are nested.** For each seed, 10% ⊂ 25% ⊂ 50% ⊂ 100% of `target_train`, sampled by group and stratified by class. The 0% point is E1 itself.
