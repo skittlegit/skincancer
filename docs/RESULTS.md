@@ -118,3 +118,20 @@ Heads on the frozen E1 embedding (1280-d) and 78 hand-crafted texture features (
 - **Texture adds nothing on top of the CNN embedding.** Fusion and the embedding-only control are within 0.01 everywhere, with the control's target val slightly higher (0.882 vs 0.879). Whatever the 78 features capture, the embedding already has it.
 - Texture alone is much weaker in-domain (target val 0.67). Its DDI V–VI AUC (0.58) is the highest of any model so far and sits near its DDI I–II score (0.57), so it degrades less with skin tone. But the CI includes chance, so this is a hint, not a finding. Its threshold also transfers badly (68% of DermaCon-IN non-cancer images called malignant).
 - Exploratory note for data v2: test whether hand-crafted texture is less skin-tone dependent with more DDI-like data. Not pursued now (no selection on test sets).
+
+## E7: Deep CORAL, λ sweep (14 Oct 2026)
+
+Source-trained with a CORAL term that aligns feature covariances with the unlabelled Fitzpatrick17k IV–VI training images. λ is chosen on target val (D1, D13).
+
+| | Target val macro (selection) | Source test | Target test | PAD-UFES-20 IV–VI | DDI I–II | **DDI V–VI** | DDI V–VI missed (op90) | DermaCon-IN | DermaCon-IN non-cancer called malignant (op90) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E1 | 0.891 | 0.864 | 0.866 | 0.828 | 0.682 | 0.502 [0.40, 0.60] | 66% | 0.690 | 15% |
+| CORAL λ = 100 | 0.872 | 0.851 | 0.858 | 0.834 | 0.682 | 0.507 [0.40, 0.61] | 69% | 0.720 | 17% |
+| **CORAL λ = 1000 (selected)** | **0.883** | 0.859 | 0.877 | 0.846 | 0.690 | 0.522 [0.42, 0.62] | 71% | 0.728 | 14% |
+| CORAL λ = 10000 | 0.868 | 0.847 | 0.853 | 0.864 | 0.692 | 0.557 [0.46, 0.66] | 62% | 0.729 | 17% |
+
+**Reading (RQ5):**
+- On target val, λ = 1000 is the best CORAL setting, but no λ beats E1 (0.891).
+- On the external sets the direction is consistent: stronger alignment raises DDI V–VI (0.50 → 0.52 → 0.56), DermaCon-IN (0.69 → 0.73) and PAD-UFES-20 IV–VI (0.83 → 0.86). Every CI still overlaps E1's, and target val does not see the gain, so it is a trend, not a demonstrated fix. Target val comes from the same atlases as training, so it cannot reward alignment towards other institutions.
+- Missed cancers at the fixed operating point stay at 62–71% on DDI V–VI: alignment does not move scores enough for a light-skin threshold to transfer.
+- Run note: λ = 100 seed 1 crashed with an out-of-memory error after training. Its predictions were regenerated from the saved checkpoint (same inference; see commit 8630f1b).
