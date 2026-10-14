@@ -11,3 +11,15 @@ runs/e1_effb0/s2,ddi_test,781441d,2026-10-13T22:56:59+00:00
 runs/e1_effb0/s2,dermacon_test,781441d,2026-10-13T22:56:59+00:00
 runs/e1_effb0/s2,dermacon_other,781441d,2026-10-13T22:56:59+00:00
 runs/e1_effb0/s2,pad_dark_test,781441d,2026-10-13T22:56:59+00:00
+runs/e1_r50/s0,ddi_test,8d023e9,2026-10-14T00:49:21+00:00
+runs/e1_r50/s0,dermacon_test,8d023e9,2026-10-14T00:49:21+00:00
+runs/e1_r50/s0,dermacon_other,8d023e9,2026-10-14T00:49:21+00:00
+runs/e1_r50/s0,pad_dark_test,8d023e9,2026-10-14T00:49:21+00:00
+runs/e1_r50/s1,ddi_test,8d023e9,2026-10-14T00:53:25+00:00
+runs/e1_r50/s1,dermacon_test,8d023e9,2026-10-14T00:53:25+00:00
+runs/e1_r50/s1,dermacon_other,8d023e9,2026-10-14T00:53:25+00:00
+runs/e1_r50/s1,pad_dark_test,8d023e9,2026-10-14T00:53:25+00:00
+runs/e1_r50/s2,ddi_test,8d023e9,2026-10-14T00:57:33+00:00
+runs/e1_r50/s2,dermacon_test,8d023e9,2026-10-14T00:57:33+00:00
+runs/e1_r50/s2,dermacon_other,8d023e9,2026-10-14T00:57:33+00:00
+runs/e1_r50/s2,pad_dark_test,8d023e9,2026-10-14T00:57:33+00:00
