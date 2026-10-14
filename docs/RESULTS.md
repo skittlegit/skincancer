@@ -187,3 +187,36 @@ Fine-tuning the E1 model on nested fractions of Fitzpatrick17k IV–VI target_tr
 - DDI V–VI rises to 0.58, the largest gain on dark skin at another institution of any method so far. Missed cancers at the fixed operating point fall from 66% to 57%. The CI (0.47–0.68) still includes chance.
 - Other external sets get worse: DDI I–II −0.03, PAD-UFES-20 −0.03, DermaCon-IN −0.05, and twice as many DermaCon-IN non-cancer images are called malignant (29% vs 15%). Benign recall on source test drops (0.51 → 0.38). Derm7pt's benign class is almost all naevi, while the test sets' benign lookalikes are mostly seborrhoeic keratoses, dermatofibromas and other non-naevus lesions.
 - So more data helps only where the new data looks like the test lesions. Data v2 (the full Fitzpatrick17k, with benign lookalikes from the same atlases) is the better source of benign images.
+
+## E8: combined method (D19), both backbones
+
+| | Target val (selection) | Source test | Target test | PAD-UFES-20 IV–VI | DDI I–II | DDI V–VI | DDI V–VI missed (op90) | DermaCon-IN | DermaCon-IN non-cancer called malignant (op90) | MIDAS I–III |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E1 EffB0 | 0.891 | 0.864 | 0.866 | 0.828 | 0.682 | 0.502 | 66% | 0.690 | 15% | 0.721 |
+| E5s 100% EffB0 | 0.933 | 0.852 | 0.921 | 0.840 | 0.693 | 0.518 | 57% | 0.700 | 25% | 0.719 |
+| **E8 EffB0** | 0.932 | 0.855 | 0.918 [0.85, 0.97] | 0.828 | 0.692 | 0.505 [0.41, 0.61] | 60% | 0.693 | 27% | 0.718 |
+| E1 ResNet50 | 0.824 | 0.788 | 0.755 | 0.898 | 0.708 | 0.523 | 68% | 0.668 | 31% | 0.666 |
+| **E8 ResNet50** | 0.801 | 0.788 | 0.772 [0.65, 0.87] | 0.909 | 0.712 | 0.535 [0.43, 0.64] | 67% | 0.625 | 29% | 0.671 |
+
+**Reading:** E8 is E5 fine-tuning plus Indian-prior weighting, and it matches E5 alone. The weighting adds nothing, consistent with E4. On ResNet50, fine-tuning does not even raise target val (0.824 → 0.801; 51 images, so noisy). Neither backbone moves DDI V–VI or DermaCon-IN. **The best combination of the planned methods does not close the gap at another institution.**
+
+## Stronger baselines (D15)
+
+| | Source val | Target val | Source test | Target test | PAD-UFES-20 IV–VI | DDI I–II | DDI III–IV | **DDI V–VI** | DermaCon-IN | MIDAS I–III |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E1 EffB0 (224 px) | 0.846 | 0.891 | 0.864 | 0.866 | 0.828 | 0.682 | 0.670 | 0.502 [0.40, 0.60] | 0.690 | 0.721 [0.69, 0.76] |
+| E1 seed ensemble | 0.848 | 0.895 | 0.868 | 0.867 | — | 0.682 | — | 0.503 | 0.697 | 0.724 |
+| E1 320 px + flip TTA | 0.855 | 0.905 | 0.879 | 0.839 | 0.824 | 0.700 | 0.718 | 0.508 [0.40, 0.61] | 0.759 | 0.746 [0.71, 0.78] |
+| E1 + Derm7pt | 0.860 | 0.896 | 0.859 | 0.881 | 0.801 | 0.656 | 0.694 | 0.580 [0.47, 0.68] | 0.639 | 0.729 |
+| **Derm Foundation, linear probe** | **0.893** | **0.924** | **0.904** | **0.903** | 0.935† | **0.743** | **0.795** | **0.602 [0.51, 0.69]** | **0.886** | **0.815 [0.78, 0.85]** |
+| Derm Foundation, MLP head | 0.895 | 0.923 | 0.892 | 0.897 | 0.930† | 0.703 | 0.779 | 0.594 [0.52, 0.68] | 0.830 | 0.796 |
+| E1 embedding, same MLP head (E6 control) | 0.831 | 0.882 | 0.841 | 0.871 | 0.791 | 0.656 | 0.608 | 0.495 | 0.665 | 0.708 |
+
+† Fitzpatrick17k and PAD-UFES-20 images are public and may be in Derm Foundation's pre-training data ("public image-text pairs from the web" and "additional public images", per its model card), so those columns (source/target val and test, PAD) could be optimistic. DDI and MIDAS are access-controlled, and DermaCon-IN appears to post-date the model, so those columns are the trustworthy ones.
+
+**Reading:**
+- **A frozen dermatology foundation model beats every method in the plan on every external set**, with only a linear head trained on 1,255 light-skin images. The like-for-like comparison is the same MLP head on the E1 embedding versus on Derm Foundation: DDI V–VI 0.50 → 0.59, DermaCon-IN 0.67 → 0.83, MIDAS 0.71 → 0.80.
+- On DDI V–VI it is the first model whose CI excludes chance (0.51–0.69). The skin-tone gradient remains (DDI I–II 0.74, III–IV 0.80, V–VI 0.60), so pre-training on diverse clinical photos shrinks both the institution gap and the skin-tone gap without removing the latter.
+- **Its scores do not transfer as a threshold.** At the source-val operating point (D17) it misses only 21% of DDI V–VI cancers but calls 72% of DermaCon-IN non-cancer images malignant: its score scale shifts upwards on external images. A deployment would need a site-specific threshold.
+- 320 px + TTA helps light-skin external sets (MIDAS 0.72 → 0.75, DermaCon-IN 0.69 → 0.76) but not dark skin (DDI V–VI 0.51).
+- The linear probe chose C = 0.001, the edge of its grid, so a stronger penalty might do slightly better on validation (not re-run).
