@@ -80,3 +80,15 @@ runs/e3_all/s2,ddi_test,7fce633,2026-10-14T05:06:46+00:00
 runs/e3_all/s2,dermacon_test,7fce633,2026-10-14T05:06:46+00:00
 runs/e3_all/s2,dermacon_other,7fce633,2026-10-14T05:06:46+00:00
 runs/e3_all/s2,pad_dark_test,7fce633,2026-10-14T05:06:46+00:00
+runs/e4_indian_loss/s0,ddi_test,8bcfbc0,2026-10-14T05:58:32+00:00
+runs/e4_indian_loss/s0,dermacon_test,8bcfbc0,2026-10-14T05:58:32+00:00
+runs/e4_indian_loss/s0,dermacon_other,8bcfbc0,2026-10-14T05:58:32+00:00
+runs/e4_indian_loss/s0,pad_dark_test,8bcfbc0,2026-10-14T05:58:32+00:00
+runs/e4_indian_loss/s1,ddi_test,8bcfbc0,2026-10-14T06:01:23+00:00
+runs/e4_indian_loss/s1,dermacon_test,8bcfbc0,2026-10-14T06:01:23+00:00
+runs/e4_indian_loss/s1,dermacon_other,8bcfbc0,2026-10-14T06:01:23+00:00
+runs/e4_indian_loss/s1,pad_dark_test,8bcfbc0,2026-10-14T06:01:23+00:00
+runs/e4_indian_loss/s2,ddi_test,8bcfbc0,2026-10-14T06:04:22+00:00
+runs/e4_indian_loss/s2,dermacon_test,8bcfbc0,2026-10-14T06:04:22+00:00
+runs/e4_indian_loss/s2,dermacon_other,8bcfbc0,2026-10-14T06:04:22+00:00
+runs/e4_indian_loss/s2,pad_dark_test,8bcfbc0,2026-10-14T06:04:22+00:00
