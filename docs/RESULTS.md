@@ -2,6 +2,17 @@
 
 All results here are **data v1**: Fitzpatrick17k has 1,919 of 4,491 neoplastic images (see DECISIONS.md D6). Every run is re-done on data v2 once the authors' full image set arrives. Numbers are the mean over seeds 0, 1 and 2, with group-bootstrap 95% CIs (D8). Full tables are in `results/<exp>/metrics.csv`.
 
+## Headline findings (E1–E8 complete, 15 Oct 2026)
+
+1. **The gap is real and large on biopsy-proven external data.** A classifier trained on FST I–III falls to chance on DDI FST V–VI (binary AUC 0.50 [0.40, 0.60]). At a threshold that misses 10% of cancers in-domain, it misses two-thirds of FST V–VI cancers. ResNet50 shows the same collapse.
+2. **There are two shifts.** Moving to a new institution costs ≈ 0.17–0.21 AUC even on light skin (MIDAS, DDI I–II). Darker skin costs a further ≈ 0.18.
+3. **No planned method closes either gap at another institution.** Image processing (E3), Indian priors (E4), texture fusion (E6), CORAL (E7) and their combination (E8) all leave DDI V–VI within 0.50–0.56. The external CIs overlap E1's.
+4. **Dark-skin training data helps only where it came from.** Fine-tuning on Fitzpatrick17k IV–VI (E5) raises same-atlas target test from 0.87 to 0.92 but leaves DDI V–VI at 0.52. The same holds with a foundation-model backbone.
+5. **Better pre-training is the one lever that moves external performance.** A linear probe on frozen Derm Foundation embeddings reaches DDI V–VI 0.60 [0.51, 0.69] (the first CI above chance), DermaCon-IN 0.89 and MIDAS 0.82. The skin-tone gradient (0.74 → 0.80 → 0.60) and threshold transfer problems remain.
+6. **False alarms on Indian clinic images are a deployment risk for every model.** Of DermaCon-IN's 5,379 non-cancer images (vitiligo, tinea, scabies, acne and others), E1 calls 31% malignant and Derm Foundation 83%. A 4-class cancer classifier needs an "other skin disease" gate before it meets unselected patients.
+
+Figures: [gap](../reports/figures/gap.png) · [DDI by skin type](../reports/figures/ddi_by_fst.png) · [E5 curve](../reports/figures/e5_curve.png) · [confusion](../reports/figures/confusion_e1_effb0_target_test.png) · [UMAP](../reports/figures/umap_e1_effb0_s0.png). Protocol changes along the way: DECISIONS.md D14–D20.
+
 ## E1 / E2: source-only baseline, EfficientNet-B0 (14 Oct 2026)
 
 | Test set | AUC [95% CI] | Missed cancers | Benign called malignant | n (malignant) |
