@@ -382,3 +382,8 @@ runs/e1_fm_mlp/s2,dermacon_test,9296362,2026-10-14T20:58:51+00:00
 runs/e1_fm_mlp/s2,dermacon_other,9296362,2026-10-14T20:58:51+00:00
 runs/e1_fm_mlp/s2,pad_dark_test,9296362,2026-10-14T20:58:51+00:00
 runs/e1_fm_mlp/s2,midas_test,9296362,2026-10-14T20:58:51+00:00
+runs/e5_fm_lr/s0,ddi_test,0437d31,2026-10-14T21:12:08+00:00
+runs/e5_fm_lr/s0,dermacon_test,0437d31,2026-10-14T21:12:08+00:00
+runs/e5_fm_lr/s0,dermacon_other,0437d31,2026-10-14T21:12:08+00:00
+runs/e5_fm_lr/s0,pad_dark_test,0437d31,2026-10-14T21:12:08+00:00
+runs/e5_fm_lr/s0,midas_test,0437d31,2026-10-14T21:12:08+00:00

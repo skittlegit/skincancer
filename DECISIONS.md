@@ -149,3 +149,7 @@ Picked autonomously per the standing instruction, using target_val macro AUC onl
 | Target val macro AUC | 0.889 | 0.895 | **0.933** | 0.879 | 0.883 |
 
 Components that beat E1 are E5 fine-tuning (clearly) and E4 Indian-prior weighting (marginally, +0.004). E8 = the E5 recipe (equal steps, 100% target_train, init from the source-only model of the same backbone and seed) + Indian-prior weighted loss. `configs/e8_combined.yaml` (EfficientNet-B0) and `configs/e8_r50.yaml` (ResNet50, layer4 unfrozen as in e1_r50). Each is scored once on the test sets. Preprocessing (D14), fusion and CORAL are left out because none of them beat E1 on target val. Their external-set trends (E7 on DDI V–VI) were not used for this choice.
+
+## D20. Derm Foundation + target data arm (15 Oct 2026)
+
+Added under the standing instruction to improve in scope: `e5_fm_lr` asks E5's question on the Derm Foundation backbone. It is the linear probe trained on source_train + target_train, with C ∈ {1e-4, 1e-3, 1e-2, 1e-1} picked on target_val, since it is target-trained (D1). The grid extends one step below e1_fm_lr's, because that probe chose its grid edge. It is scored once on the test sets like every other arm. It needs only minutes, since the embeddings are cached.
