@@ -68,7 +68,8 @@ Analysis and figures:
 ```bash
 python -m skincancer.report tables --ref e1_effb0          # results/summary.csv (with gap)
 python -m skincancer.report gap --exps e1_effb0 e3_all e6_fusion e7_coral_l1000.0
-python -m skincancer.report curve --ref e1_effb0           # E5 data-size curve
+python -m skincancer.report curve --ref e1_effb0           # E5 data-size curve (e5s_f*)
+python -m skincancer.report fst --exps e1_effb0 e8_effb0 e1_fm_lr   # DDI AUC by skin type
 python -m skincancer.report confusion --exp e1_effb0 --split target_test
 python -m skincancer.analysis.lookalike --exp e1_effb0     # which lookalikes get confused
 python -m skincancer.analysis.gradcam --run runs/e1_effb0/s0 --split target_test
@@ -109,12 +110,12 @@ Results so far are in [docs/RESULTS.md](docs/RESULTS.md) (data v1).
 2. [x] Build the label map, first-pass review (D5); **team review of the label map still open**
 3. [x] Manifest → dedup → splits → count check (D6, D10)
 4. [ ] `python -m skincancer.preprocess --n 100`: check the crops by eye, record the failure rate
-5. [x] E1 + E2, both backbones; [ ] gap figure, confusion matrices, Grad-CAM grid
+5. [x] E1 + E2, both backbones; [x] gap figure, confusion matrix, DDI-by-FST figure ([reports/figures/](reports/figures/)); [ ] Grad-CAM grid
 6. [x] E3, E4 (training + prior-shift sweep)
 7. [ ] Mid-sem review pack: manifest, splits, E1–E3 with CIs, gap figure, Grad-CAM
-8. [ ] E5 curve (first run superseded, D18; `e5s_f*` queued)
+8. [x] E5 curve (corrected, D18)
 9. [x] E6 fusion and texture ablation
-10. [ ] E7 CORAL; pick λ on target_val; domain probe before/after
-11. [ ] E8 (choose on target_val), both backbones
-12. [ ] Test-only sets via `--final` for each finished method; acral check; UMAP
+10. [x] E7 CORAL, λ picked on target_val (D13); [ ] domain probe before/after
+11. [x] E8 (chosen on target_val, D19), both backbones; stronger baselines incl. Derm Foundation (D15, D16, D20)
+12. [x] Test-only sets via `--final` for each finished method (incl. MIDAS); [ ] acral check (too few: n ≈ 40); [ ] UMAP
 13. [ ] Report (IEEE), presentation, one-command reproduction check on a clean machine

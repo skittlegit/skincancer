@@ -2,7 +2,8 @@
 
     python -m skincancer.report tables  --ref e1_effb0
     python -m skincancer.report gap     --exps e1_effb0 e3_all e4_indian_loss e6_fusion e7_coral_l1.0 --out gap.png
-    python -m skincancer.report curve   --ref e1_effb0 --prefix e5_f
+    python -m skincancer.report curve   --ref e1_effb0 --prefix e5s_f
+    python -m skincancer.report fst     --exps e1_effb0 e8_effb0 e1_fm_lr
     python -m skincancer.report confusion --exp e1_effb0 --split target_test
 """
 from __future__ import annotations
@@ -22,7 +23,7 @@ from .evaluate import load_preds, run_config  # noqa: E402
 from .labels import CLASSES  # noqa: E402
 
 # Reference palette (dataviz skill): first three categorical slots validate all-pairs.
-SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]
+SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]   # reference categorical slots 1-4 (validated, adjacent)
 SEQ_BLUE = ["#fcfcfb", "#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]
 INK, INK_2, MUTED, GRID, AXIS = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
 
@@ -34,6 +35,17 @@ TARGETS = [
     ("midas_test", "fst_bucket", "I-III", "macro_auc", "MIDAS I–III (macro AUC)"),
 ]
 FIG_DIR = Path("reports/figures")
+LABELS = {   # readable method names for figures
+    "e1_effb0": "E1 baseline", "e1_r50": "E1 ResNet50", "e3_cc": "E3 colour const.", "e3_clahe": "E3 CLAHE",
+    "e3_all": "E3 all steps", "e4_indian_loss": "E4 Indian prior", "e5s_f100": "E5 fine-tune 100%",
+    "e6_fusion": "E6 texture fusion", "e7_coral_l1000.0": "E7 CORAL", "e8_effb0": "E8 combined",
+    "e8_r50": "E8 ResNet50", "e1_effb0_d7": "E1 + Derm7pt", "e1_effb0_320": "E1 320 px + TTA",
+    "e1_fm_lr": "Derm Foundation", "e5_fm_lr": "Derm Foundation + target",
+}
+
+
+def nice(exp: str) -> str:
+    return LABELS.get(exp, exp)
 
 
 def style(ax):
@@ -117,12 +129,12 @@ def gap_chart(res: pd.DataFrame, exps: list[str], ref: str, out: Path) -> None:
     ref_r = pick(res, ref, "source_test", "all", "all", "macro_auc")
     if ref_r is not None:
         ax.axhline(ref_r["mean"], color=MUTED, linestyle="--", linewidth=1,
-                   label=f"in-domain: {ref} on source test ({ref_r['mean']:.2f})")
+                   label=f"in-domain: {nice(ref)} on source test ({ref_r['mean']:.2f})")
     ax.axhline(0.5, color=AXIS, linewidth=1)  # chance; bars grow up or down from it
-    ax.set_xticks(x, exps, rotation=20, ha="right")
+    ax.set_xticks(x, [nice(e) for e in exps], rotation=25, ha="right")
     ax.set_ylim(max(0.0, np.floor((np.nanmin(lows) - 0.03) * 20) / 20), 1.0)
     ax.set_ylabel("AUC (95% CI)", color=INK_2, fontsize=9)
-    ax.legend(frameon=False, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.28), ncol=2)
+    ax.legend(frameon=False, fontsize=8, loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=3)
     fig.tight_layout()
     fig.savefig(out, bbox_inches="tight")
     plt.close(fig)
@@ -151,11 +163,47 @@ def curve_chart(res: pd.DataFrame, ref: str, prefix: str, out: Path) -> None:
     ref_r = pick(res, ref, "source_test", "all", "all", "macro_auc")
     if ref_r is not None:
         ax.axhline(ref_r["mean"], color=MUTED, linestyle="--", linewidth=1,
-                   label=f"in-domain: {ref} on source test ({ref_r['mean']:.2f})")
+                   label=f"in-domain: {nice(ref)} on source test ({ref_r['mean']:.2f})")
     ax.set_xticks(xs)
     ax.set_xlabel("% of FST IV–VI training labels", color=INK_2, fontsize=9)
     ax.set_ylabel("AUC (95% CI)", color=INK_2, fontsize=9)
     ax.legend(frameon=False, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=1)
+    fig.tight_layout()
+    fig.savefig(out, bbox_inches="tight")
+    plt.close(fig)
+
+
+def fst_chart(res: pd.DataFrame, exps: list[str], out: Path) -> None:
+    """DDI binary AUC by Fitzpatrick bucket, one line per method (max 3), 95% CI bands."""
+    assert len(exps) <= 3, "three series at most (palette all-pairs cap)"
+    buckets = ["I-II", "III-IV", "V-VI"]
+    fig, ax = plt.subplots(figsize=(4.5, 3.2), dpi=200)
+    style(ax)
+    x = np.arange(len(buckets))
+    ends = []
+    for i, e in enumerate(exps):
+        rs = [pick(res, e, "ddi_test", "fst_bucket", b, "binary_auc") for b in buckets]
+        if not all(_has(r) for r in rs):
+            continue
+        m = np.array([r["mean"] for r in rs])
+        ax.fill_between(x, [r["ci_lo"] for r in rs], [r["ci_hi"] for r in rs], color=SERIES[i], alpha=0.10, linewidth=0)
+        ax.plot(x, m, color=SERIES[i], linewidth=2, marker="o", markersize=6, markeredgecolor="#fcfcfb",
+                markeredgewidth=1.5, label=nice(e))
+        ends.append((m[-1], nice(e)))
+    # End labels, nudged apart so close values (e.g. 0.50 / 0.51) stay readable.
+    placed = []
+    for v, name in sorted(ends, reverse=True):          # stack downwards from the highest
+        y = min([v] + [p - 0.035 for p in placed])
+        if abs(y - 0.5) < 0.012:                          # keep clear of the chance line
+            y = 0.5 - 0.02
+        placed.append(y)
+        ax.annotate(f"{name} {v:.2f}", (x[-1], v), xytext=(x[-1] + 0.08, y), textcoords="data",
+                    va="center", fontsize=8, color=INK_2)
+    ax.axhline(0.5, color=MUTED, linestyle="--", linewidth=1, label="chance")
+    ax.set_xticks(x, ["FST I–II", "FST III–IV", "FST V–VI"])
+    ax.set_xlim(-0.2, len(buckets) + 0.1)   # room for the end labels
+    ax.set_ylabel("DDI binary AUC (95% CI)", color=INK_2, fontsize=9)
+    ax.legend(frameon=False, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=2)
     fig.tight_layout()
     fig.savefig(out, bbox_inches="tight")
     plt.close(fig)
@@ -186,13 +234,13 @@ def confusion_chart(exp: str, split: str, out: Path, runs_dir="runs", manifest_p
                         color="#fcfcfb" if norm[i, j] > 0.55 else INK)
         ax.set_xticks(range(len(classes)), classes, fontsize=7)
         ax.set_yticks(range(len(classes)), classes, fontsize=7)
-        ax.set_title(f"{by}={name} (n={int(mask.sum())})" if name != "all" else f"all (n={int(mask.sum())})",
+        ax.set_title(f"all (n={int(mask.sum())})" if name == "all" else f"FST {name} (n={int(mask.sum())})" if by == "fst_bucket" else f"{by}={name} (n={int(mask.sum())})",
                      fontsize=8, color=INK_2)
         ax.set_xlabel("predicted", fontsize=7, color=MUTED)
         for s in ax.spines.values():
             s.set_visible(False)
     np.atleast_1d(axes)[0].set_ylabel("true", fontsize=7, color=MUTED)
-    fig.suptitle(f"{exp} on {split} (counts; shade = row %)", fontsize=9, color=INK)
+    fig.suptitle(f"{nice(exp)} on {split} (counts; shade = row %)", fontsize=9, color=INK)
     fig.tight_layout()
     fig.savefig(out, bbox_inches="tight")
     plt.close(fig)
@@ -200,12 +248,12 @@ def confusion_chart(exp: str, split: str, out: Path, runs_dir="runs", manifest_p
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("what", choices=["tables", "gap", "curve", "confusion"])
+    ap.add_argument("what", choices=["tables", "gap", "curve", "fst", "confusion"])
     ap.add_argument("--ref", default="e1_effb0")
     ap.add_argument("--exps", nargs="+")
     ap.add_argument("--exp")
     ap.add_argument("--split", default="target_test")
-    ap.add_argument("--prefix", default="e5_f")
+    ap.add_argument("--prefix", default="e5s_f")   # D18: e5_f* is superseded
     ap.add_argument("--out")
     ap.add_argument("--results-dir", default="results")
     args = ap.parse_args(argv)
@@ -218,6 +266,9 @@ def main(argv=None):
         if args.what == "tables":
             out = Path(args.out or Path(args.results_dir) / "summary.csv")
             print(tables(res, args.ref, out).to_string(index=False))
+        elif args.what == "fst":
+            out = Path(args.out or FIG_DIR / "ddi_by_fst.png")
+            fst_chart(res, args.exps or ["e1_effb0", "e8_effb0", "e1_fm_lr"], out)
         elif args.what == "gap":
             out = Path(args.out or FIG_DIR / "gap.png")
             gap_chart(res, args.exps or sorted(res["exp"].unique()), args.ref, out)
