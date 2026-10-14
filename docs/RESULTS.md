@@ -71,3 +71,30 @@ Mean of the three seeds' probabilities, against the seed mean:
 | E1 ResNet50 ensemble | 0.805 | 0.825 | 0.789 | 0.755 | 0.712 | 0.520 | 0.672 | 0.667 |
 
 Ensembling gains +0.002 to +0.005 AUC: the three seeds already agree closely. It does nothing for dark skin (DDI V–VI 0.503), so seed variance is not the problem.
+
+## E4: Indian-prior weighted loss (14 Oct 2026)
+
+| | Target val macro (selection) | Source test macro | Target test macro | DDI V–VI binary | DermaCon-IN binary | DermaCon-IN non-cancer called malignant |
+| --- | --- | --- | --- | --- | --- | --- |
+| E1 | 0.891 | 0.864 | 0.866 | 0.502 | 0.690 | 30.8% |
+| E4 Indian-prior loss | 0.895 | 0.870 | 0.874 | 0.475 | 0.699 | 31.0% |
+| E1 + post-hoc consensus prior (D7) | 0.894 | 0.869 | 0.874 | 0.493 | 0.694 | 30.3% |
+
+**Reading (RQ3):** reweighting towards the Indian case mix (BCC:SCC:melanoma 45:40:15) changes the ranking very little: every AUC moves by under 0.01, well inside the CIs. Training with the prior (E4) and correcting a trained model afterwards (D7) give the same result. So the epidemiological prior mainly moves predictions between the three cancer classes; it does not help separate cancer from benign on dark skin. The four regional mixes (consensus, Malwa-Punjab, Central India, Manipur) agree within 0.01.
+
+## Fixed operating point: 90% sensitivity on source val (D17)
+
+The threshold that catches 90% of cancers on light-skin validation images, applied unchanged everywhere (seed mean [95% CI]):
+
+| | Source test | DDI I–II | **DDI V–VI** | MIDAS I–III | DermaCon-IN | DermaCon-IN non-cancer called malignant |
+| --- | --- | --- | --- | --- | --- | --- |
+| Missed cancers, E1 EffB0 | 10% [7, 14] | 41% [28, 55] | **66% [53, 78]** | 59% [55, 64] | 49% [16, 76] | 15% |
+| Missed cancers, E1 ResNet50 | 12% | 52% | 68% | 58% | 47% | 31% |
+| Missed cancers, E3 colour constancy | 8% | 20% | 60% | 48% | 49% | 19% |
+| Missed cancers, E3 all steps | 8% | 20% | 54% | — | 49% | 24% |
+| Missed cancers, E4 | 10% | 40% | 70% | — | 56% | 15% |
+
+**Reading:**
+- A threshold that misses 10% of cancers at home misses **two-thirds of cancers on FST V–VI** at another institution, and about 40–60% on light skin at another institution. This is the clinically meaningful form of the RQ1 gap: the model's scores are not just less discriminative, they are *shifted*, so a threshold set in-domain does not transfer.
+- Colour constancy and CLAHE halve the missed rate on DDI I–II (41% → 20%) and cut MIDAS from 59% to 48%. But false alarms rise in step (DDI V–VI 27% → 35–38%) and AUC is unchanged (E3). So they shift the score scale (calibration) rather than separating cancer from benign better. On V–VI the missed rate stays above 50% under every variant.
+- These are test-set observations, reported only; nothing was selected on them.

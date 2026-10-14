@@ -69,3 +69,15 @@ def test_indian_prior_keeps_benign_share():
     assert p[:3] / p[:3].sum() == pytest.approx([0.45, 0.40, 0.15])
     p3 = indian_prior(["nmsc", "mel", "benign"], [1, 1, 2])
     assert p3 == pytest.approx([0.5 * 0.85, 0.5 * 0.15, 0.5])
+
+
+def test_sensitivity_threshold_and_operating_point():
+    from skincancer.metrics import operating_point_fns, sensitivity_threshold
+    yb = np.array([1] * 10 + [0] * 5, float)
+    p = np.r_[np.linspace(0.95, 0.5, 10), [0.9, 0.6, 0.4, 0.2, 0.1]]
+    t = sensitivity_threshold(yb, p, 0.9)
+    assert np.isclose(t, p[8])                     # 9 of 10 cancers at or above t
+    fns = operating_point_fns()
+    Q = (p - t)[:, None]
+    assert np.isclose(fns["missed_cancer_rate_op90"](None, yb, Q), 0.1)
+    assert np.isclose(fns["false_alarm_rate_op90"](None, yb, Q), 0.4)   # t = 0.55: 0.9 and 0.6 pass

@@ -139,7 +139,8 @@ def test_pipeline(workdir, monkeypatch):
     assert "pad_dark_test" not in set(out["eval_set"])  # 6 images < MIN_SUBGROUP: skipped, not reported
     auc = out[(out["eval_set"] == "target_test") & (out["metric"] == "macro_auc") & (out["subgroup"] == "all")].iloc[0]
     assert auc["n_seeds"] == 2 and auc["ci_lo"] <= auc["mean"] <= auc["ci_hi"]
-    assert set(out.loc[out["eval_set"] == "ddi_test", "metric"]) == {"binary_auc", "missed_cancer_rate", "false_alarm_rate"}
+    assert set(out.loc[out["eval_set"] == "ddi_test", "metric"]) == {"binary_auc", "missed_cancer_rate", "false_alarm_rate",
+                                                                     "missed_cancer_rate_op90", "false_alarm_rate_op90"}
     shifted = evaluate.evaluate("e1_tiny", prior_mix="consensus", n_boot=20)
     assert shifted["exp"].iloc[0] == "e1_tiny+prior_consensus"
     evaluate.evaluate("e5_f50", n_boot=20)

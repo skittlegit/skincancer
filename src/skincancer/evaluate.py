@@ -33,6 +33,7 @@ EVAL_SETS = {
     "dermacon_other": ("rates", ["fst_bucket"]),   # non-cancer Indian clinic images (D9)
 }
 MIN_SUBGROUP = 10
+OP_SENSITIVITY = 0.90   # D17: operating point fixed on source_val, applied to every set
 
 
 def load_preds(exp_dir: Path, split: str) -> tuple[list[int], list[pd.DataFrame]]:
@@ -58,7 +59,7 @@ def run_config(exp_dir: Path) -> tuple[dict, dict[int, np.ndarray]]:
 
 
 def score_set(split: str, frames: list[pd.DataFrame], manifest: pd.DataFrame, classes: list[str],
-              label_col: str, n_boot: int) -> list[dict]:
+              label_col: str, n_boot: int, thresholds: list[float] | None = None) -> list[dict]:
     task, sub_cols = EVAL_SETS.get(split, ("multiclass", []))
     ids = frames[0]["image_id"]
     for f in frames[1:]:
@@ -83,10 +84,18 @@ def score_set(split: str, frames: list[pd.DataFrame], manifest: pd.DataFrame, cl
     for col in sub_cols:
         for val in sorted(meta[col].dropna().unique(), key=str):
             subsets.append((col, str(val), (meta[col] == val).to_numpy()))
+    op = None
+    if thresholds is not None and not np.any(np.isnan(thresholds)):
+        op = [(M.p_malignant(P, classes) - t)[:, None] for P, t in zip(Ps, thresholds)]
+        op_fns = M.operating_point_fns()
+        if task == "rates":
+            op_fns = {"pred_malignant_rate_op90": lambda y_, yb, P: float((P[:, 0] >= 0).mean())}
     for col, val, mask in subsets:
         if mask.sum() < MIN_SUBGROUP:
             continue
         res = M.bootstrap(fns, y[mask], y_bin[mask], [P[mask] for P in Ps], groups[mask], n_boot=n_boot)
+        if op is not None:   # same seed, so the same resample indices as above
+            res.update(M.bootstrap(op_fns, y[mask], y_bin[mask], [Q[mask] for Q in op], groups[mask], n_boot=n_boot))
         for metric, r in res.items():
             rows.append({"eval_set": split, "subgroup_col": col, "subgroup": val, "metric": metric,
                          "mean": r["mean"], "std": r["std"], "ci_lo": r["ci_lo"], "ci_hi": r["ci_hi"],
@@ -122,13 +131,14 @@ def evaluate(exp: str, runs_dir="runs", results_dir="results", manifest_path=Non
         name += f"+{tag or 'drop'}"
     if ensemble:
         name += "+ens"
-    rows = []
-    for split in splits or EVAL_SETS:
+
+    def prepared(split) -> dict | None:
+        """-> {seed: prediction frame} (or {"ens": frame}) after the requested transforms."""
         seeds, frames = load_preds(exp_dir, split)
         if drop_diagnoses:
             frames = [f[~f["image_id"].isin(dropped)].reset_index(drop=True) for f in frames]
         if not frames or frames[0].empty:
-            continue
+            return None
         if prior_mix is not None:
             # D7: divide by the effective training prior, multiply by the Indian prior.
             cols = [f"p_{c}" for c in classes]
@@ -136,8 +146,24 @@ def evaluate(exp: str, runs_dir="runs", results_dir="results", manifest_path=Non
                 pi = priors[seed]
                 f[cols] = M.prior_shift(f[cols].to_numpy(), pi, indian_prior(classes, pi, prior_mix))
         if ensemble:
-            frames = [ensemble_frame(frames, classes)]
-        rows += score_set(split, frames, manifest, classes, label_col, n_boot)
+            return {"ens": ensemble_frame(frames, classes)}
+        return dict(zip(seeds, frames))
+
+    # D17: per-seed threshold reaching OP_SENSITIVITY on source_val (same transforms applied).
+    thresholds = {}
+    val = prepared("source_val")
+    if val is not None:
+        yb = manifest.set_index("image_id")["label_binary"]
+        thresholds = {k: M.sensitivity_threshold(yb.loc[f["image_id"]].to_numpy(),
+                                                 M.p_malignant(f[[f"p_{c}" for c in classes]].to_numpy(), classes),
+                                                 OP_SENSITIVITY) for k, f in val.items()}
+    rows = []
+    for split in splits or EVAL_SETS:
+        frames = prepared(split)
+        if frames is None:
+            continue
+        thr = [thresholds.get(k, np.nan) for k in frames]
+        rows += score_set(split, list(frames.values()), manifest, classes, label_col, n_boot, thr)
     out = pd.DataFrame(rows)
     out.insert(0, "exp", name)
     odir = Path(results_dir) / name

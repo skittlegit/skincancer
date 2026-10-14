@@ -50,6 +50,27 @@ def false_alarm_rate(y_bin, P, classes) -> float:
     return float(pred_malignant(P[b], classes).mean()) if b.any() else np.nan
 
 
+def sensitivity_threshold(y_bin, p_mal, sens: float) -> float:
+    """Largest threshold t with share(p_mal >= t | malignant) >= sens (D17)."""
+    s = np.sort(np.asarray(p_mal)[np.asarray(y_bin) == 1])[::-1]
+    if not len(s):
+        return np.nan
+    return float(s[min(len(s) - 1, int(np.ceil(sens * len(s))) - 1)])
+
+
+def operating_point_fns() -> dict:
+    """Rates at a fixed threshold; P here is one column: p_malignant minus the seed's threshold."""
+    def missed(y, yb, P):
+        m = yb == 1
+        return float((P[m, 0] < 0).mean()) if m.any() else np.nan
+
+    def alarm(y, yb, P):
+        b = yb == 0
+        return float((P[b, 0] >= 0).mean()) if b.any() else np.nan
+
+    return {"missed_cancer_rate_op90": missed, "false_alarm_rate_op90": alarm}
+
+
 def recall(y, P, k) -> float:
     m = y == k
     return float((P[m].argmax(1) == k).mean()) if m.any() else np.nan
