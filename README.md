@@ -24,8 +24,10 @@ Put raw data under `data/raw/` as laid out in [configs/data.yaml](configs/data.y
 | --- | --- | --- |
 | Fitzpatrick17k | CSV from github.com/mattgroh/fitzpatrick17k, then `python -m skincancer.data.download_fitzpatrick17k --neoplastic-only` | Dead links → `missing_image` |
 | PAD-UFES-20 | Mendeley Data; merge `imgs_part_*` into `images/` | |
-| DDI | Stanford AIMI (request access) | Test only |
-| DermaCon-IN | Request from the authors | Test only; set its column names in `data.yaml` |
+| DDI | Stanford AIMI (request access) | Test only; never in figures (licence) |
+| DermaCon-IN | Harvard Dataverse doi:10.7910/DVN/W7OUZM: `python -m skincancer.data.download_dermacon_in` | Test only |
+| MRA-MIDAS | Stanford AIMI on Redivis (request access): `python -m skincancer.data.download_midas` | Test only (`midas_test`) |
+| Derm7pt | derm.cs.sfu.ca (request form), unzip into `derm7pt/`, then `python -m skincancer.data.extra derm7pt` | Training-only extra data, outside the manifest (D16); never in figures |
 
 ```bash
 python -m skincancer.data.build_label_map   # data/label_map.csv: review every row, commit (D5)
@@ -43,14 +45,25 @@ One config per experiment in [configs/](configs/). `--set key=value` overrides a
 
 ```bash
 python -m skincancer.train --config configs/e1_effb0.yaml --seed 0
-python -m skincancer.train --config configs/e5_finetune.yaml --seed 0 --set data.fraction=25
+python -m skincancer.train --config configs/e5_finetune_steps.yaml --seed 0 --set data.fraction=25   # E5 (D18)
 python -m skincancer.train --config configs/e7_coral.yaml --seed 0 --set train.coral_lambda=10000
 python -m skincancer.fusion --source-exp e1_effb0 --seeds 0 1 2                     # E6
-python -m skincancer.evaluate --exp e1_effb0 [--prior-mix all]                       # E4 prior shift
+python -m skincancer.evaluate --exp e1_effb0 [--prior-mix all] [--ensemble]          # E4 prior shift / seed ensemble
 python -m skincancer.predict --run runs/e1_effb0/s0 --splits ddi_test dermacon_test --final
 ```
 
-[scripts/run_all.sh](scripts/run_all.sh) runs every experiment block in order (`PY=.venv/Scripts/python bash scripts/run_all.sh [e1 e3 ...]`), scores each finished method once on the external test sets, and commits + pushes results after each block. Analysis and figures:
+[scripts/run_all.sh](scripts/run_all.sh) runs every experiment block in order (`PY=.venv/Scripts/python bash scripts/run_all.sh [e1 e3 ...]`), scores each finished method once on the external test sets, and commits + pushes results after each block. [scripts/run_extras.sh](scripts/run_extras.sh) then runs the later additions: MIDAS scoring, the corrected E5 curve (D18), and the stronger-baseline arms (D15/D16): E1 + Derm7pt, 320 px + flip TTA, and Derm Foundation embeddings.
+
+Derm Foundation (`google/derm-foundation`, gated on Hugging Face) runs in its own TensorFlow venv so it never touches the PyTorch one:
+
+```bash
+python -m venv .venv-tf && .venv-tf/Scripts/pip install tensorflow-cpu==2.19.0 huggingface_hub pillow pandas pyyaml
+huggingface-cli login                                     # after accepting the model's terms
+.venv-tf/Scripts/python scripts/derm_foundation_embed.py  # data/features/derm_foundation/ (resumable)
+python -m skincancer.foundation --seeds 0 1 2             # e1_fm_lr, e1_fm_mlp
+```
+
+Analysis and figures:
 
 ```bash
 python -m skincancer.report tables --ref e1_effb0          # results/summary.csv (with gap)
@@ -82,7 +95,7 @@ reports/figures/      report figures
 ## Rules the code enforces
 
 - `source_val` picks checkpoints for source-trained models; `target_val` is only for target-trained models and for choosing between methods. Test splits never choose anything.
-- DDI, DermaCon-IN and `pad_dark_test` are never scored during training. `predict --final` scores them and refuses to score the same run on the same set twice.
+- DDI, DermaCon-IN, MIDAS and `pad_dark_test` are never scored during training. `predict --final` scores them and refuses to score the same run on the same set twice.
 - A near-duplicate group never spans two splits (`make_splits` asserts this).
 - Seeds 0, 1, 2 for every run. Results are reported as the seed mean, with a group-bootstrap 95% CI.
 
@@ -90,15 +103,17 @@ reports/figures/      report figures
 
 Anyone takes the next unblocked item. Put your name on the issue or PR, not in this file.
 
-1. [ ] Request DDI and DermaCon-IN access; download Fitzpatrick17k and PAD-UFES-20
-2. [ ] Build the label map and review every row (D5)
-3. [ ] Manifest → dedup (`--embed` on a GPU) → splits → count check; record the D6 decision
+Results so far are in [docs/RESULTS.md](docs/RESULTS.md) (data v1).
+
+1. [x] Data access and downloads (Fitzpatrick17k partial: data v1, D6; full set requested from the authors)
+2. [x] Build the label map, first-pass review (D5); **team review of the label map still open**
+3. [x] Manifest → dedup → splits → count check (D6, D10)
 4. [ ] `python -m skincancer.preprocess --n 100`: check the crops by eye, record the failure rate
-5. [ ] E1 + E2, both backbones → gap figure, confusion matrices, Grad-CAM grid (**minimum viable project**)
-6. [ ] E3, E4 (training + prior-shift sweep)
+5. [x] E1 + E2, both backbones; [ ] gap figure, confusion matrices, Grad-CAM grid
+6. [x] E3, E4 (training + prior-shift sweep)
 7. [ ] Mid-sem review pack: manifest, splits, E1–E3 with CIs, gap figure, Grad-CAM
-8. [ ] E5 curve
-9. [ ] E6 fusion and texture ablation
+8. [ ] E5 curve (first run superseded, D18; `e5s_f*` queued)
+9. [x] E6 fusion and texture ablation
 10. [ ] E7 CORAL; pick λ on target_val; domain probe before/after
 11. [ ] E8 (choose on target_val), both backbones
 12. [ ] Test-only sets via `--final` for each finished method; acral check; UMAP
