@@ -139,3 +139,13 @@ Derm7pt (Kawahara et al., IEEE JBHI 2019; CC BY-NC-ND 4.0; academic use, no redi
 **Fix.** `train.steps_per_epoch` draws a fixed number of batches per epoch, cycling through the subset with fresh augmentation; a set smaller than one batch becomes one batch. E5 uses 5 steps per epoch for every fraction (≈ one pass over the full 152-image target_train), so the curve compares the amount of target data at equal training compute, the standard learning-curve setup. Everything else (init from E1, one stage, LR, early stopping on target_val) is unchanged.
 
 **Naming and test sets.** The corrected runs are new experiments, `e5s_f10…f100` (`configs/e5_finetune_steps.yaml`), each scored once on the test sets. The old `e5_f*` results stay in results/ and runs/final_ledger.csv for the record, marked as superseded, and are not used for E8 or reported as E5.
+
+## D19. E8 composition, chosen on target val (14 Oct 2026)
+
+Picked autonomously per the standing instruction, using target_val macro AUC only (seed mean). E1 scored 0.891. The candidates:
+
+| | E3 best (CLAHE) | E4 Indian loss | E5s 100% | E6 fusion | E7 CORAL best (λ = 1000) |
+| --- | --- | --- | --- | --- | --- |
+| Target val macro AUC | 0.889 | 0.895 | **0.933** | 0.879 | 0.883 |
+
+Components that beat E1 are E5 fine-tuning (clearly) and E4 Indian-prior weighting (marginally, +0.004). E8 = the E5 recipe (equal steps, 100% target_train, init from the source-only model of the same backbone and seed) + Indian-prior weighted loss. `configs/e8_combined.yaml` (EfficientNet-B0) and `configs/e8_r50.yaml` (ResNet50, layer4 unfrozen as in e1_r50). Each is scored once on the test sets. Preprocessing (D14), fusion and CORAL are left out because none of them beat E1 on target val. Their external-set trends (E7 on DDI V–VI) were not used for this choice.

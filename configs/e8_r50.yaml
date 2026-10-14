@@ -1,0 +1,8 @@
+# E8 on ResNet50 (D19): same recipe, initialised from E1 ResNet50, layer4 unfrozen as in e1_r50.
+extends: e8_combined.yaml
+name: e8_r50
+init_from: runs/e1_r50/s{seed}/best.pt
+model: {backbone: resnet50}
+train:
+  stages:
+    - {epochs: 30, unfreeze: 1, lr_head: 1.0e-4, lr_backbone: 3.0e-5, early_stop: true, patience: 5}

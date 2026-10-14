@@ -150,3 +150,25 @@ Binary and macro AUC on FST I–III (n = 1,322), with rates at the fixed operati
 | E7 CORAL λ = 1000 / 10000 | 0.735 / 0.736 | 0.685 / 0.696 | 62% / 63% | 12% / 11% |
 
 No method moves MIDAS beyond the E1 CI (0.69–0.76): the institution gap (≈0.17 AUC from source test) is untouched by every fix aimed at skin tone. Acral lesions (n ≈ 40) are too few to read (CIs ±0.25).
+
+## E5: localized fine-tuning curve (corrected, D18)
+
+Fine-tuning the E1 model on nested fractions of Fitzpatrick17k IV–VI target_train (152 images at 100%), with equal optimizer steps per fraction:
+
+| Fraction of target_train | 0% (E1) | 10% (~17) | 25% (~40) | 50% (~78) | 100% (152) |
+| --- | --- | --- | --- | --- | --- |
+| Target val macro (selection) | 0.891 | 0.891 | 0.901 | 0.911 | **0.933** |
+| Target test macro | 0.866 [0.79, 0.93] | 0.877 | 0.886 | 0.897 | **0.921 [0.85, 0.97]** |
+| Source test macro | 0.864 | 0.853 | 0.856 | 0.854 | 0.852 |
+| PAD-UFES-20 IV–VI macro | 0.828 | 0.829 | 0.835 | 0.833 | 0.840 |
+| DDI V–VI binary | 0.502 [0.40, 0.60] | 0.510 | 0.516 | 0.520 | 0.518 [0.42, 0.62] |
+| DDI V–VI missed (op90) | 66% | 64% | 69% | 66% | 57% |
+| DermaCon-IN binary | 0.690 | 0.694 | 0.696 | 0.698 | 0.700 |
+| DermaCon-IN non-cancer called malignant (op90) | 15% | 17% | 17% | 22% | 25% |
+| MIDAS I–III binary | 0.721 | 0.725 | 0.723 | 0.721 | 0.719 |
+
+**Reading (RQ6):**
+- **Within the target distribution, dark-skin data closes the gap and keeps paying off:** target test rises steadily from 0.866 to 0.921 as fine-tuning data grows from 0 to 152 images, at a cost of about 0.01 on source test. This is the only method so far with a clear gain on target val.
+- **The gain does not transfer to another institution.** DDI V–VI stays near chance (0.50 → 0.52, CI ±0.10) and DermaCon-IN moves by 0.01. Dark-skin images from the *same atlases* teach the model those atlases' dark-skin images, not dark skin in general.
+- False alarms on Indian non-cancer images rise (15% → 25% at the fixed operating point) as the model is pushed towards the target class mix.
+- With 17–40 images, several seeds' best checkpoint is still the starting model (target val has 51 images, so small gains are within its noise).

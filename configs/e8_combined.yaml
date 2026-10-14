@@ -1,7 +1,8 @@
-# E8: fill in after E3-E7, choosing on target_val only. Example below: all preprocessing,
-# Indian-weighted loss, CORAL at the chosen λ. Copy to e8_r50.yaml with model.backbone: resnet50.
-extends: base.yaml
+# E8 (D19), chosen on target_val only. Of E3-E7, only E5 fine-tuning (target val 0.933 at 100%)
+# and E4 Indian-prior weighting (0.895) beat E1 (0.891). E3 preprocessing (D14), E6 fusion
+# (0.879) and E7 CORAL (best 0.883) did not, so they are left out.
+# E8 = E5 recipe (equal steps, 100% target_train, init from E1) + Indian-prior weighted loss.
+extends: e5_finetune_steps.yaml
 name: e8_effb0
-mode: coral
-data: {preprocess: {color_constancy: true, clahe: true, lesion_crop: true}}
-train: {class_weighting: indian, coral_lambda: 1000.0}
+data: {fraction: 100}
+train: {class_weighting: indian, prior_mix: consensus}

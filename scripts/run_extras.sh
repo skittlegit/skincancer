@@ -3,9 +3,10 @@
 #   1. score E3-E7 on midas_test (added after they were queued; superseded E5 runs skipped)
 #   2. E5 with equal optimizer steps per fraction (D18), 4 fractions x 3 seeds
 #   3. E1 + Derm7pt: E1 with Derm7pt clinical photos added to source_train only (D16)
-#   4. E1-strong: EfficientNet-B0 at 320 px + flip TTA, 3 seeds
-#   5. E1-FM: Derm Foundation embeddings + heads (skipped until Hugging Face access works)
-#   6. seed ensembles for every finished experiment
+#   4. E8 combined (D19), both backbones
+#   5. E1-strong: EfficientNet-B0 at 320 px + flip TTA, 3 seeds
+#   6. E1-FM: Derm Foundation embeddings + heads (skipped until Hugging Face access works)
+#   7. seed ensembles for every finished experiment
 #   PY=.venv/Scripts/python bash scripts/run_extras.sh            # waits for run_all to finish
 #   PY=.venv/Scripts/python bash scripts/run_extras.sh d7 e1s fm  # chosen steps only, no wait
 set -uo pipefail
@@ -103,6 +104,11 @@ step_e5s() {
 
 step_e1s() { train_arm configs/e1_effb0_320.yaml e1_effb0_320 "E1-strong (320 px + flip TTA)"; }
 
+step_e8() {  # D19: chosen on target_val after E3-E7
+  train_arm configs/e8_combined.yaml e8_effb0 "E8 combined, EfficientNet-B0"
+  train_arm configs/e8_r50.yaml e8_r50 "E8 combined, ResNet50"
+}
+
 step_fm() {
   if ! "$PYTF" -c "from huggingface_hub import hf_hub_download; hf_hub_download('google/derm-foundation', 'saved_model.pb')" \
       > "$LOGS/fm_access.log" 2>&1; then
@@ -127,7 +133,7 @@ step_ens() {
 
 if [ $# -eq 0 ]; then
   until grep -q "all done" runs/run_all.out 2>/dev/null; do sleep 60; done
-  STEPS="repair midas e5s d7 e1s fm ens"
+  STEPS="repair midas e5s d7 e8 e1s fm ens"
 else
   STEPS="$*"
 fi
