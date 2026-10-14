@@ -16,6 +16,8 @@ All results here are **data v1**: Fitzpatrick17k has 1,919 of 4,491 neoplastic i
 | DermaCon-IN, non-cancer clinic images | — | — | **30.8% called malignant** | 5,379 (0) |
 | Actinic keratosis (side analysis) | — | — | 91.6% called malignant | 246 |
 
+**ResNet50 (same protocol, layer4 unfrozen):** source macro 0.788 [0.745, 0.834], target macro 0.755 [0.641, 0.849], DDI I–II 0.708 [0.636, 0.782] → **DDI V–VI 0.523 [0.422, 0.631]**, missing 62.5% of V–VI cancers. DermaCon-IN 0.668 [0.523, 0.844]; 36.6% of DermaCon-IN non-cancer images called malignant. ResNet50 is weaker in-domain but shows the same collapse on dark skin, so **the gap is not architecture-specific**.
+
 **Reading (RQ1):**
 - On biopsy-proven external images (DDI), performance falls with skin tone and reaches **chance on FST V–VI**, where the model misses about half the cancers (51% vs 17% on FST I–II). This matches Daneshjou et al. (2022): 0.72 → 0.57 for a HAM10000 model.
 - Within Fitzpatrick17k there is **no gap** (0.864 vs 0.866). Its IV–VI images come from the same textbook atlases as the training images, so the domain shift is mostly skin tone, not source. DDI (another institution, real clinic photos) is the meaningful test.
