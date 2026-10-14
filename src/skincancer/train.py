@@ -29,6 +29,10 @@ def select_data(manifest: pd.DataFrame, cfg: dict):
     mode = cfg["mode"]
     if mode in ("source", "coral"):
         train = runs.labelled(runs.split_rows(manifest, "source_train"), cfg)
+        if cfg["data"].get("extra_train"):   # D16: training-only extra data, outside the manifest
+            from .data.extra import load_extra
+            extra = load_extra(cfg["data"]["extra_train"], cfg["data"]["label_col"], runs.classes_of(cfg))
+            train = pd.concat([train, extra[train.columns.intersection(extra.columns)]], ignore_index=True)
         val = runs.labelled(runs.split_rows(manifest, "source_val"), cfg)
     elif mode == "finetune":
         train = runs.split_rows(manifest, "target_train")

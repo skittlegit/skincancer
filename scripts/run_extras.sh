@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Follow-up queue after run_all.sh (D15), with a commit + push checkpoint after each step:
 #   1. score E3-E7 on midas_test (added after they were queued)
-#   2. E1-strong: EfficientNet-B0 at 320 px + flip TTA, 3 seeds
-#   3. E1-FM: Derm Foundation embeddings + heads (skipped until Hugging Face access works)
-#   4. seed ensembles for every finished experiment
+#   2. E1 + Derm7pt: E1 with Derm7pt clinical photos added to source_train only (D16)
+#   3. E1-strong: EfficientNet-B0 at 320 px + flip TTA, 3 seeds
+#   4. E1-FM: Derm Foundation embeddings + heads (skipped until Hugging Face access works)
+#   5. seed ensembles for every finished experiment
 #   PY=.venv/Scripts/python bash scripts/run_extras.sh            # waits for run_all to finish
-#   PY=.venv/Scripts/python bash scripts/run_extras.sh e1s fm     # chosen steps only, no wait
+#   PY=.venv/Scripts/python bash scripts/run_extras.sh d7 e1s fm  # chosen steps only, no wait
 set -uo pipefail
 PY=${PY:-python}
 PYTF=${PYTF:-.venv-tf/Scripts/python}
@@ -48,19 +49,25 @@ EOF
   checkpoint "E3-E7 on MIDAS"
 }
 
-step_e1s() {
+train_arm() {  # train_arm <config> <exp> <message>: 3 seeds, score once, evaluate, checkpoint
   for s in $SEEDS; do
-    echo "[$(date +%H:%M)] train e1_effb0_320_s$s"
-    $PY -m skincancer.train --config configs/e1_effb0_320.yaml --seed $s > "$LOGS/e1_effb0_320_s$s.log" 2>&1 \
-      || echo "  FAILED: see $LOGS/e1_effb0_320_s$s.log"
+    echo "[$(date +%H:%M)] train ${2}_s$s"
+    $PY -m skincancer.train --config "$1" --seed $s > "$LOGS/${2}_s$s.log" 2>&1 || echo "  FAILED: see $LOGS/${2}_s$s.log"
   done
   for s in $SEEDS; do
-    [ -f "runs/e1_effb0_320/s$s/best.pt" ] && $PY -m skincancer.predict --run "runs/e1_effb0_320/s$s" \
-      --splits $FINAL --final >> "$LOGS/final_e1_effb0_320.log" 2>&1
+    [ -f "runs/$2/s$s/best.pt" ] && $PY -m skincancer.predict --run "runs/$2/s$s" \
+      --splits $FINAL --final >> "$LOGS/final_$2.log" 2>&1
   done
-  $PY -m skincancer.evaluate --exp e1_effb0_320 >> "$LOGS/evaluate.log" 2>&1
-  checkpoint "E1-strong (320 px + flip TTA)"
+  $PY -m skincancer.evaluate --exp "$2" >> "$LOGS/evaluate.log" 2>&1
+  checkpoint "$3"
 }
+
+step_d7() {
+  [ -f data/extra/derm7pt.csv ] || { echo "[$(date +%H:%M)] E1 + Derm7pt skipped: data/extra/derm7pt.csv missing"; return; }
+  train_arm configs/e1_effb0_d7.yaml e1_effb0_d7 "E1 + Derm7pt (training-only extra data)"
+}
+
+step_e1s() { train_arm configs/e1_effb0_320.yaml e1_effb0_320 "E1-strong (320 px + flip TTA)"; }
 
 step_fm() {
   if ! "$PYTF" -c "from huggingface_hub import hf_hub_download; hf_hub_download('google/derm-foundation', 'saved_model.pb')" \
@@ -86,7 +93,7 @@ step_ens() {
 
 if [ $# -eq 0 ]; then
   until grep -q "all done" runs/run_all.out 2>/dev/null; do sleep 60; done
-  STEPS="midas e1s fm ens"
+  STEPS="midas d7 e1s fm ens"
 else
   STEPS="$*"
 fi

@@ -1,0 +1,6 @@
+# E1 + Derm7pt: the E1 recipe with Derm7pt clinical photos added to source_train only (D16).
+# Every validation and test split is unchanged, so it compares directly with e1_effb0.
+extends: base.yaml
+name: e1_effb0_d7
+data:
+  extra_train: [derm7pt]

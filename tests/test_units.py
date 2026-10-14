@@ -174,3 +174,18 @@ def test_flip_tta_is_flip_invariant():
     assert p.shape == (4, 3) and np.allclose(p.sum(1), 1, atol=1e-5)
     assert np.allclose(p, p_flip, atol=1e-5)          # the four flip views are the same set
     assert not np.allclose(p, p_plain, atol=1e-4)
+
+
+def test_derm7pt_rows(tmp_path):
+    import pandas as pd
+    from skincancer.data.extra import derm7pt_rows
+    base = tmp_path / "derm7pt" / "release_v0"
+    (base / "meta").mkdir(parents=True)
+    pd.DataFrame({"case_num": [1, 2, 3, 4], "clinic": ["A/a1.jpg", "A/a2.jpg", "B/b1.jpg", "B/b2.jpg"],
+                  "diagnosis": ["clark nevus", "melanoma (in situ)", "melanoma metastasis", "basal cell carcinoma"],
+                  "location": ["back", "acral", "chest", "head neck"]}).to_csv(base / "meta" / "meta.csv", index=False)
+    df = derm7pt_rows(tmp_path).set_index("image_id")
+    assert df["label_4class"].tolist() == ["benign", "mel", "exclude", "bcc"]
+    assert df.loc["derm7pt_2", "path"] == "derm7pt/release_v0/images/A/a2.jpg"
+    assert df.loc["derm7pt_2", "is_acral"] and not df.loc["derm7pt_1", "is_acral"]
+    assert df.loc["derm7pt_4", "label_3class"] == "nmsc" and df.loc["derm7pt_4", "label_binary"] == 1

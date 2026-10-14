@@ -122,3 +122,12 @@ Added at the team's request after E3, each pre-specified as one arm, compared wi
 ## D17. Missed-cancer and false-alarm rates at a fixed operating point (14 Oct 2026)
 
 Argmax rates move with calibration and class weighting (the E1 seed ensemble has the same DDI V–VI AUC as the seed mean but misses 58% instead of 51%), so they don't compare methods fairly. Every experiment now also reports `missed_cancer_rate_op90`, `false_alarm_rate_op90` and, for the no-cancer sets, `pred_malignant_rate_op90`. Per seed, the threshold on p(malignant) is the one that catches 90% of cancers in that seed's source_val predictions, after the same prior shift or ensembling as the set being scored. It is then applied unchanged to every set. A 90% sensitivity target is a common triage operating point; it is fixed here and not tuned. The argmax rates stay in the tables. This is an evaluation-only addition, made under the standing instruction to improve in scope.
+
+## D16. Derm7pt as training-only extra data (14 Oct 2026)
+
+Derm7pt (Kawahara et al., IEEE JBHI 2019; CC BY-NC-ND 4.0; academic use, no redistribution) has one clinical (non-dermoscopic) photo for each of 1,011 cases from an Italian dermoscopy atlas. Only those clinical photos are used. It fills the two thinnest training classes: data v1 source_train has 128 melanomas and 143 benign. Rules:
+- **Outside the frozen manifest.** Rows live in `data/extra/derm7pt.csv` (gitignored; rebuilt by `python -m skincancer.data.extra derm7pt`) with split `source_train_extra`, and `configs/e1_effb0_d7.yaml` opts in with `data.extra_train`. data/manifest.csv, groups.csv and every validation and test split are unchanged, so `e1_effb0_d7` compares directly with `e1_effb0`. Early stopping stays on source_val.
+- **Skin type.** Derm7pt has no Fitzpatrick labels. The Italian clinic population is taken as FST I–III (`fst_bucket` = "I-III (assumed)"). This is a deliberate exception to D4, which drops unknown FST, and it is allowed because these images are never evaluated.
+- **Labels.** The existing rules apply. "melanoma metastasis" (4) is excluded as not a primary skin lesion; vascular lesion (29), melanosis (16) and miscellaneous (8) map to exclude by default.
+- **Leakage.** Any Derm7pt image within pHash ≤ 2 or embedding cosine ≥ 0.90 (D10) of any evaluation image (every split except source_train / target_train) is dropped.
+- **No images in figures or the repo** (licence: no redistribution, no derivatives).

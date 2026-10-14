@@ -17,3 +17,5 @@ data/pilot/
 # Committed deliberately at data checkpoints only (contain DDI metadata: private repo only)
 data/manifest.csv
 data/groups.csv
+# Training-only extra data lists (rebuilt by skincancer.data.extra; Derm7pt is no-redistribution)
+data/extra/
