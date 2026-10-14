@@ -1,0 +1,7 @@
+# E5 with equal optimizer steps for every fraction (D18). Supersedes e5_finetune.yaml, whose
+# small fractions got 0-2 gradient steps per epoch (batch 32, drop_last) and so stayed at E1.
+#   python -m skincancer.train --config configs/e5_finetune_steps.yaml --set data.fraction=25 --seed 0
+extends: e5_finetune.yaml
+name: e5s_f{data.fraction}
+train:
+  steps_per_epoch: 5           # ~ one pass over the full target_train (152 images / 32)

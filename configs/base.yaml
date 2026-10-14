@@ -30,6 +30,7 @@ train:
   class_weighting: balanced    # balanced | indian | none   (D7)
   prior_mix: consensus         # used when class_weighting = indian
   coral_lambda: 1000.0         # coral mode only; balances CORAL with CE (D13)
+  steps_per_epoch: null        # null = one pass over the data; E5 fixes it (D18)
   amp: true
   stages:
     - {epochs: 5, unfreeze: 0, lr_head: 1.0e-3, lr_backbone: 0.0, early_stop: false}

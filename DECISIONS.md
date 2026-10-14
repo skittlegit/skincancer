@@ -131,3 +131,11 @@ Derm7pt (Kawahara et al., IEEE JBHI 2019; CC BY-NC-ND 4.0; academic use, no redi
 - **Labels.** The existing rules apply. "melanoma metastasis" (4) is excluded as not a primary skin lesion; vascular lesion (29), melanosis (16) and miscellaneous (8) map to exclude by default.
 - **Leakage.** Any Derm7pt image within pHash ≤ 2 or embedding cosine ≥ 0.90 (D10) of any evaluation image (every split except source_train / target_train) is dropped.
 - **No images in figures or the repo** (licence: no redistribution, no derivatives).
+
+## D18. E5 re-run with equal optimizer steps per fraction (14 Oct 2026)
+
+**Bug in the first E5 run.** Batch size 32 with `drop_last=True` gave the 10% subsets (17–18 images) zero gradient steps, and the 25% / 50% subsets 1–2 steps per epoch. Their best checkpoint was therefore the E1 model, and those points of the curve measure nothing. Found from the training logs (loss 0.0, n_train 18), not from any test result.
+
+**Fix.** `train.steps_per_epoch` draws a fixed number of batches per epoch, cycling through the subset with fresh augmentation; a set smaller than one batch becomes one batch. E5 uses 5 steps per epoch for every fraction (≈ one pass over the full 152-image target_train), so the curve compares the amount of target data at equal training compute, the standard learning-curve setup. Everything else (init from E1, one stage, LR, early stopping on target_val) is unchanged.
+
+**Naming and test sets.** The corrected runs are new experiments, `e5s_f10…f100` (`configs/e5_finetune_steps.yaml`), each scored once on the test sets. The old `e5_f*` results stay in results/ and runs/final_ledger.csv for the record, marked as superseded, and are not used for E8 or reported as E5.

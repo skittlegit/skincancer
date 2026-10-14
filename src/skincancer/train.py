@@ -9,6 +9,7 @@ summary.json, preds/<split>.csv for every split in eval.splits.
 from __future__ import annotations
 
 import argparse
+import itertools
 import math
 import time
 
@@ -93,7 +94,11 @@ def train(cfg: dict) -> dict:
     if cfg.get("init_from"):
         model.load_state_dict(torch.load(cfg["init_from"], map_location="cpu"))
     model.to(dev)
-    tr_loader = runs.make_loader(train_df, cfg, train=True, seed=cfg["seed"], drop_last=True)
+    # Drop the last partial batch, unless the whole set is smaller than one batch (E5 subsets).
+    tr_loader = runs.make_loader(train_df, cfg, train=True, seed=cfg["seed"],
+                                 drop_last=len(train_df) >= cfg["train"]["batch_size"])
+    steps = cfg["train"].get("steps_per_epoch")   # D18: fixed optimizer steps per epoch (None = one pass)
+    tr_iter = runs.forever(tr_loader) if steps else None
     val_loader = runs.make_loader(val_df, cfg, train=False)
     tval_loader = None
     unl_iter = None
@@ -122,7 +127,7 @@ def train(cfg: dict) -> dict:
             t0 = time.time()
             train_mode(model)
             tot, tot_coral, n = 0.0, 0.0, 0
-            for x, y in tr_loader:
+            for x, y in (itertools.islice(tr_iter, steps) if steps else tr_loader):
                 x, y = x.to(dev, non_blocking=True), y.to(dev, non_blocking=True)
                 with torch.autocast(dev.type, enabled=use_amp):
                     logits, fs = model(x, return_features=True)

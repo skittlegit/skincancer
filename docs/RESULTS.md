@@ -98,3 +98,7 @@ The threshold that catches 90% of cancers on light-skin validation images, appli
 - A threshold that misses 10% of cancers at home misses **two-thirds of cancers on FST V–VI** at another institution, and about 40–60% on light skin at another institution. This is the clinically meaningful form of the RQ1 gap: the model's scores are not just less discriminative, they are *shifted*, so a threshold set in-domain does not transfer.
 - Colour constancy and CLAHE halve the missed rate on DDI I–II (41% → 20%) and cut MIDAS from 59% to 48%. But false alarms rise in step (DDI V–VI 27% → 35–38%) and AUC is unchanged (E3). So they shift the score scale (calibration) rather than separating cancer from benign better. On V–VI the missed rate stays above 50% under every variant.
 - These are test-set observations, reported only; nothing was selected on them.
+
+## E5 (first run, superseded by D18)
+
+The first fine-tuning curve is invalid below 100%: the 10–50% subsets got 0–2 gradient steps per epoch (batch 32, drop_last), so they reproduce E1 (target val 0.891 at every fraction). The corrected curve (`e5s_f*`, equal steps per fraction) is queued. The 100% run did train (152 images, 4 steps per epoch): target val 0.891 → 0.930, target test 0.866 → 0.916 [0.85, 0.97], DDI V–VI 0.502 → 0.516, missed cancers on DDI V–VI at the fixed operating point 66% → 57%, but DermaCon-IN non-cancer called malignant 15% → 24%. These numbers will be replaced by `e5s_f100`.

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Follow-up queue after run_all.sh (D15), with a commit + push checkpoint after each step:
-#   1. score E3-E7 on midas_test (added after they were queued)
-#   2. E1 + Derm7pt: E1 with Derm7pt clinical photos added to source_train only (D16)
-#   3. E1-strong: EfficientNet-B0 at 320 px + flip TTA, 3 seeds
-#   4. E1-FM: Derm Foundation embeddings + heads (skipped until Hugging Face access works)
-#   5. seed ensembles for every finished experiment
+#   1. score E3-E7 on midas_test (added after they were queued; superseded E5 runs skipped)
+#   2. E5 with equal optimizer steps per fraction (D18), 4 fractions x 3 seeds
+#   3. E1 + Derm7pt: E1 with Derm7pt clinical photos added to source_train only (D16)
+#   4. E1-strong: EfficientNet-B0 at 320 px + flip TTA, 3 seeds
+#   5. E1-FM: Derm Foundation embeddings + heads (skipped until Hugging Face access works)
+#   6. seed ensembles for every finished experiment
 #   PY=.venv/Scripts/python bash scripts/run_extras.sh            # waits for run_all to finish
 #   PY=.venv/Scripts/python bash scripts/run_extras.sh d7 e1s fm  # chosen steps only, no wait
 set -uo pipefail
@@ -28,7 +29,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git push -q && echo 
 step_midas() {
   echo "[$(date +%H:%M)] midas_test for E3-E7"
   bash scripts/score_new_split.sh midas_test e3_clahe e3_crop e3_all e4_indian_loss \
-    e5_f10 e5_f25 e5_f50 e5_f100 e7_coral_l100.0 e7_coral_l1000.0 e7_coral_l10000.0
+    e7_coral_l100.0 e7_coral_l1000.0 e7_coral_l10000.0
   # E6 heads have no checkpoint: refit them (deterministic per seed; checked against the
   # saved source_val predictions) and score midas_test only.
   for n in e6_fusion e6_embed_mlp e6_texture_lr; do
@@ -43,7 +44,7 @@ for f in sorted(glob.glob("runs/e6_*/s*/source_val.before.csv")):
     cols = [c for c in a if c.startswith("p_")]
     print(f, "max |diff| vs saved source_val preds:", float(np.abs(a[cols].values - b[cols].values).max()))
 EOF
-  $PY -m skincancer.evaluate --exp e3_clahe e3_crop e3_all e4_indian_loss e5_f10 e5_f25 e5_f50 e5_f100 \
+  $PY -m skincancer.evaluate --exp e3_clahe e3_crop e3_all e4_indian_loss \
     e6_fusion e6_embed_mlp e6_texture_lr e7_coral_l100.0 e7_coral_l1000.0 e7_coral_l10000.0 >> "$LOGS/evaluate.log" 2>&1
   $PY -m skincancer.evaluate --exp e1_effb0 --prior-mix all >> "$LOGS/evaluate.log" 2>&1
   checkpoint "E3-E7 on MIDAS"
@@ -65,6 +66,22 @@ train_arm() {  # train_arm <config> <exp> <message>: 3 seeds, score once, evalua
 step_d7() {
   [ -f data/extra/derm7pt.csv ] || { echo "[$(date +%H:%M)] E1 + Derm7pt skipped: data/extra/derm7pt.csv missing"; return; }
   train_arm configs/e1_effb0_d7.yaml e1_effb0_d7 "E1 + Derm7pt (training-only extra data)"
+}
+
+step_e5s() {
+  for f in 10 25 50 100; do
+    for s in $SEEDS; do
+      echo "[$(date +%H:%M)] train e5s_f${f}_s$s"
+      $PY -m skincancer.train --config configs/e5_finetune_steps.yaml --seed $s --set data.fraction=$f \
+        > "$LOGS/e5s_f${f}_s$s.log" 2>&1 || echo "  FAILED: see $LOGS/e5s_f${f}_s$s.log"
+    done
+    for s in $SEEDS; do
+      [ -f "runs/e5s_f$f/s$s/best.pt" ] && $PY -m skincancer.predict --run "runs/e5s_f$f/s$s" \
+        --splits $FINAL --final >> "$LOGS/final_e5s_f$f.log" 2>&1
+    done
+    $PY -m skincancer.evaluate --exp "e5s_f$f" >> "$LOGS/evaluate.log" 2>&1
+  done
+  checkpoint "E5 fine-tuning curve, equal steps per fraction (D18)"
 }
 
 step_e1s() { train_arm configs/e1_effb0_320.yaml e1_effb0_320 "E1-strong (320 px + flip TTA)"; }
@@ -93,7 +110,7 @@ step_ens() {
 
 if [ $# -eq 0 ]; then
   until grep -q "all done" runs/run_all.out 2>/dev/null; do sleep 60; done
-  STEPS="midas d7 e1s fm ens"
+  STEPS="midas e5s d7 e1s fm ens"
 else
   STEPS="$*"
 fi
