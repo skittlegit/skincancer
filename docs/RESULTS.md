@@ -33,3 +33,29 @@ Changing institution alone (camera, protocol, case mix) costs ~0.17–0.21 AUC, 
 - Within Fitzpatrick17k there is **no gap** (0.864 vs 0.866). Its IV–VI images come from the same textbook atlases as the training images, so the domain shift is mostly skin tone, not source. DDI (another institution, real clinic photos) is the meaningful test.
 - On Indian clinic data, almost a third of ordinary non-cancer images are called malignant. That would be a heavy false-alarm load in practice.
 - The benign-lookalike class is the weak point everywhere (false-alarm rates of 40–56%). Data v1 has few benign training images (143); data v2 adds about 460.
+
+## E3: image processing ablation, EfficientNet-B0 (14 Oct 2026)
+
+Each variant applies the step to training and every test set alike (`cc` = shades-of-grey colour constancy, `clahe` = contrast on L, `crop` = lesion crop, D12; `all` = the three together).
+
+| Metric | E1 (none) | cc | clahe | crop | all |
+| --- | --- | --- | --- | --- | --- |
+| **Target val macro AUC (selection metric)** | **0.891** | 0.881 | 0.889 | 0.883 | 0.820 |
+| Source val macro AUC | 0.846 | 0.845 | 0.837 | 0.832 | 0.830 |
+| Source test macro AUC | 0.864 | 0.867 | 0.859 | 0.853 | 0.848 |
+| Fitzpatrick17k IV–VI test macro | 0.866 | 0.837 | 0.847 | 0.832 | 0.777 |
+| PAD-UFES-20 IV–VI macro | 0.828 | 0.837 | 0.843 | 0.778 | 0.876 |
+| DDI I–II binary | 0.682 | 0.692 | 0.691 | 0.689 | 0.691 |
+| DDI III–IV binary | 0.670 | 0.663 | 0.664 | 0.668 | 0.649 |
+| **DDI V–VI binary** | 0.502 | 0.520 | 0.527 | 0.531 | 0.533 |
+| DDI V–VI missed cancers | 51.4% | 48.6% | 48.6% | 58.3% | 47.9% |
+| DermaCon-IN binary | 0.690 | 0.704 | 0.688 | 0.670 | 0.713 |
+| DermaCon-IN non-cancer called malignant | 30.8% | 30.6% | 34.9% | 30.4% | 30.5% |
+| AK called malignant | 91.6% | 90.2% | 90.5% | 87.1% | 87.0% |
+
+CIs on the external sets are ±0.08–0.10 (DDI V–VI) and ±0.18 (DermaCon-IN); see `results/e3_*/metrics.csv`.
+
+**Reading (RQ2):**
+- **No preprocessing variant beats the baseline on target val**, the pre-registered selection metric (D1). CLAHE ties (0.889 vs 0.891); the full pipeline is clearly worse (0.820). So E8 does not carry an image-processing step (decision logged in DECISIONS.md, D14).
+- On DDI V–VI every variant moves AUC from 0.50 to 0.52–0.53. That is consistent in direction but far inside the CI (±0.10): not evidence of a fix. Normalising colour and contrast does not remove what the model fails on in dark skin.
+- Lesion crop hurts where lesions are small or framed differently (PAD-UFES-20 −0.05, DDI V–VI missed cancers up to 58%). The crop is a pipeline risk; the failure rate by eye on 100 crops is still to be measured.
