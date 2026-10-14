@@ -19,7 +19,7 @@ from ..config import load_data_config
 from ..labels import SOURCE_FST, TARGET_FST, TRAINABLE
 
 TRAINABLE_POOLS = {"source", "target", "pad_dark_test", "ak_side"}
-TEST_ONLY_POOLS = {"ddi_test", "dermacon_test", "dermacon_other"}
+TEST_ONLY_POOLS = {"ddi_test", "dermacon_test", "dermacon_other", "midas_test"}
 
 
 def assign_pool(row) -> str:
@@ -28,6 +28,8 @@ def assign_pool(row) -> str:
     ds, label = row["dataset"], row["label_4class"]
     if ds == "ddi":
         return "ddi_test"
+    if ds == "midas":
+        return "midas_test" if label in TRAINABLE else "excluded"   # biopsy-proven 4-class only
     if ds == "dermacon_in":
         if label in TRAINABLE:
             return "dermacon_test"
@@ -138,7 +140,7 @@ def make(manifest: pd.DataFrame, cfg: dict, groups: pd.DataFrame | None = None):
     return df.drop(columns="pool"), fractions
 
 
-EXTERNAL_TEST = {"ddi_test", "dermacon_test", "dermacon_other", "pad_dark_test"}
+EXTERNAL_TEST = {"ddi_test", "dermacon_test", "dermacon_other", "pad_dark_test", "midas_test"}
 
 
 def check_no_leakage(df: pd.DataFrame) -> None:

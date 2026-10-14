@@ -28,6 +28,11 @@ datasets:
       patient_id: Subject_ID
       site: Body_part
       quality: Quality          # "No, the quality is insufficient for diagnosis" -> excluded
+  midas:
+    # MRA-MIDAS (Stanford AIMI, Redivis; approval needed). python -m skincancer.data.download_midas
+    csv: midas/release_midas.csv
+    files: midas/clinical_files.csv
+    image_dir: midas/images
 
 splits:
   seed: 2026                   # split seed; independent of training seeds

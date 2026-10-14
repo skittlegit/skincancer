@@ -98,11 +98,38 @@ def load_dermacon_in(ds: dict, root: Path) -> pd.DataFrame:
     )
 
 
+ROMAN = {"i": 1, "ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6}
+ACRAL_SITE = r"palm|sole|plantar|\bfoot\b|\bfeet\b|\bhand\b|finger|\btoe|nail|heel"
+
+
+def load_midas(ds: dict, root: Path) -> pd.DataFrame:
+    """MRA-MIDAS clinical photos (6 in / 1 ft). Diagnosis = pathology; unbiopsied control
+    lesions have none and are excluded downstream. Two photos of one lesion share a group."""
+    meta = pd.read_csv(root / ds["csv"])
+    files = pd.read_csv(root / ds["files"])          # midas_file_name -> downloaded file_name
+    df = meta.merge(files, on="midas_file_name", how="inner")
+    fst = df["midas_fitzpatrick"].astype(str).str.extract(r"^\s*(i{1,3}|iv|vi?|v)\b", expand=False)
+    fst = fst.map(ROMAN).astype(float)
+    site = df["midas_location"].astype(str).str.lower()
+    return _frame(
+        image_id="midas_" + df["file_name"].astype(str).str.replace(r"\.[^.]+$", "", regex=True),
+        dataset="midas",
+        path=ds["image_dir"] + "/" + df["file_name"].astype(str),
+        diagnosis=df["midas_path"].fillna("no pathology (control)"),
+        fst=fst,
+        fst_bucket=fst.map(fst_bucket),
+        patient_id="midas_" + df["midas_record_id"].astype(str),
+        site=site,
+        is_acral=site.str.contains(ACRAL_SITE, na=False),
+    )
+
+
 LOADERS = {
     "fitzpatrick17k": load_fitzpatrick17k,
     "pad_ufes_20": load_pad_ufes_20,
     "ddi": load_ddi,
     "dermacon_in": load_dermacon_in,
+    "midas": load_midas,
 }
 
 

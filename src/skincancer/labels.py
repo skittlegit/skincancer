@@ -21,10 +21,12 @@ TO_3CLASS = {"bcc": "nmsc", "scc": "nmsc", "mel": "mel", "benign": "benign"}
 RULES: list[tuple[str, str, bool]] = [
     (r"actinic keratos|\back\b|\bak\b", "ak", False),
     (r"basal cell carcinoma|\bbcc\b", "bcc", False),
-    (r"bowen|squamous cell carcinoma|\bscc\b|\bbod\b", "scc", False),
+    (r"bowen|squamous cell carcinoma|\bscc\b|\bsccis\b|\bbod\b", "scc", False),
     (r"keratoacanthoma", "scc", True),
     (r"melanoma|lentigo maligna|\bmel\b", "mel", False),
     (r"pseudo ?lymphoma", "exclude", False),
+    # intermediate melanocytic tumours (severe atypia, Spitz, AIMP): neither benign nor melanoma
+    (r"re ?excision|\baimp\b|intermediate melanocytic", "exclude", True),
     (r"kaposi|sebaceous carcinoma|dermatofibrosarcoma|mycosis fungoides|lymphoma|merkel|angiosarcoma",
      "exclude_rare_cancer", False),
     (r"seborr?h?o?eic keratos|\bsek\b", "benign", False),

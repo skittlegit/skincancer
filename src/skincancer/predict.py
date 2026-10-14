@@ -17,7 +17,7 @@ import pandas as pd
 
 from . import runs
 
-TEST_ONLY = {"ddi_test", "dermacon_test", "dermacon_other", "pad_dark_test"}
+TEST_ONLY = {"ddi_test", "dermacon_test", "dermacon_other", "pad_dark_test", "midas_test"}
 LEDGER = Path("runs/final_ledger.csv")
 
 

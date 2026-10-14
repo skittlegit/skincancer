@@ -27,6 +27,7 @@ EVAL_SETS = {
     "target_test": ("multiclass", ["fst_bucket", "is_acral"]),
     "pad_dark_test": ("multiclass", []),
     "ddi_test": ("binary", ["fst_bucket"]),
+    "midas_test": ("multiclass", ["fst_bucket", "is_acral"]),     # biopsy-proven, Stanford, light skin
     "dermacon_test": ("binary", ["fst_bucket"]),
     "ak_side": ("rates", []),
     "dermacon_other": ("rates", ["fst_bucket"]),   # non-cancer Indian clinic images (D9)

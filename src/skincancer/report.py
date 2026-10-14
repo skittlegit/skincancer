@@ -31,6 +31,7 @@ TARGETS = [
     ("target_test", "all", "all", "macro_auc", "Fitzpatrick17k IV–VI (macro AUC)"),
     ("ddi_test", "fst_bucket", "V-VI", "binary_auc", "DDI V–VI (binary AUC)"),
     ("dermacon_test", "all", "all", "binary_auc", "DermaCon-IN (binary AUC)"),
+    ("midas_test", "fst_bucket", "I-III", "macro_auc", "MIDAS I–III (macro AUC)"),
 ]
 FIG_DIR = Path("reports/figures")
 
