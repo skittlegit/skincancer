@@ -232,3 +232,15 @@ Rebuilt from results/ by `python -m skincancer.report …` (metrics only; no pat
 - [reports/figures/ddi_by_fst.png](../reports/figures/ddi_by_fst.png): DDI AUC across FST I–II, III–IV, V–VI for E1, E8 and Derm Foundation.
 - [reports/figures/e5_curve.png](../reports/figures/e5_curve.png): the corrected E5 fine-tuning curve.
 - [reports/figures/confusion_e1_effb0_target_test.png](../reports/figures/confusion_e1_effb0_target_test.png): E1 confusion matrix on Fitzpatrick17k IV–VI by skin type.
+
+## Domain probe and UMAP (feature analysis)
+
+A 5-fold, group-aware linear probe on frozen embeddings asks whether a light-skin source test image can be told from a Fitzpatrick17k IV–VI target test image (51 per domain, balanced, chance 50%):
+
+| | Seed 0 | Seed 1 | Seed 2 | Mean |
+| --- | --- | --- | --- | --- |
+| E1 | 78% | 77% | 79% | **77%** |
+| CORAL λ = 1000 | 83% | 83% | 84% | **84%** |
+| CORAL λ = 10000 | 81% | 83% | 81% | **82%** |
+
+(SD across folds ≈ ±8 points.) **CORAL does not make the domains harder to separate**: matching second-order feature statistics leaves them linearly separable, and if anything more so. Part of what the probe detects is class mix, since the target set is SCC-heavy. The UMAP ([reports/figures/umap_e1_effb0_s0.png](../reports/figures/umap_e1_effb0_s0.png)) shows the same thing: dark-skin images sit towards the SCC-rich side of the map rather than forming their own cluster. This fits E7's flat target val: the alignment did not remove the domain signal it targets.
