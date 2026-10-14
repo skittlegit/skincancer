@@ -63,7 +63,9 @@ def image_loader(cfg: dict) -> ImageLoader:
     return ImageLoader(cfg["data_root"], cfg["data"]["preprocess"], cfg.get("cache_dir"))
 
 
-def make_loader(df: pd.DataFrame, cfg: dict, train: bool, seed: int = 0, drop_last: bool = False) -> DataLoader:
+def make_loader(df: pd.DataFrame, cfg: dict, train: bool, seed: int = 0, drop_last: bool = False,
+                persistent: bool = True) -> DataLoader:
+    """persistent=False for one-shot inference, so worker processes exit when it is done."""
     d = cfg["data"]
     tf = train_transform(d["img_size"]) if train else eval_transform(d["img_size"], d["resize_short"])
     ds = SkinDataset(df, image_loader(cfg), tf, classes_of(cfg), d["label_col"])
@@ -71,7 +73,7 @@ def make_loader(df: pd.DataFrame, cfg: dict, train: bool, seed: int = 0, drop_la
     nw = cfg["train"]["num_workers"]
     return DataLoader(ds, batch_size=cfg["train"]["batch_size"], shuffle=train, drop_last=drop_last,
                       num_workers=nw, generator=g, pin_memory=torch.cuda.is_available(),
-                      worker_init_fn=partial(_seed_worker, base=seed), persistent_workers=nw > 0)
+                      worker_init_fn=partial(_seed_worker, base=seed), persistent_workers=persistent and nw > 0)
 
 
 def build_model(cfg: dict, pretrained: bool | None = None) -> Classifier:

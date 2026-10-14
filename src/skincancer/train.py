@@ -9,6 +9,7 @@ summary.json, preds/<split>.csv for every split in eval.splits.
 from __future__ import annotations
 
 import argparse
+import gc
 import itertools
 import math
 import time
@@ -169,6 +170,12 @@ def train(cfg: dict) -> dict:
     pd.DataFrame(history).to_csv(rdir / "history.csv", index=False)
     runs.write_json({"best": best, "n_train": len(train_df), "n_val": len(val_df)}, rdir / "summary.json")
 
+    # Shut down the training loaders' persistent workers before predicting: with CORAL's
+    # four loaders the extra worker pools ran a 15 GB machine out of memory (segfault).
+    del tr_loader, val_loader, tval_loader, unl_iter
+    if "tr_iter" in locals():
+        del tr_iter
+    gc.collect()
     model.load_state_dict(torch.load(rdir / "best.pt", map_location=dev))
     model.eval()
     (rdir / "preds").mkdir(exist_ok=True)
@@ -176,7 +183,9 @@ def train(cfg: dict) -> dict:
         df = runs.split_rows(manifest, split)
         if len(df) == 0:
             continue
-        P = runs.infer(model, runs.make_loader(df, cfg, train=False), tta=cfg["eval"].get("tta", False))
+        loader = runs.make_loader(df, cfg, train=False, persistent=False)
+        P = runs.infer(model, loader, tta=cfg["eval"].get("tta", False))
+        del loader
         runs.prediction_frame(df, P, classes, cfg).to_csv(rdir / "preds" / f"{split}.csv", index=False)
     if wb:
         wb.finish()

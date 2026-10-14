@@ -26,6 +26,23 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && git push -q && echo 
   fi
 }
 
+step_repair() {  # runs that crashed after saving best.pt (e.g. a segfault while predicting)
+  for d in runs/*/s*/; do
+    d=${d%/}
+    [ -f "$d/best.pt" ] && [ -f "$d/summary.json" ] || continue
+    missing=""
+    for sp in source_val source_test target_val target_test ak_side; do
+      [ -f "$d/preds/$sp.csv" ] || missing="$missing $sp"
+    done
+    [ -n "$missing" ] || continue
+    echo "[$(date +%H:%M)] repair $d:$missing"
+    $PY -m skincancer.predict --run "$d" --splits $missing >> "$LOGS/repair.log" 2>&1 || echo "  FAILED: see $LOGS/repair.log"
+    e=${d#runs/}; e=${e%%/*}
+    $PY -m skincancer.evaluate --exp "$e" >> "$LOGS/evaluate.log" 2>&1
+  done
+  checkpoint "repair missing predictions"
+}
+
 step_midas() {
   echo "[$(date +%H:%M)] midas_test for E3-E7"
   bash scripts/score_new_split.sh midas_test e3_clahe e3_crop e3_all e4_indian_loss \
@@ -110,7 +127,7 @@ step_ens() {
 
 if [ $# -eq 0 ]; then
   until grep -q "all done" runs/run_all.out 2>/dev/null; do sleep 60; done
-  STEPS="midas e5s d7 e1s fm ens"
+  STEPS="repair midas e5s d7 e1s fm ens"
 else
   STEPS="$*"
 fi
