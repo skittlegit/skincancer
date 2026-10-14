@@ -16,6 +16,16 @@ All results here are **data v1**: Fitzpatrick17k has 1,919 of 4,491 neoplastic i
 | DermaCon-IN, non-cancer clinic images | — | — | **30.8% called malignant** | 5,379 (0) |
 | Actinic keratosis (side analysis) | — | — | 91.6% called malignant | 246 |
 
+**MRA-MIDAS (Stanford, biopsy-proven, clinical photos; 1,380 images, 468 lesions; 96% FST I–III):** EfficientNet-B0 binary AUC 0.728 [0.694, 0.761] overall, **0.721 [0.686, 0.757] on FST I–III**; macro 0.674 [0.646, 0.701]; 43.5% of light-skin cancers missed. ResNet50 binary 0.666 on I–III. FST IV holds 42 images (8 malignant): too few to read.
+
+**Two shifts, separated (binary AUC, EfficientNet-B0):**
+
+| Same atlases, light skin (source test) | New institution, light skin (MIDAS I–III / DDI I–II) | New institution, dark skin (DDI V–VI) |
+| --- | --- | --- |
+| 0.893 | 0.721 / 0.682 | 0.502 |
+
+Changing institution alone (camera, protocol, case mix) costs ~0.17–0.21 AUC, even on light skin; MIDAS and DDI I–II agree. Darker skin costs a further ~0.18, down to chance. So the dark-skin gap in RQ1 sits on top of a sizeable institution gap. The adaptation methods (E5, E7) target only the skin-tone part, since their target data is Fitzpatrick17k IV–VI.
+
 **ResNet50 (same protocol, layer4 unfrozen):** source macro 0.788 [0.745, 0.834], target macro 0.755 [0.641, 0.849], DDI I–II 0.708 [0.636, 0.782] → **DDI V–VI 0.523 [0.422, 0.631]**, missing 62.5% of V–VI cancers. DermaCon-IN 0.668 [0.523, 0.844]; 36.6% of DermaCon-IN non-cancer images called malignant. ResNet50 is weaker in-domain but shows the same collapse on dark skin, so **the gap is not architecture-specific**.
 
 **Reading (RQ1):**
