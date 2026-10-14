@@ -102,3 +102,19 @@ The threshold that catches 90% of cancers on light-skin validation images, appli
 ## E5 (first run, superseded by D18)
 
 The first fine-tuning curve is invalid below 100%: the 10–50% subsets got 0–2 gradient steps per epoch (batch 32, drop_last), so they reproduce E1 (target val 0.891 at every fraction). The corrected curve (`e5s_f*`, equal steps per fraction) is queued. The 100% run did train (152 images, 4 steps per epoch): target val 0.891 → 0.930, target test 0.866 → 0.916 [0.85, 0.97], DDI V–VI 0.502 → 0.516, missed cancers on DDI V–VI at the fixed operating point 66% → 57%, but DermaCon-IN non-cancer called malignant 15% → 24%. These numbers will be replaced by `e5s_f100`.
+
+## E6: texture fusion (14 Oct 2026)
+
+Heads on the frozen E1 embedding (1280-d) and 78 hand-crafted texture features (LBP, GLCM, Gabor, colour moments), trained on source_train and selected on source_val:
+
+| | Target val macro (selection) | Source test | Target test | PAD-UFES-20 IV–VI | DDI I–II | **DDI V–VI** | DDI V–VI missed (op90) | DermaCon-IN | DermaCon-IN non-cancer called malignant (op90) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E1 (fine-tuned CNN) | 0.891 | 0.864 | 0.866 | 0.828 | 0.682 | 0.502 [0.40, 0.60] | 66% | 0.690 | 15% |
+| Embedding MLP (control) | 0.882 | 0.841 | 0.871 | 0.791 | 0.656 | 0.495 [0.39, 0.59] | 60% | 0.665 | 23% |
+| Embedding + texture MLP | 0.879 | 0.845 | 0.882 | 0.801 | 0.670 | 0.501 [0.40, 0.60] | 58% | 0.658 | 22% |
+| Texture only (logistic) | 0.666 | 0.753 | 0.714 | 0.816 | 0.570 | 0.579 [0.49, 0.67] | 15% | 0.658 | 68% |
+
+**Reading (RQ4):**
+- **Texture adds nothing on top of the CNN embedding.** Fusion and the embedding-only control are within 0.01 everywhere, with the control's target val slightly higher (0.882 vs 0.879). Whatever the 78 features capture, the embedding already has it.
+- Texture alone is much weaker in-domain (target val 0.67). Its DDI V–VI AUC (0.58) is the highest of any model so far and sits near its DDI I–II score (0.57), so it degrades less with skin tone. But the CI includes chance, so this is a hint, not a finding. Its threshold also transfers badly (68% of DermaCon-IN non-cancer images called malignant).
+- Exploratory note for data v2: test whether hand-crafted texture is less skin-tone dependent with more DDI-like data. Not pursued now (no selection on test sets).
