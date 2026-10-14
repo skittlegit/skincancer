@@ -138,3 +138,39 @@ def test_leakage_check_allows_external_tests_only():
     bad = pd.DataFrame({"group_id": ["a", "a"], "split": ["source_train", "ddi_test"]})
     with pytest.raises(AssertionError):
         check_no_leakage(bad)
+
+
+def test_seed_ensemble_averages_probabilities():
+    import pandas as pd
+    from skincancer.evaluate import ensemble_frame
+    classes = ["a", "b"]
+    f1 = pd.DataFrame({"image_id": ["x", "y"], "p_a": [0.2, 0.9], "p_b": [0.8, 0.1]})
+    f2 = pd.DataFrame({"image_id": ["y", "x"], "p_a": [0.7, 0.4], "p_b": [0.3, 0.6]})   # other order
+    out = ensemble_frame([f1, f2], classes).set_index("image_id")
+    assert np.allclose(out.loc["x"], [0.3, 0.7]) and np.allclose(out.loc["y"], [0.8, 0.2])
+
+
+def test_flip_tta_is_flip_invariant():
+    from skincancer.runs import infer
+
+    class Halves(torch.nn.Module):          # logits = mean of left, top and top-left quarter
+        def __init__(self):
+            super().__init__()
+            self.w = torch.nn.Parameter(torch.ones(1))
+
+        def forward(self, x, return_features=False):
+            h, w = x.shape[2] // 2, x.shape[3] // 2
+            z = torch.stack([x[..., :w].mean((1, 2, 3)), x[:, :, :h].mean((1, 2, 3)),
+                             x[:, :, :h, :w].mean((1, 2, 3))], 1) * 10 * self.w
+            return z, z
+
+    torch.manual_seed(0)
+    x = torch.rand(4, 3, 8, 8)
+    model = Halves()
+    with torch.no_grad():
+        p = infer(model, [(x, None)], tta=True)
+        p_flip = infer(model, [(torch.flip(x, [3]), None)], tta=True)
+        p_plain = infer(model, [(x, None)])
+    assert p.shape == (4, 3) and np.allclose(p.sum(1), 1, atol=1e-5)
+    assert np.allclose(p, p_flip, atol=1e-5)          # the four flip views are the same set
+    assert not np.allclose(p, p_plain, atol=1e-4)

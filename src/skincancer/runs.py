@@ -94,12 +94,20 @@ def load_run(rdir: str | Path):
 
 
 @torch.no_grad()
-def infer(model, loader, with_features: bool = False):
+def infer(model, loader, with_features: bool = False, tta: bool = False):
+    """tta: average softmax over identity, horizontal, vertical and both flips (features stay
+    from the identity view). Off for early stopping; set by eval.tta for saved predictions."""
     dev = next(model.parameters()).device
     probs, feats = [], []
     for x, _ in loader:
-        logits, f = model(x.to(dev), return_features=True)
-        probs.append(torch.softmax(logits.float(), 1).cpu().numpy())
+        x = x.to(dev)
+        logits, f = model(x, return_features=True)
+        p = torch.softmax(logits.float(), 1)
+        if tta:
+            for dims in ([3], [2], [2, 3]):
+                p = p + torch.softmax(model(torch.flip(x, dims), return_features=True)[0].float(), 1)
+            p = p / 4
+        probs.append(p.cpu().numpy())
         if with_features:
             feats.append(f.float().cpu().numpy())
     P = np.concatenate(probs) if probs else np.zeros((0, model.head[-1].out_features))

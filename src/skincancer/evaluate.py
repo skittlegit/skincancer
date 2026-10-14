@@ -95,11 +95,22 @@ def score_set(split: str, frames: list[pd.DataFrame], manifest: pd.DataFrame, cl
     return rows
 
 
+def ensemble_frame(frames: list[pd.DataFrame], classes: list[str]) -> pd.DataFrame:
+    cols = [f"p_{c}" for c in classes]
+    ids = frames[0]["image_id"]
+    P = np.mean([f.set_index("image_id").loc[ids, cols].to_numpy() for f in frames], axis=0)
+    out = pd.DataFrame(P, columns=cols)
+    out.insert(0, "image_id", ids.to_numpy())
+    return out
+
+
 def evaluate(exp: str, runs_dir="runs", results_dir="results", manifest_path=None,
              prior_mix: str | None = None, n_boot: int = 1000, splits=None,
-             drop_diagnoses: list[str] | None = None, tag: str | None = None) -> pd.DataFrame:
+             drop_diagnoses: list[str] | None = None, tag: str | None = None,
+             ensemble: bool = False) -> pd.DataFrame:
     """drop_diagnoses: evaluation-time sensitivity check, e.g. without pyogenic granuloma;
-    results go to results/<exp>+<tag>/."""
+    results go to results/<exp>+<tag>/. ensemble: average the seeds' probabilities into one
+    prediction (D15); CIs then come from resampling images only; results/<exp>+ens/."""
     exp_dir = Path(runs_dir) / exp
     cfg, priors = run_config(exp_dir)
     label_col = cfg.get("data", {}).get("label_col", "label_4class")
@@ -109,6 +120,8 @@ def evaluate(exp: str, runs_dir="runs", results_dir="results", manifest_path=Non
     if drop_diagnoses:
         dropped = set(manifest.loc[manifest["diagnosis"].isin(drop_diagnoses), "image_id"])
         name += f"+{tag or 'drop'}"
+    if ensemble:
+        name += "+ens"
     rows = []
     for split in splits or EVAL_SETS:
         seeds, frames = load_preds(exp_dir, split)
@@ -122,6 +135,8 @@ def evaluate(exp: str, runs_dir="runs", results_dir="results", manifest_path=Non
             for seed, f in zip(seeds, frames):
                 pi = priors[seed]
                 f[cols] = M.prior_shift(f[cols].to_numpy(), pi, indian_prior(classes, pi, prior_mix))
+        if ensemble:
+            frames = [ensemble_frame(frames, classes)]
         rows += score_set(split, frames, manifest, classes, label_col, n_boot)
     out = pd.DataFrame(rows)
     out.insert(0, "exp", name)
@@ -140,12 +155,13 @@ def main(argv=None):
     ap.add_argument("--results-dir", default="results")
     ap.add_argument("--drop-diagnoses", nargs="+", help="sensitivity check, e.g. 'pyogenic granuloma'")
     ap.add_argument("--tag", help="suffix for --drop-diagnoses results")
+    ap.add_argument("--ensemble", action="store_true", help="score the mean of the seeds' probabilities (D15)")
     args = ap.parse_args(argv)
     mixes = list(INDIAN_MIXES) if args.prior_mix == "all" else [args.prior_mix]
     for exp in args.exp:
         for mix in mixes:
             out = evaluate(exp, args.runs_dir, args.results_dir, prior_mix=mix, n_boot=args.n_boot,
-                           drop_diagnoses=args.drop_diagnoses, tag=args.tag)
+                           drop_diagnoses=args.drop_diagnoses, tag=args.tag, ensemble=args.ensemble)
             head = out[(out["subgroup"] == "all") & out["metric"].isin(["macro_auc", "binary_auc", "missed_cancer_rate"])]
             print(head[["exp", "eval_set", "metric", "mean", "ci_lo", "ci_hi", "n_seeds"]].to_string(index=False))
 

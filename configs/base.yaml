@@ -40,6 +40,7 @@ eval:
   # pad_dark_test) are never here: they go through `predict --final` (D9).
   splits: [source_val, source_test, target_val, target_test, ak_side]
   n_boot: 1000
+  tta: false                   # flip test-time augmentation for saved predictions (D15)
 
 wandb:
   enabled: false

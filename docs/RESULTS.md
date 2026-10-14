@@ -59,3 +59,15 @@ CIs on the external sets are ±0.08–0.10 (DDI V–VI) and ±0.18 (DermaCon-IN)
 - **No preprocessing variant beats the baseline on target val**, the pre-registered selection metric (D1). CLAHE ties (0.889 vs 0.891); the full pipeline is clearly worse (0.820). So E8 does not carry an image-processing step (decision logged in DECISIONS.md, D14).
 - On DDI V–VI every variant moves AUC from 0.50 to 0.52–0.53. That is consistent in direction but far inside the CI (±0.10): not evidence of a fix. Normalising colour and contrast does not remove what the model fails on in dark skin.
 - Lesion crop hurts where lesions are small or framed differently (PAD-UFES-20 −0.05, DDI V–VI missed cancers up to 58%). The crop is a pipeline risk; the failure rate by eye on 100 crops is still to be measured.
+
+## Seed ensemble (D15)
+
+Mean of the three seeds' probabilities, against the seed mean:
+
+| | Source val | Target val | Source test | Target test | DDI I–II | DDI V–VI | DermaCon-IN | MIDAS I–III |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E1 EffB0 (seed mean) | 0.846 | 0.891 | 0.864 | 0.866 | 0.682 | 0.502 | 0.690 | 0.721 |
+| E1 EffB0 ensemble | 0.848 | 0.895 | 0.868 | 0.867 | 0.682 | 0.503 | 0.697 | 0.724 |
+| E1 ResNet50 ensemble | 0.805 | 0.825 | 0.789 | 0.755 | 0.712 | 0.520 | 0.672 | 0.667 |
+
+Ensembling gains +0.002 to +0.005 AUC: the three seeds already agree closely. It does nothing for dark skin (DDI V–VI 0.503), so seed variance is not the problem.

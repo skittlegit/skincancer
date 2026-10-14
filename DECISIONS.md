@@ -109,3 +109,12 @@ With 1280-d EfficientNet-B0 features and the paper's 1/(4d²) normalisation, the
 ## D14. E8 drops image processing (14 Oct 2026)
 
 Picked autonomously per the standing instruction (pick the recommended option mid-run). E3 on target_val macro AUC: E1 0.891, cc 0.881, clahe 0.889, crop 0.883, all 0.820. No variant beats the baseline, so E8 is built from E4/E5/E6/E7 components only, again chosen on target_val. The external-test differences (DDI V–VI 0.50 → 0.53) were not used for this choice.
+
+## D15. Stronger-baseline arms (14 Oct 2026)
+
+Added at the team's request after E3, each pre-specified as one arm, compared with E1 on source_val / target_val only and scored once on the test-only sets (ledger):
+- **Seed ensemble** (`evaluate --ensemble`, results/<exp>+ens): mean of the three seeds' probabilities. CIs come from the group bootstrap over images only (one prediction). Computed from the already-saved predictions; no test set is predicted again.
+- **E1-strong** (`configs/e1_effb0_320.yaml`): the E1 recipe at 320 px (resize 366, same 0.875 crop ratio) with flip TTA (mean softmax over identity, horizontal, vertical and both flips) for saved predictions. Early stopping stays without TTA. Size and TTA are one arm, not ablated on test sets.
+- **E1-FM** (`skincancer.foundation`): frozen Google Derm Foundation embeddings (6144-d, 448 px short-side resize + centre crop) with (a) the E6 MLP head, seeds 0–2, directly comparable with e6_embed_mlp; and (b) a class-balanced linear probe with C ∈ {0.001, 0.01, 0.1, 1} picked on source_val macro AUC. Embeddings are computed in a separate TensorFlow venv (.venv-tf) and kept local (gitignored), since DDI embeddings are derivatives.
+- HAM10000/ISIC are not added: they are dermoscopy, a different modality from every test set. Derm7pt *clinical* images (CC BY-NC-ND) are to be added in data v2 if access arrives.
+- New arms are also scored on midas_test from the start (FINAL in scripts/run_extras.sh).

@@ -1,0 +1,9 @@
+# E1-strong: the E1 recipe at 320 px with flip test-time augmentation (D15). Pre-specified as
+# one arm; compared with E1 on source_val / target_val only, scored once on the test sets.
+extends: base.yaml
+name: e1_effb0_320
+data:
+  img_size: 320
+  resize_short: 366            # same 0.875 crop ratio as 224/256
+eval:
+  tta: true

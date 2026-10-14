@@ -167,7 +167,7 @@ def train(cfg: dict) -> dict:
         df = runs.split_rows(manifest, split)
         if len(df) == 0:
             continue
-        P = runs.infer(model, runs.make_loader(df, cfg, train=False))
+        P = runs.infer(model, runs.make_loader(df, cfg, train=False), tta=cfg["eval"].get("tta", False))
         runs.prediction_frame(df, P, classes, cfg).to_csv(rdir / "preds" / f"{split}.csv", index=False)
     if wb:
         wb.finish()

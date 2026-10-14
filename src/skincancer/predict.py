@@ -85,7 +85,8 @@ def main(argv=None):
         if len(df) == 0:
             print(f"{split}: no rows, skipped")
             continue
-        P, F = runs.infer(model, runs.make_loader(df, cfg, train=False), with_features=True)
+        P, F = runs.infer(model, runs.make_loader(df, cfg, train=False), with_features=True,
+                          tta=cfg["eval"].get("tta", False))
         runs.prediction_frame(df, P, classes, cfg).to_csv(rdir / "preds" / f"{split}.csv", index=False)
         if args.embeddings:
             (rdir / "emb").mkdir(exist_ok=True)
