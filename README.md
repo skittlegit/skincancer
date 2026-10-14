@@ -115,7 +115,7 @@ Results so far are in [docs/RESULTS.md](docs/RESULTS.md) (data v1).
 7. [ ] Mid-sem review pack: manifest, splits, E1–E3 with CIs, gap figure, Grad-CAM
 8. [x] E5 curve (corrected, D18)
 9. [x] E6 fusion and texture ablation
-10. [x] E7 CORAL, λ picked on target_val (D13); [ ] domain probe before/after
+10. [x] E7 CORAL, λ picked on target_val (D13); [x] domain probe before/after
 11. [x] E8 (chosen on target_val, D19), both backbones; stronger baselines incl. Derm Foundation (D15, D16, D20)
-12. [x] Test-only sets via `--final` for each finished method (incl. MIDAS); [ ] acral check (too few: n ≈ 40); [ ] UMAP
+12. [x] Test-only sets via `--final` for each finished method (incl. MIDAS); [ ] acral check (too few: n ≈ 40); [x] UMAP
 13. [ ] Report (IEEE), presentation, one-command reproduction check on a clean machine
