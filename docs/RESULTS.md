@@ -172,3 +172,18 @@ Fine-tuning the E1 model on nested fractions of Fitzpatrick17k IV–VI target_tr
 - **The gain does not transfer to another institution.** DDI V–VI stays near chance (0.50 → 0.52, CI ±0.10) and DermaCon-IN moves by 0.01. Dark-skin images from the *same atlases* teach the model those atlases' dark-skin images, not dark skin in general.
 - False alarms on Indian non-cancer images rise (15% → 25% at the fixed operating point) as the model is pushed towards the target class mix.
 - With 17–40 images, several seeds' best checkpoint is still the starting model (target val has 51 images, so small gains are within its noise).
+
+## E1 + Derm7pt: more melanoma and benign training data (D16)
+
+954 Derm7pt clinical photos (248 melanoma, 664 benign, 42 BCC) added to source_train only. Every evaluation set is unchanged.
+
+| | Source val (selection) | Target val | Source test | Target test | PAD-UFES-20 IV–VI | DDI I–II | **DDI V–VI** | DDI V–VI missed (op90) | DermaCon-IN | DermaCon-IN non-cancer called malignant (op90) | MIDAS I–III |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E1 | 0.846 | 0.891 | 0.864 | 0.866 | 0.828 | 0.682 | 0.502 [0.40, 0.60] | 66% | 0.690 | 15% | 0.721 |
+| E1 + Derm7pt | 0.860 | 0.896 | 0.859 | 0.881 | 0.801 | 0.656 | **0.580 [0.47, 0.68]** | 57% | 0.639 | 29% | 0.729 |
+
+**Reading:**
+- Both validation sets improve a little (source val +0.014, target val +0.005).
+- DDI V–VI rises to 0.58, the largest gain on dark skin at another institution of any method so far. Missed cancers at the fixed operating point fall from 66% to 57%. The CI (0.47–0.68) still includes chance.
+- Other external sets get worse: DDI I–II −0.03, PAD-UFES-20 −0.03, DermaCon-IN −0.05, and twice as many DermaCon-IN non-cancer images are called malignant (29% vs 15%). Benign recall on source test drops (0.51 → 0.38). Derm7pt's benign class is almost all naevi, while the test sets' benign lookalikes are mostly seborrhoeic keratoses, dermatofibromas and other non-naevus lesions.
+- So more data helps only where the new data looks like the test lesions. Data v2 (the full Fitzpatrick17k, with benign lookalikes from the same atlases) is the better source of benign images.
