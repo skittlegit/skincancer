@@ -135,3 +135,18 @@ Source-trained with a CORAL term that aligns feature covariances with the unlabe
 - On the external sets the direction is consistent: stronger alignment raises DDI V–VI (0.50 → 0.52 → 0.56), DermaCon-IN (0.69 → 0.73) and PAD-UFES-20 IV–VI (0.83 → 0.86). Every CI still overlaps E1's, and target val does not see the gain, so it is a trend, not a demonstrated fix. Target val comes from the same atlases as training, so it cannot reward alignment towards other institutions.
 - Missed cancers at the fixed operating point stay at 62–71% on DDI V–VI: alignment does not move scores enough for a light-skin threshold to transfer.
 - Run note: λ = 100 seed 1 crashed with an out-of-memory error after training. Its predictions were regenerated from the saved checkpoint (same inference; see commit 8630f1b).
+
+## MRA-MIDAS (light-skin institution shift) across methods
+
+Binary and macro AUC on FST I–III (n = 1,322), with rates at the fixed operating point (D17):
+
+| | Binary AUC | Macro AUC | Missed (op90) | False alarm (op90) |
+| --- | --- | --- | --- | --- |
+| E1 EffB0 | 0.721 [0.69, 0.76] | 0.674 | 59% | 13% |
+| E1 ResNet50 | 0.666 | 0.648 | 58% | 20% |
+| E3 colour constancy / CLAHE | 0.725 / 0.725 | 0.686 / 0.689 | 48% / 43% | 20% / 24% |
+| E4 Indian-prior loss | 0.729 | 0.675 | 57% | 14% |
+| E6 fusion | 0.709 | 0.656 | 53% | 20% |
+| E7 CORAL λ = 1000 / 10000 | 0.735 / 0.736 | 0.685 / 0.696 | 62% / 63% | 12% / 11% |
+
+No method moves MIDAS beyond the E1 CI (0.69–0.76): the institution gap (≈0.17 AUC from source test) is untouched by every fix aimed at skin tone. Acral lesions (n ≈ 40) are too few to read (CIs ±0.25).
