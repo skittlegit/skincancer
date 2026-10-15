@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skin Cancer Project Explained</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=block" rel="stylesheet">
+<style>
+  :root {
+    --ink: #262521;
+    --muted: #6b6960;
+    --faint: #8f8c82;
+    --rule: #e4e1d7;
+    --tint: #f5f3ec;
+    --chip: #efede5;
+    --accent: #2f6fd0;
+    --accent-soft: #e8f0fc;
+    --warm: #d9653b;
+    --green: #1f9d6e;
+    --serif: "Source Serif 4", Georgia, "Cambria", serif;
+    --sans: "Inter", "Segoe UI", system-ui, sans-serif;
+    --mono: "JetBrains Mono", Consolas, monospace;
+  }
+  @page {
+    size: A4;
+    margin: 24mm 21mm 22mm 21mm;
+    @top-left {
+      content: "Domain-Adaptive Skin Cancer Classification — Project Explainer";
+      font-family: "Inter", "Segoe UI", sans-serif;
+      font-size: 7.5pt;
+      color: #8f8c82;
+      vertical-align: bottom;
+      padding-bottom: 4mm;
+    }
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-family: "Inter", "Segoe UI", sans-serif;
+      font-size: 7.5pt;
+      color: #8f8c82;
+      vertical-align: top;
+      padding-top: 4mm;
+    }
+  }
+  html { background: #fff; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 10.2pt;
+    line-height: 1.55;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 30pt;
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    margin: 4mm 0 5mm;
+  }
+  h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 19pt;
+    line-height: 1.2;
+    margin: 9mm 0 3mm;
+    break-after: avoid;
+  }
+  h3 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 11pt;
+    margin: 6mm 0 2mm;
+    break-after: avoid;
+  }
+  h4 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 10.2pt;
+    margin: 4mm 0 1mm;
+    break-after: avoid;
+  }
+  p { margin: 0 0 2.6mm; orphans: 3; widows: 3; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin: 0 0 1.2mm; }
+  li > ul { margin-top: 1.2mm; }
+  strong { font-weight: 600; }
+  code {
+    font-family: var(--mono);
+    font-size: 8.6pt;
+    background: var(--tint);
+    border-radius: 3px;
+    padding: 0.2mm 1.2mm;
+  }
+  pre {
+    font-family: var(--mono);
+    font-size: 8.4pt;
+    line-height: 1.5;
+    background: var(--tint);
+    border-radius: 5px;
+    padding: 3mm 4mm;
+    margin: 0 0 3.5mm;
+    white-space: pre-wrap;
+    break-inside: avoid;
+  }
+  hr { border: 0; border-top: 1px solid var(--rule); margin: 8mm 0; }
+  .meta { display: flex; gap: 2mm; align-items: center; margin-bottom: 7mm; color: var(--muted); font-size: 9pt; }
+  .chip { background: var(--chip); border-radius: 999px; padding: 0.6mm 3mm; }
+  .lede { font-size: 11pt; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1mm 0 4mm;
+    font-size: 9.3pt;
+    line-height: 1.45;
+  }
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 2mm 2.6mm;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--tint); color: var(--muted); font-weight: 500; }
+  tr { break-inside: avoid; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .hl td { background: #fbf6e9; }
+  blockquote {
+    margin: 0 0 4mm;
+    padding: 1mm 0 1mm 4.5mm;
+    border-left: 3px solid #d6d2c6;
+    break-inside: avoid;
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+  .callout {
+    background: var(--tint);
+    border-radius: 6px;
+    padding: 4mm 5mm;
+    margin: 0 0 4mm;
+    break-inside: avoid;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .label { font-size: 8pt; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); margin-bottom: 1.5mm; }
+  figure { margin: 2mm 0 5mm; break-inside: avoid; }
+  figure img { width: 100%; display: block; }
+  figcaption { font-size: 8.4pt; color: var(--faint); margin-top: 2mm; }
+  .diagram-title { font-weight: 600; font-size: 9.5pt; margin-bottom: 2mm; }
+  .frame { border: 1px solid var(--rule); border-radius: 6px; padding: 4mm; }
+  .pipeline { display: flex; flex-wrap: wrap; align-items: stretch; gap: 1.5mm; }
+  .step { flex: 1 1 0; border: 1px solid var(--rule); border-radius: 5px; padding: 2.2mm 2.4mm; font-size: 8.2pt; line-height: 1.35; background: #fff; }
+  .step b { display: block; font-family: var(--mono); font-weight: 400; font-size: 7.8pt; color: var(--accent); margin-bottom: 0.8mm; }
+  .arrow { align-self: center; color: var(--faint); font-size: 10pt; }
+  .exp { break-inside: avoid-page; }
+  .verdict { display: inline-block; font-size: 8pt; font-weight: 600; border-radius: 999px; padding: 0.3mm 2.4mm; margin-left: 1.5mm; vertical-align: 1px; }
+  .v-no { background: #f8e4dc; color: #a2401c; }
+  .v-mixed { background: #f6efd8; color: #85631a; }
+  .v-yes { background: #dcf1e7; color: #17714f; }
+  .v-ref { background: var(--chip); color: var(--muted); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .qa h4 { margin-top: 3.5mm; }
+  .page-break { break-before: page; }
+  .small { font-size: 8.8pt; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<h1>How We Built It: Domain-Adaptive Skin Cancer Classification, Explained</h1>
+<div class="meta"><span class="chip">Oct 15, 2026</span><span>·</span><span class="chip">@Deepak</span><span>·</span><span class="chip">Results: data v1</span></div>
+
+<p class="lede">This document explains the whole project, including what we asked, what data we used, how the model works, what every experiment found and what comes next. It's written so that someone with no machine-learning background can follow it and then explain it to others. It's a companion to the semester plan of 10 Oct 2026; where the two differ, this document reflects what was actually built.</p>
+
+<table>
+  <tr><th>Member</th><th>HT No</th><th>Branch</th></tr>
+  <tr><td>Ankita Vemavarapu</td><td>SE23UECM007</td><td>ECM</td></tr>
+  <tr><td>Aeleni Deepak Reddy</td><td>SE23UARI005</td><td>AI</td></tr>
+  <tr><td>Ranganaini Sai Ruchir</td><td>SE23UECM043</td><td>ECM</td></tr>
+</table>
+<p class="small">Supervisor: Dr. Anjli Varghese · Co-supervisor: Venkatasubramanian K. This is a research prototype, never a diagnostic tool.</p>
+
+<h2>The one-minute version</h2>
+<div class="callout">
+<p>AI skin cancer tools are mostly trained on photos of lighter skin. We wanted to know how much worse such a model does on darker skin and on Indian patients, and whether common fixes help.</p>
+<p>We trained a model on lighter-skin photos and tested it on several outside datasets. On the darkest skin types, photographed at a hospital it had never seen, it did <strong>no better than a coin flip</strong> and missed about two-thirds of cancers.</p>
+<p>We tried five standard fixes and a combination of them. <strong>None closed the gap</strong> at an outside hospital. The one thing that clearly helped was starting from a model <strong>pre-trained on a large, varied set of dermatology photos</strong> (Google's Derm Foundation). Even that still did worse on dark skin.</p>
+<p>On everyday Indian clinic photos (fungal infections, vitiligo, acne), the models wrongly call many of them cancer. A real tool would first need a step that says "this isn't a tumour at all".</p>
+</div>
+
+<h2>The problem, and why it matters</h2>
+<h3>Skin cancer and AI</h3>
+<p>There are three main skin cancers:</p>
+<ul>
+  <li><strong>BCC</strong> (basal cell carcinoma): the most common, and rarely deadly.</li>
+  <li><strong>SCC</strong> (squamous cell carcinoma): more dangerous, and it can spread.</li>
+  <li><strong>Melanoma</strong>: the deadliest.</li>
+</ul>
+<p>Each has harmless <strong>lookalikes</strong>, such as moles, seborrhoeic keratoses ("barnacles of ageing") and dermatofibromas. Telling a cancer from its lookalike is the hard part.</p>
+<p>Many papers claim AI can do this about as well as dermatologists. But almost all of the training photos come from the US, Europe and Australia, which means mostly lighter skin. A review of public skin cancer datasets found skin type was recorded for only about 2% of images (Wen et al., 2022).</p>
+
+<h3>Skin type: the Fitzpatrick scale</h3>
+<p>Dermatologists describe skin with the <strong>Fitzpatrick Skin Type (FST)</strong> scale, from I to VI:</p>
+<ul>
+  <li><strong>I–II:</strong> very fair, always burns.</li>
+  <li><strong>III–IV:</strong> medium to olive or light brown. Most Indians are roughly <strong>IV–V</strong>.</li>
+  <li><strong>V–VI:</strong> brown to deeply pigmented.</li>
+</ul>
+<p>In this project, <strong>"source" means FST I–III</strong>, the skin we train on. <strong>"Target" means FST IV–VI</strong>, the skin we want the model to work well on.</p>
+
+<h3>Why the gap is a real problem</h3>
+<p>On darker skin, lesions look different. Redness is harder to see, pigment contrast is different, and cancers are often found later. A model that only learned "cancer on pale skin" may miss cancers on brown skin, and a missed cancer is the dangerous kind of error. This is the <strong>domain shift</strong> problem: a model learns in one setting (the "domain") and is used in another.</p>
+<blockquote><p><strong>Analogy:</strong> you learn to identify birds from a European field guide, then go birdwatching in India. Some birds are the same, but the light, the backgrounds and the species mix all differ. You'll make more mistakes, even though you "know birds".</p></blockquote>
+<p>India adds a second mismatch. Indian hospital series are dominated by BCC and SCC, while melanoma, the focus of most public data, is a minority and mostly <em>acral</em> (palms, soles, nails).</p>
+
+<h3>Research questions</h3>
+<table>
+  <tr><th style="width:9%">#</th><th>Question</th><th style="width:20%">Experiment</th></tr>
+  <tr><td>RQ1</td><td>How big is the gap between light and dark skin, and which cancers get mistaken for which lookalikes?</td><td>E1, E2</td></tr>
+  <tr><td>RQ2</td><td>Do epidemiology-guided choices help? That means cleaning up the image for darker skin, and telling the model which cancers are common in India.</td><td>E3, E4</td></tr>
+  <tr><td>RQ3</td><td>Does adding hand-measured texture information help?</td><td>E6</td></tr>
+  <tr><td>RQ4</td><td>How much dark-skin labelled data closes the gap? How much does "statistical alignment" close with no labels at all?</td><td>E5, E7</td></tr>
+  <tr><td>—</td><td>Does the best combination of fixes do better?</td><td>E8</td></tr>
+</table>
+
+<h2>Vocabulary, in plain English</h2>
+<table>
+  <tr><th style="width:24%">Term</th><th>What it means</th></tr>
+  <tr><td><strong>Model / classifier</strong></td><td>A program that looks at a photo and outputs four probabilities, e.g. <em>BCC 10%, SCC 70%, melanoma 5%, benign 15%</em>. The biggest one is its answer.</td></tr>
+  <tr><td><strong>Training</strong></td><td>Showing the model thousands of labelled photos so it adjusts its internal numbers to get more of them right.</td></tr>
+  <tr><td><strong>Train / validation / test</strong></td><td>The <em>textbook</em> it studies, the <em>practice exams</em> used to make decisions (when to stop, which version is best), and the <em>final exam</em> used only to report results. Peeking at the final exam while studying makes the score meaningless. Most of our rules exist to prevent that.</td></tr>
+  <tr><td><strong>AUC</strong></td><td>Our main score. Pick one random cancer photo and one random non-cancer photo: AUC is the chance the model rates the cancer as more suspicious. <strong>1.0 is perfect and 0.5 is a coin flip.</strong> Roughly, 0.9 is excellent, 0.8 good, 0.7 fair and 0.6 weak.</td></tr>
+  <tr><td><strong>Binary vs macro AUC</strong></td><td>Binary means cancer vs not-cancer. Macro is the average of "BCC vs rest", "SCC vs rest", "melanoma vs rest" and "benign vs rest".</td></tr>
+  <tr><td><strong>Missed-cancer rate</strong></td><td>The share of real cancers the model calls benign. This is the dangerous error.</td></tr>
+  <tr><td><strong>False-alarm rate</strong></td><td>The share of harmless lesions the model calls cancer. It causes anxiety, unnecessary biopsies and overloaded clinics.</td></tr>
+  <tr><td><strong>Confidence interval (CI)</strong></td><td><code>0.50 [0.40, 0.60]</code> means our best estimate is 0.50, and the true value probably lies between 0.40 and 0.60. Small test sets give wide intervals. <strong>If two methods' intervals overlap heavily, we can't claim one is better.</strong></td></tr>
+  <tr><td><strong>Seed</strong></td><td>Training involves randomness. We train every model three times (seeds 0, 1 and 2) and average, so one lucky run can't fool us.</td></tr>
+  <tr><td><strong>Pre-trained / transfer learning</strong></td><td>Instead of a blank model, we start from one that already learned to see from about a million everyday photos (ImageNet: dogs, cars, cups). It already knows edges, textures and shapes; we then teach it skin lesions.</td></tr>
+  <tr><td><strong>Fine-tuning</strong></td><td>Taking an already-trained model and training it a bit more on new data.</td></tr>
+</table>
+
+<h2>The data</h2>
+<figure class="frame">
+  <div class="diagram-title">Models learn on light skin; darker-skin and Indian images adapt and test them</div>
+  <svg viewBox="0 0 760 330" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Inter, Segoe UI, sans-serif">
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#b5b1a5"/>
+      </marker>
+    </defs>
+    <g fill="#fff" stroke="#d6d2c6" stroke-width="1.2">
+      <rect x="10" y="40" width="235" height="70" rx="8"/>
+      <rect x="10" y="130" width="235" height="70" rx="8"/>
+      <rect x="10" y="220" width="235" height="70" rx="8"/>
+    </g>
+    <g font-size="12.5" fill="#262521">
+      <text x="24" y="64" font-weight="600">Source: FST I–III</text>
+      <text x="24" y="82" font-size="11">Fitzpatrick17k + PAD-UFES-20</text>
+      <text x="24" y="98" font-size="11" fill="#6b6960">labelled; trains the model</text>
+      <text x="24" y="154" font-weight="600">Target train: FST IV–VI</text>
+      <text x="24" y="172" font-size="11">Fitzpatrick17k, 60% split (152 images)</text>
+      <text x="24" y="188" font-size="11" fill="#6b6960">fine-tuning (E5), CORAL (E7)</text>
+      <text x="24" y="244" font-weight="600">Extra: Derm7pt</text>
+      <text x="24" y="262" font-size="11">Italian atlas, clinical photos</text>
+      <text x="24" y="278" font-size="11" fill="#6b6960">training only, one experiment</text>
+    </g>
+    <rect x="300" y="135" width="160" height="62" rx="8" fill="#e8f0fc" stroke="#2f6fd0" stroke-width="1.6"/>
+    <text x="380" y="161" text-anchor="middle" font-size="13" font-weight="600" fill="#262521">Classifier</text>
+    <text x="380" y="179" text-anchor="middle" font-size="11" fill="#262521">EfficientNet-B0 / ResNet50</text>
+    <g stroke="#b5b1a5" stroke-width="1.3" fill="none" marker-end="url(#ah)">
+      <path d="M245,75 H272 V156 H298"/>
+      <path d="M245,165 H298"/>
+      <path d="M245,255 H272 V176 H298"/>
+      <path d="M460,166 H485 V30 H513"/>
+      <path d="M460,166 H485 V85 H513"/>
+      <path d="M460,166 H485 V158 H513"/>
+      <path d="M460,166 H485 V213 H513"/>
+      <path d="M460,166 H485 V268 H513"/>
+    </g>
+    <rect x="505" y="128" width="248" height="168" rx="10" fill="#f7f5ef" stroke="#c9c5b8" stroke-dasharray="5 4"/>
+    <g fill="#fff" stroke="#d6d2c6" stroke-width="1.2">
+      <rect x="515" y="8" width="230" height="44" rx="7"/>
+      <rect x="515" y="63" width="230" height="44" rx="7"/>
+      <rect x="515" y="136" width="230" height="44" rx="7"/>
+      <rect x="515" y="191" width="230" height="44" rx="7"/>
+      <rect x="515" y="246" width="230" height="44" rx="7"/>
+    </g>
+    <g font-size="12" fill="#262521">
+      <text x="527" y="27" font-weight="600">Source test</text>
+      <text x="527" y="43" font-size="10.5" fill="#6b6960">in-domain ceiling (FST I–III)</text>
+      <text x="527" y="82" font-weight="600">Target test: FST IV–VI</text>
+      <text x="527" y="98" font-size="10.5" fill="#6b6960">Fitzpatrick17k, same atlases</text>
+      <text x="527" y="155" font-weight="600">DDI (Stanford)</text>
+      <text x="527" y="171" font-size="10.5" fill="#6b6960">biopsy-proven, all skin types</text>
+      <text x="527" y="210" font-weight="600">DermaCon-IN (India)</text>
+      <text x="527" y="226" font-size="10.5" fill="#6b6960">65 tumours + 5,379 other conditions</text>
+      <text x="527" y="265" font-weight="600">MIDAS (Stanford) · PAD dark</text>
+      <text x="527" y="281" font-size="10.5" fill="#6b6960">new-hospital checks</text>
+    </g>
+    <text x="629" y="316" text-anchor="middle" font-size="10.5" fill="#8f8c82">Test only: scored once, never trained or tuned on</text>
+  </svg>
+  <figcaption>data roles · 3 training inputs, 6 test sets</figcaption>
+</figure>
+
+<h3>The datasets, and why each one is there</h3>
+<table>
+  <tr><th style="width:19%">Dataset</th><th style="width:20%">Role</th><th>Why it's there</th></tr>
+  <tr><td><strong>Fitzpatrick17k</strong></td><td>Training (FST I–III) and target train/val/test (FST IV–VI)</td><td>About 16,500 photos from online dermatology atlases, each labelled with a diagnosis and a skin type. We use only the cancer and lookalike images.</td></tr>
+  <tr><td><strong>PAD-UFES-20</strong> (Brazil)</td><td>Training (FST I–III). Its 60 FST IV–VI images form a test-only set.</td><td>Biopsy-confirmed smartphone photos from a Brazilian clinic.</td></tr>
+  <tr><td><strong>DDI</strong> (Stanford)</td><td>Test only. <strong>The most important test.</strong></td><td>656 images, every lesion biopsy-proven, all skin types. It comes from a <em>different hospital</em>, with real clinic photos rather than textbook ones. Its licence forbids showing its images, so we only report numbers.</td></tr>
+  <tr><td><strong>DermaCon-IN</strong> (India)</td><td>Test only</td><td>Only 65 are cancers or lookalikes (19 cancers, 46 lookalikes). The other 5,379 are everyday conditions: tinea, vitiligo, scabies, acne, psoriasis, eczema. We use them to ask how often the model wrongly cries "cancer" on ordinary Indian patients.</td></tr>
+  <tr><td><strong>MRA-MIDAS</strong> (Stanford)</td><td>Test only</td><td>1,380 biopsy-proven photos, 96% lighter skin. It measures the effect of changing hospital <em>without</em> changing skin tone.</td></tr>
+  <tr><td><strong>Derm7pt</strong> (Italy)</td><td>Extra training data, one experiment</td><td>About 1,000 clinical photos, added because our training set had very few melanomas and benign lesions.</td></tr>
+</table>
+<p><strong>Data v1 vs v2.</strong> About 3,400 of Fitzpatrick17k's 4,491 relevant images came from a website whose links are now dead. We recovered 836 from the Internet Archive's Wayback Machine and checked each one with an MD5 fingerprint, so they're byte-for-byte identical to the originals. We've asked the authors for the full set. Until it arrives, every result is <strong>data v1</strong> (1,919 of 4,491 images), and everything will be re-run as data v2.</p>
+<p><strong>Why most sets are test-only.</strong> We train only on Fitzpatrick17k and PAD-UFES-20 (plus Derm7pt in one experiment). DDI, DermaCon-IN, MIDAS and PAD's dark-skin images are <em>never</em> trained on, because they represent the real question: does the model work somewhere it has never been?</p>
+
+<h3>Cleaning the data: a five-step pipeline</h3>
+<p>Raw medical datasets are messy. Before any training, five steps run once, and their outputs are frozen in the repository. Nobody re-splits afterwards, so every experiment uses exactly the same data.</p>
+<div class="pipeline" style="margin-bottom:4mm">
+  <div class="step"><b>1 · label map</b>443 diagnosis names → 4 classes, reviewed by humans</div>
+  <div class="arrow">→</div>
+  <div class="step"><b>2 · manifest</b>one row per image: label, skin type, patient, site</div>
+  <div class="arrow">→</div>
+  <div class="step"><b>3 · dedup</b>group re-posts and repeat photos of one lesion</div>
+  <div class="arrow">→</div>
+  <div class="step"><b>4 · splits</b>train / val / test; no group crosses splits</div>
+  <div class="arrow">→</div>
+  <div class="step"><b>5 · count check</b>enough SCC to keep 4 classes?</div>
+</div>
+
+<h4>1. Label map</h4>
+<p>The datasets use 443 different diagnosis names, such as "superficial spreading melanoma", "morpheiform BCC", "dermatosis papulosa nigra" and "Bowen's disease". Each one has to go into one of our classes:</p>
+<ul>
+  <li><strong>bcc / scc / mel:</strong> every subtype of each cancer. Bowen's disease is SCC at its earliest stage, so it counts as SCC.</li>
+  <li><strong>benign:</strong> true lookalikes only, i.e. moles, seborrhoeic keratosis, dermatofibroma, solar lentigo and pyogenic granuloma.</li>
+  <li><strong>exclude:</strong> rare cancers (e.g. Kaposi sarcoma), non-tumours, and things that aren't really moles despite the name.</li>
+</ul>
+<p>Code rules make a first pass, then humans review every row. The first pass is done; the team still needs to confirm it.</p>
+<p><strong>A special case: actinic keratosis (AK).</strong> AK is a <em>pre-cancer</em>, so calling it either "benign" or "cancer" would be medically wrong. We never train on it. Instead, we test the models on 246 AK images as a side analysis. The baseline calls 92% of them malignant, which is understandable, since AK really can turn into SCC.</p>
+
+<h4>2. Manifest</h4>
+<p>One big table with one row per image: label, skin type, patient ID, body site, source dataset, and the exclusion reason if there is one. Images with <strong>unknown skin type are dropped</strong>, because we can't study skin type without knowing it.</p>
+
+<h4>3. De-duplication</h4>
+<p>The same mole is often photographed twice, re-cropped, or watermarked and reposted. If one copy lands in training and the other in the test, the model simply remembers it, which is peeking at the final exam. Images are grouped when any of these holds:</p>
+<ul>
+  <li>same patient;</li>
+  <li>near-identical pixels (a perceptual-hash fingerprint differs by at most 2);</li>
+  <li>at least 90% similarity in the model's internal description of the two images.</li>
+</ul>
+<p>The thresholds were chosen by inspecting real pairs by eye. At looser settings, unrelated "small brown spots" started matching.</p>
+
+<h4>4. Splits</h4>
+<p>Light skin is split 70 / 15 / 15 (train / validation / test). Dark skin is split 60 / 20 / 20. A duplicate group is never split across two sets, and the code checks this automatically.</p>
+<table>
+  <tr><th>Set</th><th class="num">Images</th><th class="num">BCC</th><th class="num">SCC</th><th class="num">Melanoma</th><th class="num">Benign</th></tr>
+  <tr><td>Source train (light)</td><td class="num">1,255</td><td class="num">721</td><td class="num">263</td><td class="num">128</td><td class="num">143</td></tr>
+  <tr><td>Source val / test (light), each</td><td class="num">271</td><td class="num">155</td><td class="num">57</td><td class="num">28</td><td class="num">31</td></tr>
+  <tr><td>Target train (dark)</td><td class="num">152</td><td class="num">53</td><td class="num">48</td><td class="num">32</td><td class="num">19</td></tr>
+  <tr><td>Target val / test (dark), each</td><td class="num">51</td><td class="num">18</td><td class="num">16</td><td class="num">11</td><td class="num">6</td></tr>
+</table>
+<p>Notice how <strong>small</strong> the dark-skin sets are: 51 test images, only 6 of them benign. That's why the intervals on those numbers are wide.</p>
+
+<h4>5. Count check</h4>
+<p>If the dark-skin test set held fewer than 15 SCC images, we would merge BCC and SCC into one class, because scores on so few examples are just noise. There were 16, so we kept four classes. It was a near miss, so it gets re-checked with data v2.</p>
+
+<h2>The model, and how it's trained</h2>
+<h3>What the model is</h3>
+<p>We use <strong>EfficientNet-B0</strong>, a well-known, compact image-recognition network (a convolutional neural network, or CNN), pre-trained on ImageNet. We replace its original 1,000-way "dog / car / cup" output with a small final layer that outputs our four probabilities. To check the results aren't a quirk of one architecture, we repeat the main experiment with a second, older network, <strong>ResNet50</strong> (E2).</p>
+<blockquote><p><strong>How a CNN sees:</strong> early layers detect edges and colour blobs, middle layers detect textures and shapes, and late layers detect whole concepts. The final layer turns all of that into "how much does this look like BCC, SCC, melanoma or benign?"</p></blockquote>
+
+<h3>Training in two stages</h3>
+<table>
+  <tr><th style="width:16%">Stage</th><th>What is trained</th><th style="width:30%">Settings</th></tr>
+  <tr><td>1</td><td>Only the new final layer; everything else is frozen. It learns the four-class task quickly without disturbing what the network already knows.</td><td>5 epochs (full passes over the data), learning rate 1e-3</td></tr>
+  <tr><td>2</td><td>The top 3 blocks of the network are unfrozen and gently adapted to skin.</td><td>Up to 30 epochs; head 1e-4, backbone 3e-5; stops early if no improvement for 5 epochs</td></tr>
+</table>
+<p>The learning rate is how big each adjustment is. We tested three values for stage 2 on validation data and chose 3e-5. The plan's 1e-5 hadn't finished learning within the time budget.</p>
+
+<h3>Tricks used during training</h3>
+<ul>
+  <li><strong>Data augmentation.</strong> Each time an image is shown, it's randomly altered: cropped to 70–100% of its area, flipped either way, rotated up to 30°, with brightness and contrast nudged by ±10%. There's no hue change, because that would alter apparent skin tone. This stops the model memorising exact photos.</li>
+  <li><strong>Class balancing.</strong> We have 721 BCC images but only 128 melanomas. Left alone, the model would learn "when in doubt, say BCC". Mistakes on rare classes are therefore weighted more heavily, as if every class were equally common.</li>
+  <li><strong>Early stopping on the light-skin validation set.</strong> We stop when the practice score stops improving and keep the best version. The baseline must never have seen a dark-skin label. The plan's original choice, the dark-skin validation set, would have quietly leaked that information in.</li>
+  <li><strong>Three seeds</strong> for everything, averaged.</li>
+  <li><strong>Hardware:</strong> it all runs on an ordinary laptop CPU with no graphics card, at about 44 images per second.</li>
+</ul>
+
+<h2>How we keep the results honest</h2>
+<p>These rules are a big part of the project's value. Many published results are inflated by quietly breaking them.</p>
+<ol>
+  <li><strong>Decisions are made on validation data, never on test data.</strong> That covers when to stop, which settings to use, and what goes into the combination. Every such choice is recorded with its reason in <code>DECISIONS.md</code> (decisions D1–D20).</li>
+  <li><strong>The external tests can be taken only once.</strong> DDI, DermaCon-IN, MIDAS and PAD-dark are scored by a special command that writes each score to a ledger and <em>refuses to score the same model on the same test twice</em>. Nobody can try, look, tweak and retry.</li>
+  <li><strong>Intervals respect patients.</strong> Confidence intervals come from a bootstrap: the test set is re-drawn 1,000 times to see how much the score wobbles. It re-draws <em>whole patients or duplicate groups</em>, so five photos of one person don't count as five independent pieces of evidence.</li>
+  <li><strong>A fixed operating point.</strong> Someone has to choose the probability cut-off for "call it cancer". We set it so the model catches 90% of cancers on light-skin validation photos, then apply <em>that same cut-off everywhere</em>. This mirrors real deployment, and it shows whether a cut-off still works at a new hospital.</li>
+  <li><strong>Pilot runs disclosed.</strong> Early runs that checked the code worked did look at some test scores. We recorded this and made sure no decision used them.</li>
+</ol>
+<blockquote><p><strong>Analogy for the operating point:</strong> you set a smoke alarm's sensitivity in your own kitchen. Then you install it in a different house. Does it still go off when it should?</p></blockquote>
+
+<h2>The experiments, one by one</h2>
+<p>The key number throughout is <strong>DDI V–VI</strong>: the darkest skin, at a hospital the model has never seen. All numbers are means over three seeds, with 95% intervals in brackets where they matter.</p>
+
+<div class="exp">
+<h3>E1 + E2 · The baseline: how big is the gap? <span class="verdict v-ref">reference</span></h3>
+<p>Train on light skin only, then test everywhere.</p>
+<table>
+  <tr><th>Test set</th><th class="num">AUC</th><th class="num">Cancers missed</th></tr>
+  <tr><td>Light skin, same sources (source test)</td><td class="num">0.86 (macro)</td><td class="num">4%</td></tr>
+  <tr><td>Dark skin, same atlases (Fitzpatrick17k IV–VI)</td><td class="num">0.87 (macro)</td><td class="num">18%</td></tr>
+  <tr><td>DDI FST I–II (new hospital, light)</td><td class="num">0.68</td><td class="num">17%</td></tr>
+  <tr><td>DDI FST III–IV</td><td class="num">0.67</td><td class="num">25%</td></tr>
+  <tr class="hl"><td><strong>DDI FST V–VI (new hospital, dark)</strong></td><td class="num"><strong>0.50 [0.40, 0.60]</strong></td><td class="num"><strong>51%</strong></td></tr>
+  <tr><td>DermaCon-IN (India)</td><td class="num">0.69</td><td class="num">30%</td></tr>
+</table>
+</div>
+<ul>
+  <li>At the fixed operating point, the baseline misses <strong>66% of cancers on DDI V–VI</strong>, about two-thirds.</li>
+  <li>ResNet50 (E2) collapses the same way (DDI V–VI 0.52), so the gap isn't specific to one architecture.</li>
+  <li><strong>There is no gap inside Fitzpatrick17k</strong> (0.86 vs 0.87), because its dark-skin photos come from the same textbook atlases as the training photos.</li>
+  <li><strong>The gap appears at a real outside hospital.</strong> That's why DDI matters more than the in-dataset split.</li>
+  <li>This matches Daneshjou et al. (2022), who saw 0.72 → 0.57 on DDI for a different model.</li>
+</ul>
+
+<div class="exp">
+<h3>E3 · Image processing: can we "clean up" the photos? <span class="verdict v-no">no gain</span></h3>
+<p>Maybe the model is thrown by lighting and contrast rather than by skin itself. We tested three classic fixes, each on its own, and then all together:</p>
+<ul>
+  <li><strong>Colour constancy (Shades-of-Gray):</strong> removes colour casts from lighting, so a yellow-tinted indoor photo looks as if it were taken in neutral light.</li>
+  <li><strong>CLAHE:</strong> boosts local contrast on brightness only, so skin colour isn't distorted. The hope was that lesion edges on dark skin would stand out.</li>
+  <li><strong>Lesion crop:</strong> automatically zooms in on the spot. We tuned it so rulers, dark backgrounds and hair no longer confuse it.</li>
+</ul>
+</div>
+<p><strong>Result:</strong></p>
+<ul>
+  <li>None beat the baseline on validation (CLAHE tied at 0.889 vs 0.891), and all three together was clearly worse (0.82).</li>
+  <li>On DDI V–VI, each fix moved 0.50 to about 0.52–0.53, far inside the noise.</li>
+  <li>The crop actually hurt where lesions are small.</li>
+</ul>
+<p><strong>Subtle extra finding:</strong> colour constancy and CLAHE halved missed cancers at outside light-skin hospitals (DDI I–II: 41% → 20%), but false alarms rose by the same amount. They shift the model's scores rather than making it better at telling cancer from benign.</p>
+<p><strong>What it means:</strong> the problem can't be fixed by adjusting colour or contrast. The difficulty with dark skin is deeper than lighting.</p>
+
+<div class="exp">
+<h3>E4 · Indian cancer statistics: tell the model what's common here <span class="verdict v-no">no gain</span></h3>
+<p>Published Indian hospital series show a cancer mix of roughly <strong>BCC 45 : SCC 40 : melanoma 15</strong>, which differs from our training data. If the model "expects" the Indian mix, maybe it does better on Indian patients. We tried this two ways:</p>
+<ol>
+  <li>Retrain with the loss weighted to that mix.</li>
+  <li>Mathematically adjust an already-trained model's outputs (a "prior shift").</li>
+</ol>
+<p>We also tried the mixes from three regional series: Malwa-Punjab, Central India and Manipur.</p>
+</div>
+<p><strong>Result:</strong> every number moved by under 0.01. The two approaches agree, and all regions agree.</p>
+<p><strong>What it means:</strong> the expected mix shifts the model's guesses <em>between</em> cancer types (more SCC, less melanoma). It doesn't help separate <em>cancer from benign</em> on dark skin, which is the real problem.</p>
+
+<div class="exp">
+<h3>E5 · Show it some dark skin: how much data does fine-tuning need? <span class="verdict v-mixed">helps in-domain only</span></h3>
+<p>We took the baseline and trained it a bit more on 10%, 25%, 50% and 100% of the 152 dark-skin training images, to draw a learning curve.</p>
+<p><strong>A bug we found and fixed.</strong> In the first run, the 10% subset (17 images) was smaller than one batch of 32. The code dropped incomplete batches, so the model got <strong>zero training steps</strong>, and the "10% result" was really just the baseline. We spotted it in the training logs, not from test results. We gave every fraction the same number of training steps and re-ran it.</p>
+<table>
+  <tr><th>Dark-skin images used</th><th class="num">0</th><th class="num">~17</th><th class="num">~40</th><th class="num">~78</th><th class="num">152</th></tr>
+  <tr><td>Same-atlas dark-skin test</td><td class="num">0.87</td><td class="num">0.88</td><td class="num">0.89</td><td class="num">0.90</td><td class="num"><strong>0.92</strong></td></tr>
+  <tr><td>DDI V–VI (outside hospital)</td><td class="num">0.50</td><td class="num">0.51</td><td class="num">0.52</td><td class="num">0.52</td><td class="num">0.52</td></tr>
+</table>
+</div>
+<figure>
+  <img src="../reports/figures/e5_curve.png" style="width:72%;margin:0 auto" alt="E5 fine-tuning curve">
+  <figcaption>E5 · the same-atlas score climbs with more dark-skin labels; the outside-hospital score stays at chance</figcaption>
+</figure>
+<p><strong>What it means:</strong> this is one of the most important results.</p>
+<ul>
+  <li>Dark-skin images <strong>help on photos like them</strong>, from the same atlases in the same style.</li>
+  <li>They <strong>don't help at a different hospital</strong>. The model learned what these atlases' dark-skin photos look like, not what cancer looks like on dark skin.</li>
+  <li>False alarms on Indian non-cancer photos rose from 15% to 25%.</li>
+</ul>
+<blockquote><p><strong>Analogy:</strong> studying past papers from one teacher makes you great at that teacher's exams. It doesn't make you good at the subject.</p></blockquote>
+
+<div class="exp">
+<h3>E6 · Hand-made texture features: does the network miss texture? <span class="verdict v-no">no gain</span></h3>
+<p>Dermatologists look at texture: scaliness, network patterns, roughness. We computed <strong>78 classic texture numbers</strong> per image:</p>
+<ul>
+  <li><strong>LBP:</strong> tiny repeated patterns, from how each pixel compares with its neighbours.</li>
+  <li><strong>GLCM:</strong> how often bright and dark pixels sit next to each other, i.e. smoothness vs roughness.</li>
+  <li><strong>Gabor filters:</strong> stripes and ridges at different angles and sizes.</li>
+  <li><strong>Colour statistics:</strong> the average, spread and skew of each colour channel.</li>
+</ul>
+<p>We joined these to the network's own 1,280-number description of the image and trained a small classifier on top. We also trained a <strong>fair control</strong> that used only the network's description. Without it, any gain could just come from the new classifier rather than from texture.</p>
+</div>
+<p><strong>Result:</strong></p>
+<ul>
+  <li>Texture added nothing: fusion and the control are within 0.01 everywhere.</li>
+  <li>Texture alone was weak (0.67). But its DDI V–VI score (0.58) sat close to its light-skin score, a hint that texture depends less on skin tone. The interval includes chance, so this is only a hint.</li>
+</ul>
+
+<div class="exp">
+<h3>E7 · Deep CORAL: align light and dark images without labels <span class="verdict v-no">no gain</span></h3>
+<p>Inside the network, each image becomes a list of 1,280 numbers. If light-skin and dark-skin images produce differently shaped "clouds" of these numbers, the decision layer tuned on light skin will misjudge dark skin.</p>
+<p><strong>CORAL</strong> adds a penalty during training that pushes the two clouds towards the same spread and correlation pattern (the same covariance). Crucially, it needs dark-skin <em>images</em> but not their diagnoses, and unlabelled photos are much easier to get than biopsy-confirmed ones.</p>
+<p><strong>A fix to the plan.</strong> The plan's penalty strengths (λ = 0.1, 1, 10) would have made the penalty about 0.1% of the training signal, so it would effectively have done nothing. We used the CORAL paper's own balancing rule instead, which gives λ ≈ 1000, and tested 100, 1000 and 10000.</p>
+</div>
+<p><strong>Result:</strong></p>
+<ul>
+  <li>No setting beat the baseline on validation.</li>
+  <li>On outside sets there's a small, consistent trend: stronger alignment raised DDI V–VI from 0.50 to 0.52 to 0.56. Every interval still overlaps the baseline's.</li>
+  <li>We also checked whether CORAL made light and dark images harder to tell apart. A simple test (a domain probe) could tell them apart <strong>77%</strong> of the time before CORAL and <strong>84%</strong> after. CORAL did not hide the domain difference.</li>
+</ul>
+
+<div class="exp">
+<h3>E8 · The best combination <span class="verdict v-no">no gain over E5</span></h3>
+<p>We combined the components that beat the baseline <em>on validation</em>: E5 fine-tuning (clearly) and E4 Indian weighting (barely). We ran the combination on both networks.</p>
+<p><strong>Result:</strong> the same as E5 alone, with DDI V–VI at 0.51 (EfficientNet) and 0.54 (ResNet50). <strong>The best combination of the planned methods does not close the gap at another hospital.</strong></p>
+</div>
+
+<div class="exp">
+<h3>Extra experiments: stronger baselines <span class="verdict v-yes">one lever works</span></h3>
+<p>Once the planned methods failed, we asked what does move the needle.</p>
+<table>
+  <tr><th style="width:20%">Extra</th><th>What it is</th><th class="num" style="width:13%">DDI V–VI</th><th style="width:30%">Takeaway</th></tr>
+  <tr><td>Seed ensemble</td><td>Average the three seeds' predictions</td><td class="num">0.50</td><td>The seeds already agree; randomness isn't the problem</td></tr>
+  <tr><td>320 px + flip TTA</td><td>Bigger images; at test time, average over 4 flipped versions</td><td class="num">0.51</td><td>Helps light-skin outside hospitals (India 0.69 → 0.76), not dark skin</td></tr>
+  <tr><td>+ Derm7pt</td><td>About 950 extra Italian training photos</td><td class="num">0.58</td><td>Best bump among CNNs, but worse elsewhere: its benign photos are almost all moles</td></tr>
+  <tr class="hl"><td><strong>Derm Foundation</strong></td><td>Google's dermatology model, kept frozen; we train only one simple layer on top</td><td class="num"><strong>0.60 [0.51, 0.69]</strong></td><td><strong>Best on every outside set</strong></td></tr>
+</table>
+</div>
+<table>
+  <tr><th>Test set</th><th class="num">Our baseline</th><th class="num">Derm Foundation</th></tr>
+  <tr><td>DDI FST I–II</td><td class="num">0.68</td><td class="num"><strong>0.74</strong></td></tr>
+  <tr><td>DDI FST III–IV</td><td class="num">0.67</td><td class="num"><strong>0.80</strong></td></tr>
+  <tr><td>DDI FST V–VI</td><td class="num">0.50</td><td class="num"><strong>0.60</strong> (first interval above chance)</td></tr>
+  <tr><td>DermaCon-IN (India)</td><td class="num">0.69</td><td class="num"><strong>0.89</strong></td></tr>
+  <tr><td>MIDAS (light skin, new hospital)</td><td class="num">0.72</td><td class="num"><strong>0.82</strong></td></tr>
+</table>
+<p><strong>Why it works:</strong> it was pre-trained on a large, varied set of skin photos rather than on dogs and cars. It has seen far more cameras, clinics and skin tones than our 1,255 training images ever could.</p>
+<p><strong>Caveats:</strong></p>
+<ul>
+  <li>It may have seen the <em>public</em> datasets during its own training, so those scores could be flattering. DDI and MIDAS are access-controlled and DermaCon-IN came out later, so those three are trustworthy.</li>
+  <li>The skin-tone gradient remains (0.74 → 0.80 → 0.60).</li>
+  <li>Its cut-off doesn't travel. At the fixed operating point it misses only 21% of DDI V–VI cancers, but calls about 72% of Indian non-cancer photos malignant.</li>
+  <li>Adding the atlas dark-skin images to it repeats E5's lesson: validation goes up, outside hospitals don't.</li>
+</ul>
+
+<figure>
+  <img src="../reports/figures/gap.png" alt="AUC with 95% CIs for every method on four outside test sets">
+  <figcaption>Every method on four test sets, with 95% intervals. The dashed line is the in-domain baseline; 0.5 is chance. MIDAS is shown here as macro AUC (the text quotes binary AUC).</figcaption>
+</figure>
+
+<h2>The big picture</h2>
+<h3>1 · Two separate gaps, stacked on each other</h3>
+<figure class="frame">
+  <svg viewBox="0 0 680 190" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Inter, Segoe UI, sans-serif">
+    <g font-size="12" fill="#262521">
+      <text x="0" y="40">Same sources, light skin</text>
+      <text x="0" y="95">New hospital, light skin</text>
+      <text x="0" y="111" font-size="10.5" fill="#6b6960">MIDAS / DDI I–II</text>
+      <text x="0" y="150">New hospital, dark skin</text>
+      <text x="0" y="166" font-size="10.5" fill="#6b6960">DDI V–VI</text>
+    </g>
+    <line x1="190" y1="12" x2="190" y2="172" stroke="#d6d2c6"/>
+    <rect x="190" y="24" width="294" height="24" rx="3" fill="#2f6fd0"/>
+    <rect x="190" y="79" width="180" height="24" rx="3" fill="#e2a33b"/>
+    <rect x="190" y="134" width="60" height="24" rx="3" fill="#d9653b"/>
+    <g font-size="12" font-weight="600" fill="#262521">
+      <text x="492" y="41">0.89</text>
+      <text x="378" y="96">0.68–0.72</text>
+      <text x="258" y="151">0.50</text>
+    </g>
+    <line x1="250" y1="12" x2="250" y2="172" stroke="#8f8c82" stroke-dasharray="4 3"/>
+    <text x="250" y="184" text-anchor="middle" font-size="10" fill="#8f8c82">chance (0.5)</text>
+    <g font-size="11" fill="#6b6960">
+      <text x="560" y="72">hospital gap</text>
+      <text x="560" y="86" font-weight="600" fill="#262521">≈ −0.2</text>
+      <text x="560" y="127">skin-tone gap</text>
+      <text x="560" y="141" font-weight="600" fill="#262521">≈ another −0.2</text>
+    </g>
+    <path d="M548,40 V92" stroke="#b5b1a5" fill="none"/>
+    <path d="M548,96 V148" stroke="#b5b1a5" fill="none"/>
+  </svg>
+  <figcaption>binary AUC of the baseline · bars start at 0.4</figcaption>
+</figure>
+<p>MIDAS makes this visible. It's a new hospital with mostly light skin, so it isolates the effect of the hospital itself: camera, lighting, photographer and patient mix. Most "dark skin" fixes only target the second gap, and they did so with dark-skin data from the <em>same</em> atlases. So they couldn't touch the first.</p>
+
+<h3>2 · What doesn't work, and why that's useful</h3>
+<p>Image clean-up, Indian statistics, texture features, CORAL alignment and their combination all failed at outside hospitals. That's a meaningful <strong>negative result</strong>. These are exactly the methods many papers propose, and under strict no-peeking rules they don't solve the real-world version of the problem.</p>
+
+<h3>3 · What does work</h3>
+<p><strong>Better pre-training</strong> (Derm Foundation) is the one lever that moved every outside set. Diversity of experience beats clever tricks.</p>
+<figure>
+  <img src="../reports/figures/ddi_by_fst.png" style="width:62%;margin:0 auto" alt="DDI AUC by skin type">
+  <figcaption>DDI by skin type · Derm Foundation lifts every bucket, but the drop to FST V–VI remains</figcaption>
+</figure>
+
+<h3>4 · The "only four boxes" problem</h3>
+<p>The model knows only four answers: BCC, SCC, melanoma or benign tumour. Show it a fungal infection and it <em>must</em> pick one of the four, often a cancer. On 5,379 everyday Indian clinic photos, the baseline calls <strong>31%</strong> malignant and Derm Foundation calls <strong>83%</strong>. Any real tool needs a first step that says "not a tumour / out of scope" before the cancer classifier runs.</p>
+<blockquote><p><strong>Analogy:</strong> ask someone who only knows four dog breeds to identify a cat. They'll confidently name a dog breed.</p></blockquote>
+
+<h3>5 · A cut-off set at home doesn't travel</h3>
+<p>A cut-off that catches 90% of cancers at home catches only about a third on dark skin elsewhere. Even the best model's scores shift between sites, so real use would need re-calibration at each clinic.</p>
+
+<h2>Honest limitations</h2>
+<table>
+  <tr><th style="width:28%">Limitation</th><th>Why it matters</th></tr>
+  <tr><td>Data v1</td><td>Only 1,919 of 4,491 Fitzpatrick17k images. Everything will be re-run on the full set.</td></tr>
+  <tr><td>Small dark-skin test sets</td><td>51 target test images (6 benign); DDI V–VI has 207 images (48 cancers). Hence the wide intervals, and why we avoid claiming small differences.</td></tr>
+  <tr><td>Estimated skin type</td><td>Fitzpatrick types are judged from photos, not measured on patients.</td></tr>
+  <tr><td>Thin training classes</td><td>Only 128 melanomas and 143 benign images in training.</td></tr>
+  <tr><td>Possible pre-training overlap</td><td>Derm Foundation may have seen the public datasets; only its DDI, MIDAS and DermaCon-IN scores are clean.</td></tr>
+  <tr><td>Acral lesions</td><td>About 40 images, which is too few to analyse. Reported as counts only.</td></tr>
+  <tr><td>Atlas labels</td><td>Fitzpatrick17k diagnoses are atlas-scraped, not biopsy-verified. DDI (biopsy-proven) is the clean check.</td></tr>
+</table>
+
+<h2>The future plan</h2>
+<h3>To finish this semester</h3>
+<table>
+  <tr><th style="width:5%">#</th><th>Task</th><th style="width:28%">Status</th></tr>
+  <tr><td>1</td><td><strong>Team confirms the label map</strong> (443 diagnosis → class rows)</td><td>First pass done; team review open</td></tr>
+  <tr><td>2</td><td><strong>Check 100 lesion crops by eye</strong> and record the failure rate</td><td>Open (pilot contact sheet drafted)</td></tr>
+  <tr><td>3</td><td><strong>Grad-CAM grid</strong>: heat-maps showing <em>where</em> the model looks</td><td>Open</td></tr>
+  <tr><td>4</td><td><strong>Mid-semester review pack</strong>: data, splits, E1–E3 with intervals, gap figure, Grad-CAM</td><td>Open</td></tr>
+  <tr><td>5</td><td>Acral check</td><td>Too few images; counts only</td></tr>
+  <tr><td>6</td><td><strong>IEEE-format report, 15-minute presentation</strong>, one-command reproduction on a clean machine</td><td>Open</td></tr>
+  <tr><td>7</td><td>Update the semester plan with the protocol changes listed in <code>docs/PLAN_CHANGES.md</code></td><td>Open</td></tr>
+</table>
+<div class="callout">
+<div class="label">Time-sensitive</div>
+<p><strong>DDI access expires 12 Nov 2026.</strong> Any DDI scoring still needed, such as the data v2 runs, must happen before then, or access must be renewed.</p>
+</div>
+
+<h3>Data v2</h3>
+<p>When the Fitzpatrick17k authors send the full image set: re-build the splits, re-check the SCC count, and re-run every experiment. The full set adds about 460 benign lookalikes, which should help the weakest class.</p>
+
+<h3>Research directions the results point to</h3>
+<ol>
+  <li><strong>Make a dermatology foundation model the main backbone</strong>, since it's the only lever that worked.</li>
+  <li><strong>Add an "other skin disease" gate</strong>, trained on non-cancer conditions like DermaCon-IN's, to fix the false-alarm problem.</li>
+  <li><strong>Calibrate per clinic:</strong> use a small local sample to re-set the cut-off at each new site.</li>
+  <li><strong>Collect dark-skin data from many institutions</strong>, not more from the same atlases. E5 shows that's what's missing.</li>
+  <li><strong>Follow up on texture</strong> (E6's hint that it depends less on skin tone) with more DDI-like data.</li>
+  <li><strong>Later (4-2 continuation):</strong> an Indian hospital collection with ethics approval as a true external test, a dedicated acral melanoma study, and DANN as a second adaptation method.</li>
+</ol>
+
+<h2>How to explain it to other people</h2>
+<h3>The 30-second version</h3>
+<div class="callout"><p>"AI skin cancer tools are trained mostly on light skin. We trained one and found it drops to coin-flip accuracy on the darkest skin at an unfamiliar hospital, missing about two-thirds of cancers. We tested five popular fixes; none solved it at an outside hospital. What helped was starting from a model pre-trained on lots of varied dermatology photos. We also found these tools wrongly flag many ordinary Indian skin conditions as cancer, so they need an 'is this even a tumour?' step first."</p></div>
+
+<h3>The 2-minute version</h3>
+<ol>
+  <li><strong>Problem:</strong> AI dermatology data is mostly light-skinned, while India is mostly FST IV–V, and missed cancers are dangerous.</li>
+  <li><strong>Setup:</strong> we train on light skin (Fitzpatrick17k + Brazil) and test on six sets, including a biopsy-proven Stanford set with all skin tones and Indian clinic photos. The rules are strict: choices on validation only, outside tests scored once.</li>
+  <li><strong>The gap:</strong> 0.89 at home, about 0.70 at a new hospital, and 0.50 on dark skin at a new hospital. Two gaps, stacked.</li>
+  <li><strong>The fixes:</strong> image clean-up, Indian cancer statistics, texture features, dark-skin fine-tuning, CORAL alignment and a combination. None closed the outside-hospital gap, and fine-tuning helped only on photos from the same source.</li>
+  <li><strong>What worked:</strong> a dermatology foundation model, which improved every outside set (India 0.69 → 0.89, dark skin 0.50 → 0.60). A gap remains.</li>
+  <li><strong>Deployment warning:</strong> false alarms on everyday conditions, and cut-offs that don't transfer between sites.</li>
+  <li><strong>Next:</strong> the full data, an out-of-scope gate, per-site calibration and multi-institution dark-skin data.</li>
+</ol>
+
+<h3>Questions people will ask</h3>
+<div class="qa">
+<h4>"So did the project fail, since the fixes didn't work?"</h4>
+<p>No. A carefully measured negative result is a finding. These fixes are widely proposed; we show, without test-set peeking, that they don't solve the real-world problem, and we identify what does help.</p>
+<h4>"Why does it score 0.87 on dark skin in one test and 0.50 in another?"</h4>
+<p>The 0.87 is on dark-skin photos from the same textbook atlases as training. The 0.50 is on real clinic photos from a different hospital. The atlas test mostly measures "same source", not "dark skin".</p>
+<h4>"Why not just add more dark-skin photos?"</h4>
+<p>We did (E5), and it helped only on photos from the same source. The data needs to come from many different clinics and cameras.</p>
+<h4>"Why are your intervals so wide?"</h4>
+<p>The dark-skin test sets are small (51 and 207 images). That's also why we don't over-claim small differences.</p>
+<h4>"Why not train on DDI or DermaCon-IN?"</h4>
+<p>Then there would be no honest outside test left. DDI's licence also restricts its use, and DermaCon-IN has only 65 relevant images.</p>
+<h4>"Is the Derm Foundation result cheating if it saw the data?"</h4>
+<p>Possibly for the public datasets, which we flag. DDI and MIDAS are access-controlled and DermaCon-IN post-dates the model, so those results stand.</p>
+<h4>"Why leave out actinic keratosis?"</h4>
+<p>It's a pre-cancer. Labelling it either "benign" or "cancer" would be medically wrong, so we score it separately.</p>
+<h4>"Could this be used in clinics now?"</h4>
+<p>No. It's a research prototype. It misses too many cancers on dark skin and raises too many false alarms on everyday conditions.</p>
+</div>
+
+<h2>Where things live in the repository</h2>
+<table>
+  <tr><th style="width:38%">You want…</th><th>Look at</th></tr>
+  <tr><td>The protocol rules and why they were chosen</td><td><code>DECISIONS.md</code></td></tr>
+  <tr><td>All results with commentary</td><td><code>docs/RESULTS.md</code></td></tr>
+  <tr><td>Setup and commands</td><td><code>README.md</code></td></tr>
+  <tr><td>Experiment settings, one file per experiment</td><td><code>configs/</code> (all built on <code>base.yaml</code>)</td></tr>
+  <tr><td>Data cleaning</td><td><code>src/skincancer/data/</code></td></tr>
+  <tr><td>The network and CORAL loss</td><td><code>src/skincancer/models.py</code></td></tr>
+  <tr><td>Training</td><td><code>src/skincancer/train.py</code></td></tr>
+  <tr><td>Image clean-up (E3)</td><td><code>src/skincancer/preprocess.py</code></td></tr>
+  <tr><td>Texture features and fusion (E6)</td><td><code>features/texture.py</code>, <code>fusion.py</code></td></tr>
+  <tr><td>Derm Foundation</td><td><code>foundation.py</code>, <code>scripts/derm_foundation_embed.py</code></td></tr>
+  <tr><td>Scoring, intervals, prior shift</td><td><code>metrics.py</code>, <code>evaluate.py</code></td></tr>
+  <tr><td>One-time external scoring and its ledger</td><td><code>predict.py</code>, <code>runs/final_ledger.csv</code></td></tr>
+  <tr><td>Figures</td><td><code>reports/figures/</code></td></tr>
+  <tr><td>Run everything</td><td><code>scripts/run_all.sh</code>, <code>scripts/run_extras.sh</code></td></tr>
+</table>
+<p><strong>One design idea worth knowing:</strong> every model just writes a spreadsheet of predictions (an image ID plus four probabilities). All scoring, intervals and figures read only those spreadsheets. Adding a new method means producing that spreadsheet, and everything else works automatically.</p>
+
+<h2>Key references</h2>
+<ul class="small">
+  <li>Daneshjou et al. (2022), <em>Disparities in dermatology AI performance on a diverse, curated clinical image set</em>, Science Advances. The DDI dataset.</li>
+  <li>Groh et al. (2021), <em>Evaluating deep neural networks trained on clinical images in dermatology with the Fitzpatrick 17k dataset</em>, CVPR Workshops.</li>
+  <li>Pacheco et al. (2020), <em>PAD-UFES-20</em>, Data in Brief.</li>
+  <li>Madarkar et al. (2025), <em>DermaCon-IN</em>, NeurIPS Datasets &amp; Benchmarks.</li>
+  <li>Kawahara et al. (2019), <em>Seven-point checklist and skin lesion classification</em> (Derm7pt), IEEE JBHI.</li>
+  <li>Wen et al. (2022), <em>Characteristics of publicly available skin cancer image datasets</em>, Lancet Digital Health.</li>
+  <li>Sun &amp; Saenko (2016), <em>Deep CORAL: Correlation Alignment for Deep Domain Adaptation</em>, ECCV Workshops.</li>
+  <li>Supekar et al. (2021), <em>Clinical spectrum of cutaneous malignancies in central India</em>, Indian Journal of Dermatology; plus the Malwa-Punjab and Manipur hospital series.</li>
+  <li>Google Health, <em>Derm Foundation</em> model card (Hugging Face: google/derm-foundation).</li>
+</ul>
+
+</body>
+</html>

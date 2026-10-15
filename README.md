@@ -104,7 +104,7 @@ reports/figures/      report figures
 
 Anyone takes the next unblocked item. Put your name on the issue or PR, not in this file.
 
-Results so far are in [docs/RESULTS.md](docs/RESULTS.md) (data v1).
+Results so far are in [docs/RESULTS.md](docs/RESULTS.md) (data v1). A plain-language walkthrough of the whole project is in [docs/PROJECT_EXPLAINER.pdf](docs/PROJECT_EXPLAINER.pdf), built from [docs/PROJECT_EXPLAINER.html](docs/PROJECT_EXPLAINER.html) by `python scripts/export_explainer.py`.
 
 1. [x] Data access and downloads (Fitzpatrick17k partial: data v1, D6; full set requested from the authors)
 2. [x] Build the label map, first-pass review (D5); **team review of the label map still open**
@@ -119,3 +119,4 @@ Results so far are in [docs/RESULTS.md](docs/RESULTS.md) (data v1).
 11. [x] E8 (chosen on target_val, D19), both backbones; stronger baselines incl. Derm Foundation (D15, D16, D20)
 12. [x] Test-only sets via `--final` for each finished method (incl. MIDAS); [ ] acral check (too few: n ≈ 40); [x] UMAP
 13. [ ] Report (IEEE), presentation, one-command reproduction check on a clean machine
+14. [ ] After data v2: update the numbers, date and "data vN" chip in docs/PROJECT_EXPLAINER.html, then `python scripts/export_explainer.py`
