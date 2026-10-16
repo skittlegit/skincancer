@@ -74,6 +74,10 @@ def main(argv=None):
     if test_only and not args.final:
         raise SystemExit(f"{test_only} are test-only: pass --final (scored once per method, D9)")
     if args.final:
+        # A run that crashed mid-training can leave a best.pt from an early epoch; scoring
+        # it would use up its one test-set look on a half-trained model.
+        if not (rdir / "summary.json").exists():
+            raise SystemExit(f"{rdir} has no summary.json (training did not finish): not scoring test sets")
         check_ledger(str(rdir.as_posix()), test_only, args.force)
     model, cfg = runs.load_run(rdir)
     manifest = pd.read_csv(cfg["manifest"])

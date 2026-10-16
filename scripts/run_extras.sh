@@ -27,7 +27,21 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && { if [ -n "${NO_PUSH
   fi
 }
 
+step_retry() {  # re-run every run_all block that logged a FAILED training run (e.g. out of memory)
+  local blocks
+  blocks=$(grep -o "FAILED: see runs/logs/[^ ]*" runs/run_all.out 2>/dev/null | sed -E 's#.*/logs/##' \
+    | sed -E 's/^(e1)_.*/\1/; s/^(e[3-7])[a-z]?_.*/\1/' | sort -u | tr '\n' ' ')
+  [ -n "$blocks" ] || return 0
+  for d in runs/*/s*/; do   # drop crashed partial runs so they retrain cleanly
+    [ -f "$d/best.pt" ] && [ ! -f "$d/summary.json" ] && [ ! -d "$d/preds" ] && rm -rf "$d"
+  done
+  echo "[$(date +%H:%M)] retry blocks: $blocks"
+  bash scripts/run_all.sh $blocks >> runs/run_all_retry.out 2>&1
+  grep -E "FAILED|committed|pushed" runs/run_all_retry.out | tail -5
+}
+
 step_repair() {  # runs that crashed after saving best.pt (e.g. a segfault while predicting)
+  step_retry       # first re-run blocks with crashed training runs (the chain calls repair first)
   for d in runs/*/s*/; do
     d=${d%/}
     [ -f "$d/best.pt" ] && [ -f "$d/summary.json" ] || continue
