@@ -7,6 +7,7 @@ import random
 from functools import partial
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pandas as pd
 import torch
@@ -21,6 +22,10 @@ from .models import Classifier
 def _seed_worker(worker_id: int, base: int) -> None:
     np.random.seed(base * 100 + worker_id)
     random.seed(base * 100 + worker_id)
+    # Workers only decode and augment images. Single-threaded, each commits ~0.4 GB instead of
+    # ~1.8 GB (thread-pool reservations), which kept a 15 GB machine near its commit limit.
+    torch.set_num_threads(1)
+    cv2.setNumThreads(0)
 
 
 def forever(loader):

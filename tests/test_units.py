@@ -189,3 +189,15 @@ def test_derm7pt_rows(tmp_path):
     assert df.loc["derm7pt_2", "path"] == "derm7pt/release_v0/images/A/a2.jpg"
     assert df.loc["derm7pt_2", "is_acral"] and not df.loc["derm7pt_1", "is_acral"]
     assert df.loc["derm7pt_4", "label_3class"] == "nmsc" and df.loc["derm7pt_4", "label_binary"] == 1
+
+
+def test_worker_init_limits_threads():
+    import cv2
+    from skincancer.runs import _seed_worker
+    before = torch.get_num_threads(), cv2.getNumThreads()
+    try:
+        _seed_worker(0, base=1)
+        assert torch.get_num_threads() == 1 and cv2.getNumThreads() <= 1
+    finally:
+        torch.set_num_threads(before[0])
+        cv2.setNumThreads(before[1])
