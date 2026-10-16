@@ -39,16 +39,14 @@ Each variant changes only the preprocessing of E1 (training and evaluation). Bin
 | | Source val (macro) | Target val (macro) | Target test (macro) | PAD-UFES-20 IV–VI (macro) | DDI I–II | DDI V–VI | DDI V–VI missed (op90) | DermaCon-IN | DermaCon-IN non-cancer called malignant (op90) | MIDAS I–III |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | E1 (none) | 0.894 | 0.916 | 0.888 | 0.828 | 0.645 | 0.526 | 36% | 0.706 | 43% | 0.685 |
-| Colour constancy* | 0.902 | 0.923 | 0.893 | 0.876 | 0.609 | 0.515 | 33% | 0.731 | 42% | 0.675 |
+| Colour constancy | 0.900 | 0.917 | 0.889 | 0.870 | 0.631 | 0.519 | 37% | 0.715 | 42% | 0.677 |
 | CLAHE | 0.888 | 0.896 | 0.881 | 0.835 | 0.655 | 0.551 | 26% | 0.708 | 43% | 0.701 |
 | Lesion crop | 0.885 | 0.897 | 0.870 | 0.773 | 0.609 | 0.527 | 46% | 0.624 | 44% | 0.662 |
 | All three | 0.886 | 0.895 | 0.861 | 0.892 | 0.624 | 0.505 | 45% | 0.727 | 29% | 0.678 |
-
-\*Seed 2 only: seeds 0 and 1 crashed (out of memory, another process) and are retraining; this row is updated when they finish.
 
 **Reading:**
 - No preprocessing closes the DDI skin-tone gap: DDI V–VI stays between 0.51 and 0.55 for every variant, all with CIs covering 0.5.
 - CLAHE gives the best DDI V–VI (0.55, fewer missed cancers at op90: 26% vs 36%) but is slightly worse on both selection sets, so by the protocol it is not selected.
 - Lesion crop hurts nearly everywhere (DermaCon-IN 0.62, PAD-UFES-20 0.77): the crop often cuts lesion context on clinical photos.
 - Combining all three gives the fewest DermaCon-IN false alarms (29%) but the weakest target test.
-- The E8 preprocessing choice (target val, D14 rule) waits for all three colour-constancy seeds.
+- Colour constancy ties E1 on target val (0.917 vs 0.916, well inside the CI), so E8 keeps no preprocessing (D22).

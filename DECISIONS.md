@@ -162,3 +162,7 @@ The authors sent the complete image set: 16,577 JPEGs, one per CSV row, each nam
 - **Rebuilt from scratch, same rules.** Label map (unchanged: all 114 Fitzpatrick17k diagnoses were already reviewed), manifest, dedup (D10 thresholds), splits (same seed and fractions) and count check (the D6 rule re-applied). The test-set ledger starts empty, so every run is scored once. Derm7pt's training-only list is rebuilt against the new evaluation splits (D16).
 - **The protocol fixes are built in from the start.** These are E5 with equal steps (D18; `steps_per_epoch: auto` = one pass over the full target_train), MIDAS in every block's test sets, the operating-point metrics (D17) and the memory fixes.
 - **Choices are re-made on the new validation sets.** E3's preprocessing (D14), CORAL's λ (D13) and E8's composition (D19) are re-chosen on target_val by the same rules. The development run's choices are not carried over.
+
+## D22. E8 keeps no image processing, re-chosen on the full set (16 Oct 2026)
+
+D14's rule re-applied (picked autonomously). E3 on target_val macro AUC, 3 seeds each: E1 0.916, colour constancy 0.917, CLAHE 0.896, crop 0.897, all three 0.895. Colour constancy's +0.001 is far inside the CI (0.87–0.96) and below its own seed-to-seed spread, so it does not count as beating the baseline; the simpler pipeline is kept. E8 is again built from E4/E5/E6/E7 components only. External-test results (e.g. CLAHE's DDI V–VI 0.55) were not used.
