@@ -69,7 +69,7 @@ Analysis and figures:
 python -m skincancer.report tables --ref e1_effb0          # results/summary.csv (with gap)
 python -m skincancer.report gap --exps e1_effb0 e3_all e6_fusion e7_coral_l1000.0
 python -m skincancer.report curve --ref e1_effb0           # E5 data-size curve (e5s_f*)
-python -m skincancer.report fst --exps e1_effb0 e8_effb0 e1_fm_lr   # DDI AUC by skin type
+python -m skincancer.report fst --exps e1_effb0 e5s_f100 e1_fm_lr   # DDI AUC by skin type
 python -m skincancer.report confusion --exp e1_effb0 --split target_test
 python -m skincancer.analysis.lookalike --exp e1_effb0     # which lookalikes get confused
 python -m skincancer.analysis.gradcam --run runs/e1_effb0/s0 --split target_test

@@ -1,8 +1,8 @@
-# E8 (D19), chosen on target_val only. Of E3-E7, only E5 fine-tuning (target val 0.933 at 100%)
-# and E4 Indian-prior weighting (0.895) beat E1 (0.891). E3 preprocessing (D14), E6 fusion
-# (0.879) and E7 CORAL (best 0.883) did not, so they are left out.
-# E8 = E5 recipe (equal steps, 100% target_train, init from E1) + Indian-prior weighted loss.
+# E8 (D23, re-chosen on the full set from target_val only). Of E3-E7 only E5 fine-tuning beats
+# E1 (target val 0.948 at 100% vs 0.916); colour constancy (0.917), E4 (0.915), E6 fusion (0.914)
+# and E7 CORAL (best 0.914, λ = 10000) do not. E8 is therefore the E5 recipe alone: equal steps,
+# 100% target_train, init from E1. On EfficientNet-B0 that is exactly e5s_f100, so it is not
+# trained again: E8 EfficientNet-B0 = e5s_f100. This file is the base for e8_r50.
 extends: e5_finetune_steps.yaml
 name: e8_effb0
 data: {fraction: 100}
-train: {class_weighting: indian, prior_mix: consensus}

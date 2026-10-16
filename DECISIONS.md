@@ -166,3 +166,16 @@ The authors sent the complete image set: 16,577 JPEGs, one per CSV row, each nam
 ## D22. E8 keeps no image processing, re-chosen on the full set (16 Oct 2026)
 
 D14's rule re-applied (picked autonomously). E3 on target_val macro AUC, 3 seeds each: E1 0.916, colour constancy 0.917, CLAHE 0.896, crop 0.897, all three 0.895. Colour constancy's +0.001 is far inside the CI (0.87–0.96) and below its own seed-to-seed spread, so it does not count as beating the baseline; the simpler pipeline is kept. E8 is again built from E4/E5/E6/E7 components only. External-test results (e.g. CLAHE's DDI V–VI 0.55) were not used.
+
+## D23. CORAL λ and E8 composition, re-chosen on the full set (17 Oct 2026)
+
+Picked autonomously per the standing instruction, D13/D19 rules re-applied, target_val macro AUC only (seed mean, 3 seeds each). E1 scored 0.916.
+
+| | E3 best (colour constancy) | E4 Indian loss | E5s 100% | E6 fusion | E7 CORAL λ = 100 / 1000 / 10000 |
+| --- | --- | --- | --- | --- | --- |
+| Target val macro AUC | 0.917 | 0.915 | **0.948** | 0.914 | 0.909 / 0.912 / 0.914 |
+
+- **CORAL λ = 10000** is the E7 arm reported (best of the grid on target val); it still does not beat E1.
+- **Only E5 fine-tuning beats E1** (colour constancy's +0.001 is a tie, D22). E4 no longer clears E1 on the full set, so the Indian-prior weighting from D19 is dropped.
+- **E8 = the E5 recipe alone** (equal steps, 100% target_train, init from the source-only model of the same backbone and seed). On EfficientNet-B0 that is exactly the finished e5s_f100 run, so it is not trained again: E8 EfficientNet-B0 is reported as e5s_f100 (no second test-set look at the same method). E8 ResNet50 (`configs/e8_r50.yaml`) is new and trained after the follow-up queue.
+- External-test trends (CORAL's DDI V–VI 0.55, PAD-UFES-20 0.88) were not used for these choices.

@@ -1,9 +1,9 @@
 """Summary tables and the report figures, from results/*/metrics.csv and prediction files.
 
     python -m skincancer.report tables  --ref e1_effb0
-    python -m skincancer.report gap     --exps e1_effb0 e3_all e4_indian_loss e6_fusion e7_coral_l1.0 --out gap.png
+    python -m skincancer.report gap     --exps e1_effb0 e3_all e4_indian_loss e6_fusion e7_coral_l10000.0 --out gap.png
     python -m skincancer.report curve   --ref e1_effb0 --prefix e5s_f
-    python -m skincancer.report fst     --exps e1_effb0 e8_effb0 e1_fm_lr
+    python -m skincancer.report fst     --exps e1_effb0 e5s_f100 e1_fm_lr
     python -m skincancer.report confusion --exp e1_effb0 --split target_test
 """
 from __future__ import annotations
@@ -37,9 +37,9 @@ TARGETS = [
 FIG_DIR = Path("reports/figures")
 LABELS = {   # readable method names for figures
     "e1_effb0": "E1 baseline", "e1_r50": "E1 ResNet50", "e3_cc": "E3 colour const.", "e3_clahe": "E3 CLAHE",
-    "e3_all": "E3 all steps", "e4_indian_loss": "E4 Indian prior", "e5s_f100": "E5 fine-tune 100%",
-    "e6_fusion": "E6 texture fusion", "e7_coral_l1000.0": "E7 CORAL", "e8_effb0": "E8 combined",
-    "e8_r50": "E8 ResNet50", "e1_effb0_d7": "E1 + Derm7pt", "e1_effb0_320": "E1 320 px + TTA",
+    "e3_all": "E3 all steps", "e4_indian_loss": "E4 Indian prior", "e5s_f100": "E5/E8 fine-tune 100%",
+    "e6_fusion": "E6 texture fusion", "e7_coral_l10000.0": "E7 CORAL",
+    "e8_r50": "E8 ResNet50 fine-tune", "e1_effb0_d7": "E1 + Derm7pt", "e1_effb0_320": "E1 320 px + TTA",
     "e1_fm_lr": "Derm Foundation", "e5_fm_lr": "Derm Foundation + target",
 }
 
@@ -268,7 +268,7 @@ def main(argv=None):
             print(tables(res, args.ref, out).to_string(index=False))
         elif args.what == "fst":
             out = Path(args.out or FIG_DIR / "ddi_by_fst.png")
-            fst_chart(res, args.exps or ["e1_effb0", "e8_effb0", "e1_fm_lr"], out)
+            fst_chart(res, args.exps or ["e1_effb0", "e5s_f100", "e1_fm_lr"], out)
         elif args.what == "gap":
             out = Path(args.out or FIG_DIR / "gap.png")
             gap_chart(res, args.exps or sorted(res["exp"].unique()), args.ref, out)

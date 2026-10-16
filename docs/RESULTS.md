@@ -101,3 +101,23 @@ Heads trained on frozen E1 features, per seed: an MLP on the CNN embedding alone
 - Adding texture to the embedding gives a small, non-significant gain over the control (target val 0.914 vs 0.906) and matches E1, not better.
 - Texture alone is weak in-domain (target val 0.73) but loses less at other clinics: PAD-UFES-20 0.85 and DDI V–VI 0.55, the best DDI V–VI so far, though the CI still covers 0.5. Its low missed-cancer rate (19%) comes with 54% false alarms, so it is a looser threshold, not a better classifier.
 - Fusion has the fewest DermaCon-IN false alarms at op90 so far (33%) but misses more DDI V–VI cancers (46%): the trade-off moves, it does not improve.
+
+## E7: Deep CORAL with unlabelled FST IV–VI images (EfficientNet-B0)
+
+CORAL aligns the feature covariance of source images with unlabelled target_train images during training. λ grid from D13; λ chosen on target val (D23).
+
+| λ | Source val (macro) | Target val (macro) | Target test (macro) | PAD-UFES-20 IV–VI (macro) | DDI I–II | DDI V–VI | DDI V–VI missed (op90) | DermaCon-IN | DermaCon-IN non-cancer called malignant (argmax / op90) | MIDAS I–III |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 (E1) | 0.894 | 0.916 | 0.888 | 0.828 | 0.645 | 0.526 | 36% | 0.706 | 47% / 43% | 0.685 |
+| 100 | 0.888 | 0.909 | 0.886 | 0.843 | 0.636 | 0.536 | 32% | 0.712 | 45% / 42% | 0.701 |
+| 1000 | 0.892 | 0.912 | 0.892 | 0.861 | 0.637 | 0.535 | 39% | 0.716 | 45% / 37% | 0.711 |
+| **10000** (chosen) | 0.892 | 0.914 | 0.890 | 0.882 [0.81, 0.94] | 0.651 | 0.552 [0.45, 0.65] | 34% | 0.699 | 47% / 42% | 0.715 |
+
+**Reading:**
+- On the selection sets CORAL is level with E1 at every λ (target val 0.909–0.914 vs 0.916), so by the protocol it is not selected for E8.
+- The external sets move in CORAL's favour as λ grows: PAD-UFES-20 0.83 → 0.88, MIDAS 0.69 → 0.72, DDI V–VI 0.53 → 0.55. Each change is inside its CI, but the direction is consistent across three independent clinics, which E3–E6 did not show.
+- DDI V–VI remains near chance (CI 0.45–0.65), so alignment to Fitzpatrick17k's dark-skin images narrows the clinic gap a little without closing the skin-tone gap.
+
+## E8: chosen combination (D23)
+
+Only E5 fine-tuning beats E1 on target val, so E8 is the E5 recipe alone. On EfficientNet-B0 that is the E5 100% row above (target test 0.936, DDI V–VI 0.521). E8 ResNet50 is trained after the follow-up runs and added here.
