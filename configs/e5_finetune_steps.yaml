@@ -4,4 +4,4 @@
 extends: e5_finetune.yaml
 name: e5s_f{data.fraction}
 train:
-  steps_per_epoch: auto        # ceil(full target_train / batch): 5 on data v1 (152 images), D21
+  steps_per_epoch: auto        # ceil(full target_train / batch), D18, D21
