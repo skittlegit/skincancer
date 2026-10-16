@@ -50,3 +50,18 @@ Each variant changes only the preprocessing of E1 (training and evaluation). Bin
 - Lesion crop hurts nearly everywhere (DermaCon-IN 0.62, PAD-UFES-20 0.77): the crop often cuts lesion context on clinical photos.
 - Combining all three gives the fewest DermaCon-IN false alarms (29%) but the weakest target test.
 - Colour constancy ties E1 on target val (0.917 vs 0.916, well inside the CI), so E8 keeps no preprocessing (D22).
+
+## E4: Indian-prior weighted loss (EfficientNet-B0)
+
+E1 retrained with class weights set from the Indian consensus prior (more BCC/SCC, fewer melanomas, D7), no preprocessing.
+
+| | Source val (macro) | Target val (macro) | Target test (macro) | PAD-UFES-20 IV–VI (macro) | DDI I–II | DDI III–IV | DDI V–VI | DDI V–VI missed (op90) | DermaCon-IN | DermaCon-IN non-cancer called malignant (argmax / op90) | MIDAS I–III |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E1 | 0.894 | 0.916 | 0.888 | 0.828 | 0.645 | 0.658 | 0.526 | 36% | 0.706 | 47% / 43% | 0.685 |
+| E4 | 0.893 | 0.915 | 0.887 | 0.825 | 0.648 | 0.674 | 0.518 | 38% | 0.738 [0.54, 0.91] | 41% / 43% | 0.701 |
+
+**Reading:**
+- The selection sets do not move (target val 0.915 vs 0.916), so the loss change neither helps nor hurts in-domain.
+- DermaCon-IN rises slightly (0.71 → 0.74) and MIDAS a little (0.69 → 0.70), but both CIs overlap E1's widely.
+- With the default argmax decision, fewer Indian non-cancer images are called malignant (47% → 41%). At the matched operating point (op90) the rate is the same 43%: the weighting mostly moves the decision threshold rather than separating the classes better.
+- DDI V–VI stays at chance (0.52). Re-weighting the classes does not address the skin-tone gap.
