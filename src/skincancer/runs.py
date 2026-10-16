@@ -3,6 +3,7 @@ loaders, checkpoint loading and the prediction-file format."""
 from __future__ import annotations
 
 import json
+import os
 import random
 from functools import partial
 from pathlib import Path
@@ -22,10 +23,7 @@ from .models import Classifier
 def _seed_worker(worker_id: int, base: int) -> None:
     np.random.seed(base * 100 + worker_id)
     random.seed(base * 100 + worker_id)
-    # Workers only decode and augment images. Single-threaded, each commits ~0.4 GB instead of
-    # ~1.8 GB (thread-pool reservations), which kept a 15 GB machine near its commit limit.
-    torch.set_num_threads(1)
-    cv2.setNumThreads(0)
+    cv2.setNumThreads(0)   # workers only decode and augment; see make_loader for the thread pools
 
 
 def forever(loader):
@@ -76,6 +74,13 @@ def make_loader(df: pd.DataFrame, cfg: dict, train: bool, seed: int = 0, drop_la
     ds = SkinDataset(df, image_loader(cfg), tf, classes_of(cfg), d["label_col"])
     g = torch.Generator().manual_seed(seed)
     nw = cfg["train"]["num_workers"]
+    if nw > 0:
+        # Spawned workers reserve full OpenMP/MKL thread pools when they import torch (~1.7 GB
+        # committed each, 8 workers per run). They inherit these variables, so set them before
+        # the workers start; the main process keeps its own thread count.
+        n = torch.get_num_threads()
+        os.environ.update(OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
+        torch.set_num_threads(n)
     return DataLoader(ds, batch_size=cfg["train"]["batch_size"], shuffle=train, drop_last=drop_last,
                       num_workers=nw, generator=g, pin_memory=torch.cuda.is_available(),
                       worker_init_fn=partial(_seed_worker, base=seed), persistent_workers=persistent and nw > 0)

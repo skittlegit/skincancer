@@ -197,7 +197,21 @@ def test_worker_init_limits_threads():
     before = torch.get_num_threads(), cv2.getNumThreads()
     try:
         _seed_worker(0, base=1)
-        assert torch.get_num_threads() == 1 and cv2.getNumThreads() <= 1
+        assert cv2.getNumThreads() <= 1
     finally:
         torch.set_num_threads(before[0])
         cv2.setNumThreads(before[1])
+
+
+def test_make_loader_limits_worker_thread_pools(monkeypatch):
+    import os
+    import pandas as pd
+    from skincancer import runs
+    from skincancer.config import load_config
+    monkeypatch.delenv("OMP_NUM_THREADS", raising=False)
+    cfg = load_config("configs/base.yaml")
+    cfg["train"]["num_workers"] = 2
+    n = torch.get_num_threads()
+    df = pd.DataFrame({"image_id": ["a"], "path": ["x.jpg"], cfg["data"]["label_col"]: ["bcc"]})
+    runs.make_loader(df, cfg, train=False, persistent=False)
+    assert os.environ["OMP_NUM_THREADS"] == "1" and torch.get_num_threads() == n
