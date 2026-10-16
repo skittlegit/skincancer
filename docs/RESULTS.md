@@ -65,3 +65,23 @@ E1 retrained with class weights set from the Indian consensus prior (more BCC/SC
 - DermaCon-IN rises slightly (0.71 → 0.74) and MIDAS a little (0.69 → 0.70), but both CIs overlap E1's widely.
 - With the default argmax decision, fewer Indian non-cancer images are called malignant (47% → 41%). At the matched operating point (op90) the rate is the same 43%: the weighting mostly moves the decision threshold rather than separating the classes better.
 - DDI V–VI stays at chance (0.52). Re-weighting the classes does not address the skin-tone gap.
+
+## E5: fine-tuning on Fitzpatrick17k FST IV–VI labels (EfficientNet-B0)
+
+E1 fine-tuned on 10/25/50/100% of target_train (28 to 257 images), with the same number of optimizer steps at every fraction (D18). Fraction 0 is E1.
+
+| Target labels used | Source val (macro) | Target val (macro) | Target test (macro) | PAD-UFES-20 IV–VI (macro) | DDI I–II | DDI V–VI | DDI V–VI missed (op90) | DermaCon-IN | DermaCon-IN non-cancer called malignant (argmax / op90) | MIDAS I–III |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 0% (E1) | 0.894 | 0.916 | 0.888 | 0.828 | 0.645 | 0.526 | 36% | 0.706 | 47% / 43% | 0.685 |
+| 10% | 0.874 | 0.917 | 0.885 | 0.840 | 0.617 | 0.524 | 31% | 0.703 | 35% / 48% | 0.676 |
+| 25% | 0.874 | 0.933 | 0.911 | 0.843 | 0.635 | 0.538 | 35% | 0.715 | 31% / 45% | 0.698 |
+| 50% | 0.871 | 0.937 | 0.921 | 0.836 | 0.647 | 0.526 | 38% | 0.724 | 36% / 46% | 0.703 |
+| 100% | 0.872 | 0.948 | 0.936 [0.89, 0.97] | 0.820 | 0.664 | 0.521 | 34% | 0.701 | 42% / 51% | 0.708 |
+
+Figure: `reports/figures/e5_curve.png` (`python -m skincancer.report curve --ref e1_effb0 --prefix e5s_f`).
+
+**Reading:**
+- Dark-skin labels from the same atlas help on that atlas: target test rises steadily from 0.89 to 0.94 with the number of labels.
+- They do not transfer to other clinics: DDI V–VI stays at 0.52–0.54 at every fraction, and DermaCon-IN and PAD-UFES-20 do not move beyond noise. The FST IV–VI gap on DDI is a dataset shift, not only a skin-tone shift that dark-skin atlas images can fix.
+- Source val drops by about 0.02 after fine-tuning (mild forgetting).
+- The op90 false-alarm rate on DermaCon-IN rises (43% → 51%) because the op90 threshold is set on source val, where the fine-tuned model is slightly worse. At the argmax decision it falls (47% → 31–42%).
