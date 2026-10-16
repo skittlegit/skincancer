@@ -11,7 +11,7 @@ All results here are **data v1**: Fitzpatrick17k has 1,919 of 4,491 neoplastic i
 5. **Better pre-training is the one lever that moves external performance.** A linear probe on frozen Derm Foundation embeddings reaches DDI V–VI 0.60 [0.51, 0.69] (the first CI above chance), DermaCon-IN 0.89 and MIDAS 0.82. The skin-tone gradient (0.74 → 0.80 → 0.60) and threshold transfer problems remain.
 6. **False alarms on Indian clinic images are a deployment risk for every model.** Of DermaCon-IN's 5,379 non-cancer images (vitiligo, tinea, scabies, acne and others), E1 calls 31% malignant and Derm Foundation 83%. A 4-class cancer classifier needs an "other skin disease" gate before it meets unselected patients.
 
-Figures: [gap](../reports/figures/gap.png) · [DDI by skin type](../reports/figures/ddi_by_fst.png) · [E5 curve](../reports/figures/e5_curve.png) · [confusion](../reports/figures/confusion_e1_effb0_target_test.png) · [UMAP](../reports/figures/umap_e1_effb0_s0.png). Protocol changes along the way: DECISIONS.md D14–D20.
+Figures: [gap](../reports/figures_v1/gap.png) · [DDI by skin type](../reports/figures_v1/ddi_by_fst.png) · [E5 curve](../reports/figures_v1/e5_curve.png) · [confusion](../reports/figures_v1/confusion_e1_effb0_target_test.png) · [UMAP](../reports/figures_v1/umap_e1_effb0_s0.png). Protocol changes along the way: DECISIONS.md D14–D20.
 
 ## E1 / E2: source-only baseline, EfficientNet-B0 (14 Oct 2026)
 
@@ -239,10 +239,10 @@ Fine-tuning the E1 model on nested fractions of Fitzpatrick17k IV–VI target_tr
 ## Figures
 
 Rebuilt from results/ by `python -m skincancer.report …` (metrics only; no patient images):
-- [reports/figures/gap.png](../reports/figures/gap.png): target AUC with 95% CIs for every method on Fitzpatrick17k IV–VI, DDI V–VI, DermaCon-IN and MIDAS.
-- [reports/figures/ddi_by_fst.png](../reports/figures/ddi_by_fst.png): DDI AUC across FST I–II, III–IV, V–VI for E1, E8 and Derm Foundation.
-- [reports/figures/e5_curve.png](../reports/figures/e5_curve.png): the corrected E5 fine-tuning curve.
-- [reports/figures/confusion_e1_effb0_target_test.png](../reports/figures/confusion_e1_effb0_target_test.png): E1 confusion matrix on Fitzpatrick17k IV–VI by skin type.
+- [reports/figures/gap.png](../reports/figures_v1/gap.png): target AUC with 95% CIs for every method on Fitzpatrick17k IV–VI, DDI V–VI, DermaCon-IN and MIDAS.
+- [reports/figures/ddi_by_fst.png](../reports/figures_v1/ddi_by_fst.png): DDI AUC across FST I–II, III–IV, V–VI for E1, E8 and Derm Foundation.
+- [reports/figures/e5_curve.png](../reports/figures_v1/e5_curve.png): the corrected E5 fine-tuning curve.
+- [reports/figures/confusion_e1_effb0_target_test.png](../reports/figures_v1/confusion_e1_effb0_target_test.png): E1 confusion matrix on Fitzpatrick17k IV–VI by skin type.
 
 ## Domain probe and UMAP (feature analysis)
 
@@ -254,4 +254,4 @@ A 5-fold, group-aware linear probe on frozen embeddings asks whether a light-ski
 | CORAL λ = 1000 | 83% | 83% | 84% | **84%** |
 | CORAL λ = 10000 | 81% | 83% | 81% | **82%** |
 
-(SD across folds ≈ ±8 points.) **CORAL does not make the domains harder to separate**: matching second-order feature statistics leaves them linearly separable, and if anything more so. Part of what the probe detects is class mix, since the target set is SCC-heavy. The UMAP ([reports/figures/umap_e1_effb0_s0.png](../reports/figures/umap_e1_effb0_s0.png)) shows the same thing: dark-skin images sit towards the SCC-rich side of the map rather than forming their own cluster. This fits E7's flat target val: the alignment did not remove the domain signal it targets.
+(SD across folds ≈ ±8 points.) **CORAL does not make the domains harder to separate**: matching second-order feature statistics leaves them linearly separable, and if anything more so. Part of what the probe detects is class mix, since the target set is SCC-heavy. The UMAP ([reports/figures/umap_e1_effb0_s0.png](../reports/figures_v1/umap_e1_effb0_s0.png)) shows the same thing: dark-skin images sit towards the SCC-rich side of the map rather than forming their own cluster. This fits E7's flat target val: the alignment did not remove the domain signal it targets.
