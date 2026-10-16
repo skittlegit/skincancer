@@ -9,10 +9,6 @@ data/features/
 runs/*
 !runs/final_ledger.csv
 results/
-# Data v1 archive (tag data-v1): same rules
-runs_v1/*
-!runs_v1/final_ledger.csv
-results_v1/
 wandb/
 *.pt
 *.npz
