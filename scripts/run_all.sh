@@ -7,7 +7,7 @@
 set -uo pipefail
 PY=${PY:-python}
 SEEDS="0 1 2"
-FINAL="ddi_test dermacon_test dermacon_other pad_dark_test"
+FINAL="ddi_test dermacon_test dermacon_other pad_dark_test midas_test"
 LOGS=runs/logs
 mkdir -p "$LOGS"
 export PYTHONUNBUFFERED=1
@@ -62,11 +62,11 @@ block_e4() {
 }
 
 block_e5() {
-  for f in 10 25 50 100; do
-    for s in $SEEDS; do train configs/e5_finetune.yaml $s --set data.fraction=$f; done
-    final e5_f$f; evaluate e5_f$f
+  for f in 10 25 50 100; do   # equal optimizer steps per fraction (D18)
+    for s in $SEEDS; do train configs/e5_finetune_steps.yaml $s --set data.fraction=$f; done
+    final e5s_f$f; evaluate e5s_f$f
   done
-  checkpoint "E5 localized fine-tuning curve"
+  checkpoint "E5 localized fine-tuning curve (equal steps)"
 }
 
 block_e6() {

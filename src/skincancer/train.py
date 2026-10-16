@@ -99,6 +99,9 @@ def train(cfg: dict) -> dict:
     tr_loader = runs.make_loader(train_df, cfg, train=True, seed=cfg["seed"],
                                  drop_last=len(train_df) >= cfg["train"]["batch_size"])
     steps = cfg["train"].get("steps_per_epoch")   # D18: fixed optimizer steps per epoch (None = one pass)
+    if steps == "auto":   # one pass over the *full* target_train, whatever fraction is used (D21)
+        n_full = len(runs.labelled(runs.split_rows(manifest, "target_train"), cfg))
+        steps = math.ceil(n_full / cfg["train"]["batch_size"])
     tr_iter = runs.forever(tr_loader) if steps else None
     val_loader = runs.make_loader(val_df, cfg, train=False)
     tval_loader = None

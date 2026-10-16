@@ -32,22 +32,23 @@ def workdir(tmp_path_factory):
     root = tmp_path_factory.mktemp("proj")
     rng = np.random.default_rng(0)
     raw = root / "data/raw"
-    for d in ("fitzpatrick17k/images", "pad_ufes_20/images", "ddi/images"):
+    fz = yaml.safe_load(Path("configs/data.yaml").read_text(encoding="utf-8"))["datasets"]["fitzpatrick17k"]["image_dir"]
+    for d in (fz, "pad_ufes_20/images", "ddi/images"):
         (raw / d).mkdir(parents=True)
     rows = []
     for i in range(260):
         cls = ["bcc", "scc", "mel", "benign"][i % 4] if i < 250 else "ak"
         fst = int(rng.integers(1, 7))
         h = f"h{i:04d}"
-        _img(raw / f"fitzpatrick17k/images/{h}.jpg", cls, rng, skin=(220 - 25 * fst, 170 - 20 * fst, 150 - 18 * fst))
+        _img(raw / f"{fz}/{h}.jpg", cls, rng, skin=(220 - 25 * fst, 170 - 20 * fst, 150 - 18 * fst))
         rows.append({"md5hash": h, "fitzpatrick_scale": fst, "fitzpatrick_centaur": fst, "label": FITZ[cls],
                      "nine_partition_label": "x", "three_partition_label": "malignant" if cls != "benign" else "benign",
                      "qc": np.nan, "url": "http://x", "url_alphanum": "x"})
     rows.append(dict(rows[0], md5hash="nofst", fitzpatrick_scale=-1))           # unknown FST -> excluded
     rows.append(dict(rows[0], md5hash="psor", label="psoriasis", three_partition_label="non-neoplastic"))
     for extra in ("nofst", "psor"):
-        _img(raw / f"fitzpatrick17k/images/{extra}.jpg", "benign", rng)
-    shutil.copy(raw / "fitzpatrick17k/images/h0001.jpg", raw / "fitzpatrick17k/images/dup1.jpg")
+        _img(raw / f"{fz}/{extra}.jpg", "benign", rng)
+    shutil.copy(raw / f"{fz}/h0001.jpg", raw / f"{fz}/dup1.jpg")
     rows.append(dict(rows[1], md5hash="dup1", fitzpatrick_scale=6 if rows[1]["fitzpatrick_scale"] <= 3 else 1))
     pd.DataFrame(rows).to_csv(raw / "fitzpatrick17k/fitzpatrick17k.csv", index=False)
 

@@ -153,3 +153,11 @@ Components that beat E1 are E5 fine-tuning (clearly) and E4 Indian-prior weighti
 ## D20. Derm Foundation + target data arm (15 Oct 2026)
 
 Added under the standing instruction to improve in scope: `e5_fm_lr` asks E5's question on the Derm Foundation backbone. It is the linear probe trained on source_train + target_train, with C ∈ {1e-4, 1e-3, 1e-2, 1e-1} picked on target_val, since it is target-trained (D1). The grid extends one step below e1_fm_lr's, because that probe chose its grid edge. It is scored once on the test sets like every other arm. It needs only minutes, since the embeddings are cached.
+
+## D21. Data v2: the full Fitzpatrick17k image set (16 Oct 2026)
+
+The authors sent the complete image set: 16,577 JPEGs, one per CSV row, each named by its MD5. Spot checks confirm it is the same data. 40 of 40 sampled files hash to their names, and 300 of 300 of our data v1 downloads are byte-identical to the authors' copies. So data v2 strictly adds images; no v1 image changes. Rules:
+- **Archive, don't overwrite.** data v1 is tagged `data-v1`. Its runs, results, figures and RESULTS.md move to `runs_v1/`, `results_v1/`, `reports/figures_v1/` and `docs/RESULTS_v1.md`, and the v1 test-set ledger stays in `runs_v1/final_ledger.csv`. v2 starts a fresh `runs/final_ledger.csv`, so every v2 run is scored once on the test sets in its own right.
+- **Rebuilt from scratch, same rules.** Label map (unchanged: all 114 Fitzpatrick17k diagnoses were already reviewed), manifest, dedup (D10 thresholds), splits (same seed and fractions) and count check (D6 4-class vs 3-class rule re-applied). The manifest points at `fitzpatrick17k/images_full/`. Derm7pt's training-only list is rebuilt against the v2 evaluation splits (D16).
+- **The protocol fixes made during v1 are built in from the start.** These are E5 with equal steps (D18; `steps_per_epoch: auto` = one pass over the full target_train, which reproduces v1's 5 steps), MIDAS in every block's test sets, the operating-point metrics (D17) and the memory fixes.
+- **Choices are re-made on v2 validation.** E3's preprocessing (D14), CORAL's λ (D13) and E8's composition (D19) are re-chosen on v2's target_val by the same rules. v1's choices are not carried over.

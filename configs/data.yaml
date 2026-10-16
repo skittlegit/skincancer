@@ -10,7 +10,7 @@ features_dir: data/features    # cached texture features
 datasets:
   fitzpatrick17k:
     csv: fitzpatrick17k/fitzpatrick17k.csv
-    image_dir: fitzpatrick17k/images          # <md5hash>.jpg, written by download_fitzpatrick17k
+    image_dir: fitzpatrick17k/images_full     # <md5hash>.jpg: full set from the authors (data v2, D21); images/ = v1 download
   pad_ufes_20:
     csv: pad_ufes_20/metadata.csv
     image_dir: pad_ufes_20/images             # merge imgs_part_1..3 into this folder
