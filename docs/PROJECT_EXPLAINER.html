@@ -181,7 +181,7 @@
 <div class="callout">
 <p>AI skin cancer tools are mostly trained on photos of lighter skin. We wanted to know how much worse such a model does on darker skin and on Indian patients, and whether common fixes help.</p>
 <p>We trained a model on lighter-skin photos and tested it on several outside datasets. On the darkest skin types, photographed at a hospital it had never seen, it did <strong>barely better than a coin flip</strong> and missed over a third of cancers, four times as many as on light skin at the same hospital.</p>
-<p>We tried five standard fixes and a combination of them. <strong>None closed the gap</strong> at an outside hospital. The one thing that clearly helped was starting from a model <strong>pre-trained on a large, varied set of dermatology photos</strong> (Google's Derm Foundation). Even that still did worse on dark skin.</p>
+<p>We tried five standard fixes, then the best of them on validation. <strong>None closed the gap</strong> at an outside hospital. The one thing that clearly helped was starting from a model <strong>pre-trained on a large, varied set of dermatology photos</strong> (Google's Derm Foundation). Even that still did worse on dark skin.</p>
 <p>On everyday Indian clinic photos (fungal infections, vitiligo, acne), the models wrongly call many of them cancer. A real tool would first need a step that says "this isn't a tumour at all".</p>
 </div>
 
@@ -217,7 +217,7 @@
   <tr><td>RQ2</td><td>Do epidemiology-guided choices help? That means cleaning up the image for darker skin, and telling the model which cancers are common in India.</td><td>E3, E4</td></tr>
   <tr><td>RQ3</td><td>Does adding hand-measured texture information help?</td><td>E6</td></tr>
   <tr><td>RQ4</td><td>How much dark-skin labelled data closes the gap? How much does "statistical alignment" close with no labels at all?</td><td>E5, E7</td></tr>
-  <tr><td>—</td><td>Does the best combination of fixes do better?</td><td>E8</td></tr>
+  <tr><td>—</td><td>Does the best fix, chosen on validation, do better on a second network?</td><td>E8</td></tr>
 </table>
 
 <h2>Vocabulary, in plain English</h2>
@@ -302,12 +302,12 @@
 <h3>The datasets, and why each one is there</h3>
 <table>
   <tr><th style="width:19%">Dataset</th><th style="width:20%">Role</th><th>Why it's there</th></tr>
-  <tr><td><strong>Fitzpatrick17k</strong></td><td>Training (FST I–III) and target train/val/test (FST IV–VI)</td><td>About 16,500 photos from online dermatology atlases, each labelled with a diagnosis and a skin type. We use only the cancer and lookalike images.</td></tr>
+  <tr><td><strong>Fitzpatrick17k</strong></td><td>Training (FST I–III) and target train/val/test (FST IV–VI)</td><td>About 16,600 photos from online dermatology atlases, each labelled with a diagnosis and a skin type. We use only the cancer and lookalike images.</td></tr>
   <tr><td><strong>PAD-UFES-20</strong> (Brazil)</td><td>Training (FST I–III). Its 60 FST IV–VI images form a test-only set.</td><td>Biopsy-confirmed smartphone photos from a Brazilian clinic.</td></tr>
   <tr><td><strong>DDI</strong> (Stanford)</td><td>Test only. <strong>The most important test.</strong></td><td>656 images, every lesion biopsy-proven, all skin types. It comes from a <em>different hospital</em>, with real clinic photos rather than textbook ones. Its licence forbids showing its images, so we only report numbers.</td></tr>
   <tr><td><strong>DermaCon-IN</strong> (India)</td><td>Test only</td><td>Only 65 are cancers or lookalikes (19 cancers, 46 lookalikes). The other 5,379 are everyday conditions: tinea, vitiligo, scabies, acne, psoriasis, eczema. We use them to ask how often the model wrongly cries "cancer" on ordinary Indian patients.</td></tr>
   <tr><td><strong>MRA-MIDAS</strong> (Stanford)</td><td>Test only</td><td>1,380 biopsy-proven photos, 96% lighter skin. It measures the effect of changing hospital <em>without</em> changing skin tone.</td></tr>
-  <tr><td><strong>Derm7pt</strong> (Italy)</td><td>Extra training data, one experiment</td><td>About 1,000 clinical photos, added because our training set had very few melanomas and benign lesions.</td></tr>
+  <tr><td><strong>Derm7pt</strong> (Italy)</td><td>Extra training data, one experiment</td><td>About 950 clinical photos, added because our training set had very few melanomas and benign lesions.</td></tr>
 </table>
 <p><strong>The full image set.</strong> Many of Fitzpatrick17k's images originally came from a website whose links are now dead. We asked the authors, and they sent the complete set of 16,577 images. Every result in this document uses it. Earlier runs on a partial download (1,919 of 4,491 relevant images) were development runs only: they helped us find and fix protocol problems, but none of their numbers are reported.</p>
 <p><strong>Why most sets are test-only.</strong> We train only on Fitzpatrick17k and PAD-UFES-20 (plus Derm7pt in one experiment). DDI, DermaCon-IN, MIDAS and PAD's dark-skin images are <em>never</em> trained on, because they represent the real question: does the model work somewhere it has never been?</p>
@@ -567,7 +567,7 @@
       <text x="560" y="72">hospital gap</text>
       <text x="560" y="86" font-weight="600" fill="#262521">≈ −0.2</text>
       <text x="560" y="127">skin-tone gap</text>
-      <text x="560" y="141" font-weight="600" fill="#262521">≈ another −0.15</text>
+      <text x="560" y="141" font-weight="600" fill="#262521">≈ another −0.12</text>
     </g>
     <path d="M548,40 V92" stroke="#b5b1a5" fill="none"/>
     <path d="M548,96 V148" stroke="#b5b1a5" fill="none"/>
@@ -577,7 +577,7 @@
 <p>MIDAS makes this visible. It's a new hospital with mostly light skin, so it isolates the effect of the hospital itself: camera, lighting, photographer and patient mix. Most "dark skin" fixes only target the second gap, and they did so with dark-skin data from the <em>same</em> atlases. So they couldn't touch the first.</p>
 
 <h3>2 · What doesn't work, and why that's useful</h3>
-<p>Image clean-up, Indian statistics, texture features, CORAL alignment and their combination all failed at outside hospitals. That's a meaningful <strong>negative result</strong>. These are exactly the methods many papers propose, and under strict no-peeking rules they don't solve the real-world version of the problem.</p>
+<p>Image clean-up, Indian statistics, texture features, CORAL alignment and the best-on-validation choice (fine-tuning) all failed at outside hospitals. That's a meaningful <strong>negative result</strong>. These are exactly the methods many papers propose, and under strict no-peeking rules they don't solve the real-world version of the problem.</p>
 
 <h3>3 · What does work</h3>
 <p><strong>Better pre-training</strong> (Derm Foundation) is the one lever that moved every outside set. Diversity of experience beats clever tricks.</p>
@@ -587,7 +587,7 @@
 </figure>
 
 <h3>4 · The "only four boxes" problem</h3>
-<p>The model knows only four answers: BCC, SCC, melanoma or benign tumour. Show it a fungal infection and it <em>must</em> pick one of the four, often a cancer. On 5,379 everyday Indian clinic photos, the baseline calls <strong>47%</strong> malignant and Derm Foundation calls <strong>78%</strong>. Any real tool needs a first step that says "not a tumour / out of scope" before the cancer classifier runs.</p>
+<p>The model knows only four answers: BCC, SCC, melanoma or benign tumour. Show it a fungal infection and it <em>must</em> pick one of the four, often a cancer. On 5,379 everyday Indian clinic photos, at the default decision the baseline calls <strong>47%</strong> malignant and Derm Foundation <strong>78%</strong> (43% and 73% at the fixed cut-off). Any real tool needs a first step that says "not a tumour / out of scope" before the cancer classifier runs.</p>
 <blockquote><p><strong>Analogy:</strong> ask someone who only knows four dog breeds to identify a cat. They'll confidently name a dog breed.</p></blockquote>
 
 <h3>5 · A cut-off set at home doesn't travel</h3>
@@ -600,7 +600,7 @@
   <tr><td>Estimated skin type</td><td>Fitzpatrick types are judged from photos, not measured on patients.</td></tr>
   <tr><td>Thin training classes</td><td>337 melanomas and 383 benign images in training, against 902 BCC.</td></tr>
   <tr><td>Possible pre-training overlap</td><td>Derm Foundation may have seen the public datasets; only its DDI, MIDAS and DermaCon-IN scores are clean.</td></tr>
-  <tr><td>Acral lesions</td><td>About 50 in the Fitzpatrick17k/PAD sets and 39 in MIDAS, too few for firm conclusions.</td></tr>
+  <tr><td>Acral lesions</td><td>About 50 in PAD-UFES-20, 39 in MIDAS and 9 in DDI (none flagged in Fitzpatrick17k), too few for firm conclusions.</td></tr>
   <tr><td>Atlas labels</td><td>Fitzpatrick17k diagnoses are atlas-scraped, not biopsy-verified. DDI (biopsy-proven) is the clean check.</td></tr>
 </table>
 
@@ -608,7 +608,7 @@
 <h3>To finish this semester</h3>
 <table>
   <tr><th style="width:5%">#</th><th>Task</th><th style="width:28%">Status</th></tr>
-  <tr><td>1</td><td><strong>Team confirms the label map</strong> (443 diagnosis → class rows)</td><td>First pass done; team review open</td></tr>
+  <tr><td>1</td><td><strong>Team confirms the label map</strong> (460 diagnosis → class rows)</td><td>First pass done; team review open</td></tr>
   <tr><td>2</td><td><strong>Check 100 lesion crops by eye</strong> and record the failure rate</td><td>Open (pilot contact sheet drafted)</td></tr>
   <tr><td>3</td><td><strong>Grad-CAM grid</strong>: heat-maps showing <em>where</em> the model looks</td><td>Open</td></tr>
   <tr><td>4</td><td><strong>Mid-semester review pack</strong>: data, splits, E1–E3 with intervals, gap figure, Grad-CAM</td><td>Open</td></tr>
@@ -640,7 +640,7 @@
   <li><strong>Problem:</strong> AI dermatology data is mostly light-skinned, while India is mostly FST IV–V, and missed cancers are dangerous.</li>
   <li><strong>Setup:</strong> we train on light skin (Fitzpatrick17k + Brazil) and test on six sets, including a biopsy-proven Stanford set with all skin tones and Indian clinic photos. The rules are strict: choices on validation only, outside tests scored once.</li>
   <li><strong>The gap:</strong> 0.90 at home, about 0.65–0.69 at a new hospital, and 0.53 on dark skin at a new hospital. Two gaps, stacked.</li>
-  <li><strong>The fixes:</strong> image clean-up, Indian cancer statistics, texture features, dark-skin fine-tuning, CORAL alignment and a combination. None closed the outside-hospital gap, and fine-tuning helped only on photos from the same source.</li>
+  <li><strong>The fixes:</strong> image clean-up, Indian cancer statistics, texture features, dark-skin fine-tuning, CORAL alignment, and the best of these on a second network. None closed the outside-hospital gap, and fine-tuning helped only on photos from the same source.</li>
   <li><strong>What worked:</strong> a dermatology foundation model, which improved every outside set (India 0.71 → 0.86, dark skin 0.53 → 0.61). A gap remains.</li>
   <li><strong>Deployment warning:</strong> false alarms on everyday conditions, and cut-offs that don't transfer between sites.</li>
   <li><strong>Next:</strong> an out-of-scope gate, per-site calibration and multi-institution dark-skin data.</li>

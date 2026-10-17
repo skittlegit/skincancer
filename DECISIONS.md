@@ -178,4 +178,5 @@ Picked autonomously per the standing instruction, D13/D19 rules re-applied, targ
 - **CORAL λ = 10000** is the E7 arm reported (best of the grid on target val); it still does not beat E1.
 - **Only E5 fine-tuning beats E1** (colour constancy's +0.001 is a tie, D22). E4 no longer clears E1 on the full set, so the Indian-prior weighting from D19 is dropped.
 - **E8 = the E5 recipe alone** (equal steps, 100% target_train, init from the source-only model of the same backbone and seed). On EfficientNet-B0 that is exactly the finished e5s_f100 run, so it is not trained again: E8 EfficientNet-B0 is reported as e5s_f100 (no second test-set look at the same method). E8 ResNet50 (`configs/e8_r50.yaml`) is new and trained after the follow-up queue.
+- E4's post-hoc prior shift (D7) scores 0.920–0.921 on target val for all four regional mixes. It is an evaluation-time adjustment of E1, not a training component, so as in D19 only the retrained E4 arm is a candidate. Its gain (+0.005) is also inside the CI.
 - External-test trends (CORAL's DDI V–VI 0.55, PAD-UFES-20 0.88) were not used for these choices.

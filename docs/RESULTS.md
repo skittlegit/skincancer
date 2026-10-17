@@ -15,7 +15,7 @@ All results use the full Fitzpatrick17k set (D21). Numbers are the mean over see
 | **DDI FST V–VI** | **binary 0.526 [0.43, 0.62]** | 36% [24, 50] | 207 |
 | DermaCon-IN cancers vs lookalikes | binary 0.706 [0.52, 0.87] | — | 65 |
 | DermaCon-IN non-cancer called malignant | 47% (argmax), 43% (op90) | — | 5,379 |
-| MIDAS FST I–III | binary 0.685 [0.65, 0.72] | 40% [37, 44] | 1,322 |
+| MIDAS FST I–III | binary 0.685 [0.65, 0.72] | 40% [37, 44] | 1,327 |
 | Actinic keratosis called malignant | 90% | — | 311 |
 
 **Reading:**
