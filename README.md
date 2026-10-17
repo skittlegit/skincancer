@@ -14,6 +14,8 @@ pip install -r requirements.txt && pip install -e .
 pytest                                                 # ~1 min on CPU, synthetic data
 ```
 
+To reproduce the reported numbers exactly, install the pinned versions instead: `pip install -r requirements-lock.txt --extra-index-url https://download.pytorch.org/whl/cpu && pip install -e . --no-deps` (D24).
+
 On Kaggle or Colab, torch is already installed. Run `pip install -r requirements.txt && pip install -e . --no-deps`, then set `train.num_workers` to the number of CPUs.
 
 ## Data → splits (once, then commit)
@@ -107,16 +109,16 @@ Anyone takes the next unblocked item. Put your name on the issue or PR, not in t
 Results are in [docs/RESULTS.md](docs/RESULTS.md). A plain-language walkthrough of the whole project is in [docs/PROJECT_EXPLAINER.pdf](docs/PROJECT_EXPLAINER.pdf), built from [docs/PROJECT_EXPLAINER.html](docs/PROJECT_EXPLAINER.html) by `python scripts/export_explainer.py`.
 
 1. [x] Data access and downloads (full Fitzpatrick17k set from the authors, D21)
-2. [x] Build the label map, first-pass review (D5); **team review of the label map still open**
+2. [x] Build the label map, first-pass review (D5); [x] second full review ([docs/LABEL_MAP_REVIEW.md](docs/LABEL_MAP_REVIEW.md), D24); **team sign-off open**
 3. [x] Manifest → dedup → splits → count check (D6, D10)
-4. [ ] `python -m skincancer.preprocess --n 100`: check the crops by eye, record the failure rate
-5. [x] E1 + E2, both backbones; [x] gap figure, confusion matrix, DDI-by-FST figure ([reports/figures/](reports/figures/)); [ ] Grad-CAM grid
+4. [x] `python -m skincancer.preprocess --n 100`: crops checked by eye, ~15–20% fail (D24)
+5. [x] E1 + E2, both backbones; [x] gap figure, confusion matrix, DDI-by-FST figure ([reports/figures/](reports/figures/)); [x] Grad-CAM grids (local only: patient photos; findings in RESULTS.md)
 6. [x] E3, E4 (training + prior-shift sweep)
-7. [ ] Mid-sem review pack: manifest, splits, E1–E3 with CIs, gap figure, Grad-CAM
+7. [x] Mid-sem review pack: [docs/MIDSEM_PACK.md](docs/MIDSEM_PACK.md)
 8. [x] E5 curve (corrected, D18)
 9. [x] E6 fusion and texture ablation
 10. [x] E7 CORAL, λ picked on target_val (D13); [x] domain probe before/after
 11. [x] E8 (re-chosen on target_val, D23: the E5 recipe; EfficientNet-B0 = e5s_f100, ResNet50 trained); stronger baselines: Derm7pt, 320 px + TTA, Derm Foundation (D15, D16, D20); seed ensembles
-12. [x] Test-only sets via `--final` for each finished method (incl. MIDAS); [ ] acral check (too few: ~50 in Fitzpatrick17k/PAD, 39 in MIDAS); [x] UMAP
-13. [ ] Report (IEEE), presentation, one-command reproduction check on a clean machine
+12. [x] Test-only sets via `--final` for each finished method (incl. MIDAS); [x] acral check (counts + MIDAS AUCs in RESULTS.md; too few for conclusions); [x] UMAP
+13. [ ] Report (IEEE), presentation; [x] clean-clone reproduction check (fresh venv from `requirements-lock.txt`, tests, data pipeline; D24)
 14. [x] Full-data run complete (17 Oct 2026): RESULTS.md summary, explainer and PDF updated

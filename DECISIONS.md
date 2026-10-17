@@ -180,3 +180,9 @@ Picked autonomously per the standing instruction, D13/D19 rules re-applied, targ
 - **E8 = the E5 recipe alone** (equal steps, 100% target_train, init from the source-only model of the same backbone and seed). On EfficientNet-B0 that is exactly the finished e5s_f100 run, so it is not trained again: E8 EfficientNet-B0 is reported as e5s_f100 (no second test-set look at the same method). E8 ResNet50 (`configs/e8_r50.yaml`) is new and trained after the follow-up queue.
 - E4's post-hoc prior shift (D7) scores 0.920–0.921 on target val for all four regional mixes. It is an evaluation-time adjustment of E1, not a training component, so as in D19 only the retrained E4 arm is a candidate. Its gain (+0.005) is also inside the CI.
 - External-test trends (CORAL's DDI V–VI 0.55, PAD-UFES-20 0.88) were not used for these choices.
+
+## D24. Team checks closed out on the full set (17 Oct 2026)
+
+- **Label map:** second full review of all 460 rows ([docs/LABEL_MAP_REVIEW.md](docs/LABEL_MAP_REVIEW.md)). One definite error (DDI acral-melanotic-macule, 1 image, exclude → benign) and a few bookkeeping items; none affects any reported score (DDI is scored on its biopsy flag). The committed map is kept unchanged, since it was frozen before any experiment (D5). The open questions listed there are for the team's sign-off.
+- **Crop failure rate (D12):** about 15–20% of 100 training crops, judged by eye on the full-set contact sheet, single reviewer.
+- **Reproducibility:** `requirements.txt` keeps loose ranges; `requirements-lock.txt` pins the exact versions the results were produced with. The E5 subsets depend on numpy's shuffle (numpy 2.5.4 draws a few different groups from 2.5.2). Training reads the committed subset files, so results are unaffected, but `make_splits` reproduces them exactly only with the locked versions.

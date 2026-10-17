@@ -241,3 +241,22 @@ No model ever saw an acral melanoma in training. On MIDAS (binary AUC, acral vs 
 | Derm Foundation, linear | 0.79 [0.59, 0.99] | 0.82 |
 
 **Reading:** every model scores lower on acral lesions than on the rest of MIDAS, but with 39 images every acral CI is too wide to call any difference. This needs a dedicated acral dataset (a 4-2 continuation item).
+
+## Lesion crop check (D12)
+
+`python -m skincancer.preprocess --n 100` draws 100 training images and shows each one after the E3 lesion crop (contact sheet `reports/figures/crop_check.png`, kept local: patient photos). Reviewed by eye on 17 Oct 2026, single reviewer: **about 15–20 of 100 crops fail**, meaning the lesion is not the clear subject of the crop. Typical failures:
+- The crop keeps the whole face or limb.
+- A ruler, white background or censor bar dominates.
+- A tiny lesion sits in a wide field.
+- One crop is padded with white borders.
+
+The rest are centred on the lesion. This fits E3, where the crop hurt most on clinic-style photos (DermaCon-IN 0.71 → 0.62).
+
+## Grad-CAM (where the model looks)
+
+`python -m skincancer.analysis.gradcam --run runs/e1_effb0/s0 --split target_test --n 20` (and `source_test`; E7 CORAL on `target_test`). Each grid shows 20 correct and 20 wrong predictions. The grids are kept local (`reports/figures/gradcam_*.png`, git-ignored: patient photos). Read by eye, approximate counts:
+
+- **E1, correct predictions:** the heat sits on the lesion in about 37 of 40 (source + target test).
+- **E1, wrong predictions:** about two-thirds still look at the lesion; the model sees it but misjudges it. The other third look elsewhere: image borders, background, a colour-calibration bar, a ruler or the eye-censor bars in one atlas photo.
+- **E7 CORAL on target test:** more maps highlight the surrounding skin, a ring around the lesion or the image edges, even when correct (about 7 of 20 correct predictions vs about 3 of 20 for E1). This fits the probe result: CORAL's alignment does not make the features more lesion-focused.
+- **No systematic shortcut** such as rulers or skin-marker ink drives the correct predictions. Atlas artefacts (watermarks, censor bars, borders) do show up in some errors.
