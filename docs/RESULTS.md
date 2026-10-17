@@ -118,6 +118,18 @@ CORAL aligns the feature covariance of source images with unlabelled target_trai
 - The external sets move in CORAL's favour as λ grows: PAD-UFES-20 0.83 → 0.88, MIDAS 0.69 → 0.72, DDI V–VI 0.53 → 0.55. Each change is inside its CI, but the direction is consistent across three independent clinics, which E3–E6 did not show.
 - DDI V–VI remains near chance (CI 0.45–0.65), so alignment to Fitzpatrick17k's dark-skin images narrows the clinic gap a little without closing the skin-tone gap.
 
+## Domain probe and UMAP
+
+A logistic regression on frozen embeddings, 5-fold grouped cross-validation, source test vs target test (86 images per domain, balanced; chance = 50%). `python -m skincancer.analysis.probe --run ...`
+
+| Embeddings from | Probe accuracy (mean of 3 seeds) |
+| --- | --- |
+| E1 | 67% (66–69%) |
+| E7 CORAL λ = 10000 | 70% (69–72%) |
+| E5 fine-tuned, 100% | 62% (61–65%) |
+
+**Reading:** CORAL does not make light- and dark-skin features harder to tell apart (67% → 70%); its covariance alignment leaves other differences that a linear probe still finds. Fine-tuning on dark-skin labels narrows the difference slightly (62%). UMAPs of E1 and E7 embeddings (`reports/figures/umap_e1.png`, `umap_e7.png`) show target images spread through the source cloud, with points grouping by class more than by domain.
+
 ## E8: chosen combination (D23)
 
 Only E5 fine-tuning beats E1 on target val, so E8 is the E5 recipe alone. On EfficientNet-B0 that is the E5 100% row above (target test 0.936, DDI V–VI 0.521). E8 ResNet50 is trained after the follow-up runs and added here.

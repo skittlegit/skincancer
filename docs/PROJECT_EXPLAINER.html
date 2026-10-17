@@ -499,7 +499,7 @@
 <ul>
   <li>No setting beat the baseline on validation (best 0.914 at λ = 10000, vs 0.916).</li>
   <li>On outside sets there's a small, consistent trend. Stronger alignment raised Brazil dark skin from 0.83 to 0.88, MIDAS from 0.69 to 0.72 and DDI V–VI from 0.53 to 0.55. It is the only planned method that moved all three outside sets the same way, but every interval still overlaps the baseline's.</li>
-  <li>We also checked whether CORAL made light and dark images harder to tell apart. A simple test (a domain probe) could tell them apart <strong>77%</strong> of the time before CORAL and <strong>84%</strong> after. CORAL did not hide the domain difference.</li>
+  <li>We also checked whether CORAL made light and dark images harder to tell apart. A simple test (a domain probe) could tell them apart <strong>67%</strong> of the time before CORAL (50% would be chance) and <strong>70%</strong> after. CORAL did not hide the domain difference. Fine-tuning on dark-skin labels (E5) narrowed it a little, to 62%.</li>
 </ul>
 
 <div class="exp">
