@@ -624,7 +624,7 @@
 <h3>Research directions the results point to</h3>
 <ol>
   <li><strong>Make a dermatology foundation model the main backbone</strong>, since it's the only lever that worked.</li>
-  <li><strong>Add an "other skin disease" gate</strong>, trained on non-cancer conditions like DermaCon-IN's, to fix the false-alarm problem.</li>
+  <li><strong>Train the "is this a tumour?" gate on dark-skin tumours too.</strong> We tried one trained on light-skin data only (E10): it cut false alarms on everyday Indian conditions from 73% to 7%, but it also turned away 42% of real dark-skin cancers at DDI (missed cancers 15% → 52%). The idea works; the training data has to include dark skin.</li>
   <li><strong>Calibrate per clinic:</strong> use a small local sample to re-set the cut-off at each new site.</li>
   <li><strong>Collect dark-skin data from many institutions</strong>, not more from the same atlases. E5 shows that's what's missing.</li>
   <li><strong>Follow up on texture</strong> (E6's hint that it depends less on skin tone) with more DDI-like data.</li>
@@ -642,8 +642,8 @@
   <li><strong>The gap:</strong> 0.90 at home, about 0.65–0.69 at a new hospital, and 0.53 on dark skin at a new hospital. Two gaps, stacked.</li>
   <li><strong>The fixes:</strong> image clean-up, Indian cancer statistics, texture features, dark-skin fine-tuning, CORAL alignment, and the best of these on a second network. None closed the outside-hospital gap, and fine-tuning helped only on photos from the same source.</li>
   <li><strong>What worked:</strong> a dermatology foundation model, which improved every outside set (India 0.71 → 0.86, dark skin 0.53 → 0.61). A gap remains.</li>
-  <li><strong>Deployment warning:</strong> false alarms on everyday conditions, and cut-offs that don't transfer between sites.</li>
-  <li><strong>Next:</strong> an out-of-scope gate, per-site calibration and multi-institution dark-skin data.</li>
+  <li><strong>Deployment warning:</strong> false alarms on everyday conditions, and cut-offs that don't transfer between sites. A "not a tumour" gate removes most false alarms, but one trained on light skin also rejects dark-skin cancers.</li>
+  <li><strong>Next:</strong> a gate trained with dark-skin tumours, per-site calibration and multi-institution dark-skin data.</li>
 </ol>
 
 <h3>Questions people will ask</h3>

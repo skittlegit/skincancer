@@ -344,3 +344,8 @@ runs/e9_fusion_lr/s2,dermacon_test,712bf65,2026-10-17T16:17:58+00:00
 runs/e9_fusion_lr/s2,dermacon_other,712bf65,2026-10-17T16:17:58+00:00
 runs/e9_fusion_lr/s2,pad_dark_test,712bf65,2026-10-17T16:17:58+00:00
 runs/e9_fusion_lr/s2,midas_test,712bf65,2026-10-17T16:17:58+00:00
+runs/e10_gate/s0,ddi_test,1b1dbbe,2026-10-17T18:24:14+00:00
+runs/e10_gate/s0,dermacon_test,1b1dbbe,2026-10-17T18:24:14+00:00
+runs/e10_gate/s0,dermacon_other,1b1dbbe,2026-10-17T18:24:14+00:00
+runs/e10_gate/s0,pad_dark_test,1b1dbbe,2026-10-17T18:24:14+00:00
+runs/e10_gate/s0,midas_test,1b1dbbe,2026-10-17T18:24:14+00:00

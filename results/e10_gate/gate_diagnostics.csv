@@ -1,0 +1,32 @@
+split,group,n,kept_by_gate
+source_val,cancer,352,0.96
+source_val,benign tumour,83,0.904
+source_val,all,435,0.949
+source_test,cancer,353,0.943
+source_test,benign tumour,82,0.854
+source_test,all,435,0.926
+target_val,cancer,66,0.955
+target_val,benign tumour,20,0.9
+target_val,all,86,0.942
+target_test,cancer,66,0.924
+target_test,benign tumour,20,0.7
+target_test,all,86,0.872
+ak_side,other,311,0.801
+ak_side,all,311,0.801
+ddi_test,cancer,171,0.842
+ddi_test,benign tumour,255,0.973
+ddi_test,other,231,0.814
+ddi_test,all,656,0.883
+dermacon_test,cancer,19,0.895
+dermacon_test,benign tumour,46,0.522
+dermacon_test,all,65,0.631
+dermacon_other,other,5379,0.152
+dermacon_other,all,5379,0.152
+pad_dark_test,cancer,34,1.0
+pad_dark_test,benign tumour,26,1.0
+pad_dark_test,all,60,1.0
+midas_test,cancer,802,0.966
+midas_test,benign tumour,578,0.922
+midas_test,all,1380,0.948
+fitz_nontumour_test,other,675,0.147
+fitz_nontumour_dark_test,other,1500,0.101

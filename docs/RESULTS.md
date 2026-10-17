@@ -10,7 +10,7 @@ All results use the full Fitzpatrick17k set (D21). Numbers are the mean over see
 
 **Stronger baselines.** Better pre-training is the one lever that moves every outside set: frozen Derm Foundation embeddings with a linear head reach DDI 0.78 / 0.83 / 0.61 [0.52, 0.69], DermaCon-IN 0.86 and MIDAS 0.82, and miss 15% of DDI V–VI cancers at op90. The skin-tone gradient remains (0.78 → 0.61). Adding Derm7pt's clinic photos to E1 also lifts DDI V–VI (0.60 [0.50, 0.70]), while 320 px + flip TTA helps only the lighter-skin outside sets. Averaging the three seeds changes the CNNs by at most 0.004, so seed noise is not the limit. Combining models (E9, D25) does not help either: the best validation-picked ensemble (Derm Foundation + target labels with E5) tops target test (0.97) but is worse than Derm Foundation alone at every outside clinic (DDI V–VI 0.54).
 
-**Deployment warnings.** (1) The four-class model has no "not a tumour" answer: on 5,379 everyday Indian conditions (vitiligo, tinea, scabies, acne) E1 calls 43% malignant at op90, Derm Foundation 73% and E1 + Derm7pt 60%. Any real tool needs an out-of-scope gate first. (2) A cut-off set at home does not travel: at DDI the op90 cut-off raises false alarms on 66–71% of benign lesions, against 31% at home.
+**Deployment warnings.** (1) The four-class model has no "not a tumour" answer: on 5,379 everyday Indian conditions (vitiligo, tinea, scabies, acne) E1 calls 43% malignant at op90, Derm Foundation 73% and E1 + Derm7pt 60%. Any real tool needs an out-of-scope gate first. A gate trained on light-skin data (E10, D26) cuts that 73% to 7%, but rejects 42% of real DDI V–VI cancers (missed cancers 15% → 52%), so it is not safe for dark skin as built. (2) A cut-off set at home does not travel: at DDI the op90 cut-off raises false alarms on 66–71% of benign lesions, against 31% at home.
 
 **Caveats.** Dark-skin test sets are small (86 target test images, 207 DDI V–VI), so most differences are inside their CIs. Derm Foundation may have seen the public datasets in pre-training; its DDI, MIDAS and DermaCon-IN results are clean. Fitzpatrick17k labels are atlas-scraped, and skin types are estimated from photos.
 
@@ -148,6 +148,35 @@ Specified before any E9 number was computed. Layers of separately trained networ
 - E9b shows the CNN adds nothing to Derm Foundation at outside clinics (DDI V–VI 0.58, MIDAS 0.80), though it lowers false alarms on Indian non-cancer images (73% → 56% at op90).
 - Both combinations do cut DermaCon-IN false alarms against Derm Foundation alone, the one place they help.
 - **Combining models does not beat the best single pre-trained model where it matters.** Better pre-training, not combining weaker models, is what moves the outside sets.
+
+## E10: "not a tumour" gate and the Indian prior on Derm Foundation (D26)
+
+Specified before any E10 number was computed. A tumour vs non-tumour logistic regression on the Derm Foundation embedding, trained on source_train tumours and 3,150 Fitzpatrick17k non-tumour images (FST I–III only), multiplies the cancer probabilities of the Derm Foundation linear model (`python -m skincancer.gate`). Gate val AUC 0.976 (C = 0.001). The cut-off t95 = 0.27 keeps 95% of source val tumours. Seed 0, scored once.
+
+| | Source val (macro) | Target val (macro) | Target test (macro) | Target test missed (op90) | DDI I–II | DDI III–IV | DDI V–VI | DDI V–VI missed (op90) | DermaCon-IN | **DermaCon-IN non-cancer called malignant (argmax / op90)** | MIDAS I–III | MIDAS missed / false alarms (op90) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Derm Foundation, linear | 0.916 | 0.942 | 0.947 | 6% | 0.779 | 0.829 | **0.606** | **15%** | 0.856 | 78% / 73% | 0.824 | 16% / 37% |
+| + Indian prior (consensus mix) | 0.915 | 0.942 | 0.945 | 8% | 0.774 | 0.838 | 0.609 | 10% | 0.871 | 77% / 78% | 0.832 | 15% / 39% |
+| E10 gate | 0.896 | 0.934 | 0.931 | 15% | 0.756 | 0.806 | 0.441 | 52% | 0.902 | **2.9% / 7.3%** | 0.806 | 12% / 54% |
+| E10 gate + Indian prior | 0.898 | 0.935 | 0.931 | 12% | 0.755 | 0.821 | 0.439 | 48% | 0.910 | 2.7% / 8.3% | 0.827 | 10% / 50% |
+
+Share of images the gate keeps (g ≥ t95):
+
+| | Cancers | Non-cancers |
+| --- | --- | --- |
+| DDI FST I–II / III–IV | 94% / 95% | 95% / 93% (benign tumours and other lesions) |
+| **DDI FST V–VI** | **58%** (median g 0.45) | 81% (median g 0.85) |
+| Target test IV / V–VI | 100% / 84% | 73% / 60% |
+| MIDAS (all) | 97% | 92% |
+| DermaCon-IN cancers / lookalikes | 89% | 52% |
+| DermaCon-IN everyday conditions | — | 15% |
+| Fitzpatrick17k non-tumour test, FST I–III / IV–VI | — | 15% / 10% |
+
+**Reading:**
+- **The gate fixes the false alarms it was built for.** On DermaCon-IN's 5,379 everyday conditions, the share called malignant falls from 73% to 7% at op90 (78% → 3% argmax). It also rejects 85–90% of held-out atlas non-tumour images of any skin type, and raises DermaCon-IN cancers-vs-lookalikes from 0.86 to 0.90.
+- **It breaks dark-skin cancer detection at DDI.** On DDI V–VI it keeps only 58% of real cancers and scores them *lower* than V–VI non-cancers (median 0.45 vs 0.85), so the AUC drops below chance (0.61 → 0.44) and op90 misses rise from 15% to 52%. A gate that learned "tumour" from light-skin atlas photos does not recognise dark-skin hospital tumours as tumours. On light skin (DDI I–II, MIDAS) it costs little.
+- **The Indian prior changes almost nothing** (every number within ±0.015), as expected: it only re-weights among the three cancers, and Derm Foundation's errors are mostly cancer vs not, not which cancer.
+- **Verdict:** by the protocol (D1) target val picks Derm Foundation without the gate (0.942 vs 0.934). As a screening tool the gate is unsafe for dark skin: it cuts false alarms by losing cancers on the patients this project is about. A usable gate needs dark-skin tumours in its training data, which is future work, not a re-run on these test sets.
 
 ## Seed ensembles
 
