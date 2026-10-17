@@ -180,7 +180,7 @@
 <h2>The one-minute version</h2>
 <div class="callout">
 <p>AI skin cancer tools are mostly trained on photos of lighter skin. We wanted to know how much worse such a model does on darker skin and on Indian patients, and whether common fixes help.</p>
-<p>We trained a model on lighter-skin photos and tested it on several outside datasets. On the darkest skin types, photographed at a hospital it had never seen, it did <strong>no better than a coin flip</strong> and missed about two-thirds of cancers.</p>
+<p>We trained a model on lighter-skin photos and tested it on several outside datasets. On the darkest skin types, photographed at a hospital it had never seen, it did <strong>barely better than a coin flip</strong> and missed over a third of cancers, four times as many as on light skin at the same hospital.</p>
 <p>We tried five standard fixes and a combination of them. <strong>None closed the gap</strong> at an outside hospital. The one thing that clearly helped was starting from a model <strong>pre-trained on a large, varied set of dermatology photos</strong> (Google's Derm Foundation). Even that still did worse on dark skin.</p>
 <p>On everyday Indian clinic photos (fungal infections, vitiligo, acne), the models wrongly call many of them cancer. A real tool would first need a step that says "this isn't a tumour at all".</p>
 </div>
@@ -515,25 +515,25 @@
   <tr><th style="width:20%">Extra</th><th>What it is</th><th class="num" style="width:13%">DDI V–VI</th><th style="width:30%">Takeaway</th></tr>
   <tr><td>Seed ensemble</td><td>Average the three seeds' predictions</td><td class="num">0.50</td><td>The seeds already agree; randomness isn't the problem</td></tr>
   <tr><td>320 px + flip TTA</td><td>Bigger images; at test time, average over 4 flipped versions</td><td class="num">0.51</td><td>Helps light-skin outside hospitals (India 0.69 → 0.76), not dark skin</td></tr>
-  <tr><td>+ Derm7pt</td><td>About 950 extra Italian training photos</td><td class="num">0.58</td><td>Best bump among CNNs, but worse elsewhere: its benign photos are almost all moles</td></tr>
-  <tr class="hl"><td><strong>Derm Foundation</strong></td><td>Google's dermatology model, kept frozen; we train only one simple layer on top</td><td class="num"><strong>0.60 [0.51, 0.69]</strong></td><td><strong>Best on every outside set</strong></td></tr>
+  <tr><td>+ Derm7pt</td><td>About 950 extra Italian training photos</td><td class="num">0.60</td><td>Best bump among CNNs, but more false alarms on Indian photos (43% → 60%): its benign photos are almost all moles</td></tr>
+  <tr class="hl"><td><strong>Derm Foundation</strong></td><td>Google's dermatology model, kept frozen; we train only one simple layer on top</td><td class="num"><strong>0.61 [0.52, 0.69]</strong></td><td><strong>Best on every outside set</strong></td></tr>
 </table>
 </div>
 <table>
   <tr><th>Test set</th><th class="num">Our baseline</th><th class="num">Derm Foundation</th></tr>
-  <tr><td>DDI FST I–II</td><td class="num">0.68</td><td class="num"><strong>0.74</strong></td></tr>
-  <tr><td>DDI FST III–IV</td><td class="num">0.67</td><td class="num"><strong>0.80</strong></td></tr>
-  <tr><td>DDI FST V–VI</td><td class="num">0.50</td><td class="num"><strong>0.60</strong> (first interval above chance)</td></tr>
-  <tr><td>DermaCon-IN (India)</td><td class="num">0.69</td><td class="num"><strong>0.89</strong></td></tr>
-  <tr><td>MIDAS (light skin, new hospital)</td><td class="num">0.72</td><td class="num"><strong>0.82</strong></td></tr>
+  <tr><td>DDI FST I–II</td><td class="num">0.65</td><td class="num"><strong>0.78</strong></td></tr>
+  <tr><td>DDI FST III–IV</td><td class="num">0.66</td><td class="num"><strong>0.83</strong></td></tr>
+  <tr><td>DDI FST V–VI</td><td class="num">0.53</td><td class="num"><strong>0.61</strong> (interval above chance)</td></tr>
+  <tr><td>DermaCon-IN (India)</td><td class="num">0.71</td><td class="num"><strong>0.86</strong></td></tr>
+  <tr><td>MIDAS (light skin, new hospital)</td><td class="num">0.69</td><td class="num"><strong>0.82</strong></td></tr>
 </table>
-<p><strong>Why it works:</strong> it was pre-trained on a large, varied set of skin photos rather than on dogs and cars. It has seen far more cameras, clinics and skin tones than our 1,255 training images ever could.</p>
+<p><strong>Why it works:</strong> it was pre-trained on a large, varied set of skin photos rather than on dogs and cars. It has seen far more cameras, clinics and skin tones than our 2,022 training images ever could.</p>
 <p><strong>Caveats:</strong></p>
 <ul>
   <li>It may have seen the <em>public</em> datasets during its own training, so those scores could be flattering. DDI and MIDAS are access-controlled and DermaCon-IN came out later, so those three are trustworthy.</li>
-  <li>The skin-tone gradient remains (0.74 → 0.80 → 0.60).</li>
-  <li>Its cut-off doesn't travel. At the fixed operating point it misses only 21% of DDI V–VI cancers, but calls about 72% of Indian non-cancer photos malignant.</li>
-  <li>Adding the atlas dark-skin images to it repeats E5's lesson: validation goes up, outside hospitals don't.</li>
+  <li>The skin-tone gradient remains (0.78 → 0.83 → 0.61).</li>
+  <li>Its cut-off doesn't travel. At the fixed operating point it misses only 15% of DDI V–VI cancers, but calls 73% of Indian non-cancer photos malignant.</li>
+  <li>Adding the atlas dark-skin images to it repeats E5's lesson: validation and India go up (0.86 → 0.90), but dark skin at DDI goes down (0.61 → 0.55).</li>
 </ul>
 
 <figure>
@@ -587,7 +587,7 @@
 </figure>
 
 <h3>4 · The "only four boxes" problem</h3>
-<p>The model knows only four answers: BCC, SCC, melanoma or benign tumour. Show it a fungal infection and it <em>must</em> pick one of the four, often a cancer. On 5,379 everyday Indian clinic photos, the baseline calls <strong>31%</strong> malignant and Derm Foundation calls <strong>83%</strong>. Any real tool needs a first step that says "not a tumour / out of scope" before the cancer classifier runs.</p>
+<p>The model knows only four answers: BCC, SCC, melanoma or benign tumour. Show it a fungal infection and it <em>must</em> pick one of the four, often a cancer. On 5,379 everyday Indian clinic photos, the baseline calls <strong>47%</strong> malignant and Derm Foundation calls <strong>78%</strong>. Any real tool needs a first step that says "not a tumour / out of scope" before the cancer classifier runs.</p>
 <blockquote><p><strong>Analogy:</strong> ask someone who only knows four dog breeds to identify a cat. They'll confidently name a dog breed.</p></blockquote>
 
 <h3>5 · A cut-off set at home doesn't travel</h3>
@@ -633,7 +633,7 @@
 
 <h2>How to explain it to other people</h2>
 <h3>The 30-second version</h3>
-<div class="callout"><p>"AI skin cancer tools are trained mostly on light skin. We trained one and found it drops to coin-flip accuracy on the darkest skin at an unfamiliar hospital, missing about two-thirds of cancers. We tested five popular fixes; none solved it at an outside hospital. What helped was starting from a model pre-trained on lots of varied dermatology photos. We also found these tools wrongly flag many ordinary Indian skin conditions as cancer, so they need an 'is this even a tumour?' step first."</p></div>
+<div class="callout"><p>"AI skin cancer tools are trained mostly on light skin. We trained one and found it drops to near coin-flip accuracy on the darkest skin at an unfamiliar hospital, missing over a third of cancers. We tested five popular fixes; none solved it at an outside hospital. What helped was starting from a model pre-trained on lots of varied dermatology photos. We also found these tools wrongly flag many ordinary Indian skin conditions as cancer, so they need an 'is this even a tumour?' step first."</p></div>
 
 <h3>The 2-minute version</h3>
 <ol>
@@ -641,9 +641,9 @@
   <li><strong>Setup:</strong> we train on light skin (Fitzpatrick17k + Brazil) and test on six sets, including a biopsy-proven Stanford set with all skin tones and Indian clinic photos. The rules are strict: choices on validation only, outside tests scored once.</li>
   <li><strong>The gap:</strong> 0.90 at home, about 0.65–0.69 at a new hospital, and 0.53 on dark skin at a new hospital. Two gaps, stacked.</li>
   <li><strong>The fixes:</strong> image clean-up, Indian cancer statistics, texture features, dark-skin fine-tuning, CORAL alignment and a combination. None closed the outside-hospital gap, and fine-tuning helped only on photos from the same source.</li>
-  <li><strong>What worked:</strong> a dermatology foundation model, which improved every outside set (India 0.69 → 0.89, dark skin 0.50 → 0.60). A gap remains.</li>
+  <li><strong>What worked:</strong> a dermatology foundation model, which improved every outside set (India 0.71 → 0.86, dark skin 0.53 → 0.61). A gap remains.</li>
   <li><strong>Deployment warning:</strong> false alarms on everyday conditions, and cut-offs that don't transfer between sites.</li>
-  <li><strong>Next:</strong> the full data, an out-of-scope gate, per-site calibration and multi-institution dark-skin data.</li>
+  <li><strong>Next:</strong> an out-of-scope gate, per-site calibration and multi-institution dark-skin data.</li>
 </ol>
 
 <h3>Questions people will ask</h3>
