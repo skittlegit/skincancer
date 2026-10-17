@@ -227,3 +227,13 @@ def test_greedy_ensemble_selection_stops_without_gain():
     assert members[0] in ("good", "copy")
     assert "noise" not in members                          # adding it cannot raise AUC by >= MIN_GAIN
     assert path[0] == 1.0
+
+
+def test_gate_scales_cancer_probabilities_and_keeps_rows_normalised():
+    from skincancer.gate import gated
+    classes = ["bcc", "scc", "mel", "benign"]
+    P = np.array([[0.5, 0.2, 0.2, 0.1], [0.1, 0.1, 0.1, 0.7]])
+    out = gated(P, np.array([0.5, 1.0]), classes)
+    assert np.allclose(out.sum(1), 1)
+    assert np.allclose(out[0, :3], [0.25, 0.1, 0.1]) and np.isclose(out[0, 3], 0.55)
+    assert np.allclose(out[1], P[1])                      # g = 1 leaves the classifier unchanged

@@ -56,6 +56,7 @@ def main(argv=None):
     ap.add_argument("--batch", type=int, default=16)
     ap.add_argument("--part-size", type=int, default=512, help="images per output file")
     ap.add_argument("--threads", type=int, default=0, help="TF intra-op threads (0 = all cores)")
+    ap.add_argument("--ids", help="CSV with an image_id column: embed these manifest rows instead of --splits (e.g. data/gate/nontumour.csv, D26)")
     args = ap.parse_args(argv)
 
     import tensorflow as tf
@@ -67,10 +68,13 @@ def main(argv=None):
     out = Path(cfg["features_dir"]) / "derm_foundation"
     out.mkdir(parents=True, exist_ok=True)
     manifest = pd.read_csv(cfg["manifest"])
-    order = {s: i for i, s in enumerate(args.splits)}
-    todo = manifest[manifest["split"].isin(order)].copy()
-    todo["_o"] = todo["split"].map(order)
-    todo = todo.sort_values(["_o", "image_id"], kind="stable")
+    if args.ids:
+        todo = manifest[manifest["image_id"].isin(pd.read_csv(args.ids)["image_id"])].sort_values("image_id")
+    else:
+        order = {s: i for i, s in enumerate(args.splits)}
+        todo = manifest[manifest["split"].isin(order)].copy()
+        todo["_o"] = todo["split"].map(order)
+        todo = todo.sort_values(["_o", "image_id"], kind="stable")
     have = done_ids(out)
     todo = todo[~todo["image_id"].isin(have)]
     print(f"{len(have)} cached, {len(todo)} to embed")
