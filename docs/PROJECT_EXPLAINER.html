@@ -514,7 +514,7 @@
 <table>
   <tr><th style="width:20%">Extra</th><th>What it is</th><th class="num" style="width:13%">DDI V–VI</th><th style="width:30%">Takeaway</th></tr>
   <tr><td>Seed ensemble</td><td>Average the three seeds' predictions</td><td class="num">0.50</td><td>The seeds already agree; randomness isn't the problem</td></tr>
-  <tr><td>320 px + flip TTA</td><td>Bigger images; at test time, average over 4 flipped versions</td><td class="num">0.51</td><td>Helps light-skin outside hospitals (India 0.69 → 0.76), not dark skin</td></tr>
+  <tr><td>320 px + flip TTA</td><td>Bigger images; at test time, average over 4 flipped versions</td><td class="num">0.53</td><td>Helps lighter-skin outside sites a little (India 0.71 → 0.74, MIDAS 0.69 → 0.71), not dark skin</td></tr>
   <tr><td>+ Derm7pt</td><td>About 950 extra Italian training photos</td><td class="num">0.60</td><td>Best bump among CNNs, but more false alarms on Indian photos (43% → 60%): its benign photos are almost all moles</td></tr>
   <tr class="hl"><td><strong>Derm Foundation</strong></td><td>Google's dermatology model, kept frozen; we train only one simple layer on top</td><td class="num"><strong>0.61 [0.52, 0.69]</strong></td><td><strong>Best on every outside set</strong></td></tr>
 </table>
