@@ -19,3 +19,6 @@ data/manifest.csv
 data/groups.csv
 # Training-only extra data lists (rebuilt by skincancer.data.extra; Derm7pt is no-redistribution)
 data/extra/
+
+# contact sheets with patient images: never commit
+reports/figures/crop_check*.png

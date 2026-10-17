@@ -1,7 +1,7 @@
 """Summary tables and the report figures, from results/*/metrics.csv and prediction files.
 
     python -m skincancer.report tables  --ref e1_effb0
-    python -m skincancer.report gap     --exps e1_effb0 e3_all e4_indian_loss e6_fusion e7_coral_l10000.0 --out gap.png
+    python -m skincancer.report gap     --exps e1_effb0 e3_all e4_indian_loss e6_fusion e7_coral_l10000.0
     python -m skincancer.report curve   --ref e1_effb0 --prefix e5s_f
     python -m skincancer.report fst     --exps e1_effb0 e5s_f100 e1_fm_lr
     python -m skincancer.report confusion --exp e1_effb0 --split target_test
