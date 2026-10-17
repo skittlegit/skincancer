@@ -121,3 +121,17 @@ CORAL aligns the feature covariance of source images with unlabelled target_trai
 ## E8: chosen combination (D23)
 
 Only E5 fine-tuning beats E1 on target val, so E8 is the E5 recipe alone. On EfficientNet-B0 that is the E5 100% row above (target test 0.936, DDI V–VI 0.521). E8 ResNet50 is trained after the follow-up runs and added here.
+
+## Stronger baselines: E1 + Derm7pt clinical photos (D16)
+
+E1 with Derm7pt's 954 clinical photos (FST I–III assumed, deduplicated against every evaluation split) added to source_train only.
+
+| | Source val (macro) | Target val (macro) | Target test (macro) | PAD-UFES-20 IV–VI (macro) | DDI I–II | DDI V–VI | DDI V–VI missed (op90) | DermaCon-IN | DermaCon-IN non-cancer called malignant (argmax / op90) | MIDAS I–III |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E1 | 0.894 | 0.916 | 0.888 | 0.828 | 0.645 | 0.526 | 36% | 0.706 | 47% / 43% | 0.685 |
+| E1 + Derm7pt | 0.890 | 0.912 | 0.893 | 0.814 | 0.637 | **0.600 [0.50, 0.70]** | 33% | 0.638 | 64% / 60% | 0.712 |
+
+**Reading:**
+- The selection sets do not change (target val 0.912 vs 0.916).
+- DDI V–VI rises from 0.53 to 0.60, the largest gain of any method so far, and the first whose CI does not reach below 0.5. MIDAS also rises (0.69 → 0.71). More clinic-style photos (not atlas images) help at other clinics, even though they are light-skinned.
+- The cost lands on Indian images: DermaCon-IN falls to 0.64 and its non-cancer false-alarm rate jumps to 60–64%. Derm7pt is melanoma-heavy, which shifts the model towards calling pigmented lesions malignant, and the DermaCon-IN lookalikes are mostly pigmented benign lesions.
