@@ -134,4 +134,4 @@ E1 with Derm7pt's 954 clinical photos (FST I–III assumed, deduplicated against
 **Reading:**
 - The selection sets do not change (target val 0.912 vs 0.916).
 - DDI V–VI rises from 0.53 to 0.60, the largest gain of any method so far, and the first whose CI does not reach below 0.5. MIDAS also rises (0.69 → 0.71). More clinic-style photos (not atlas images) help at other clinics, even though they are light-skinned.
-- The cost lands on Indian images: DermaCon-IN falls to 0.64 and its non-cancer false-alarm rate jumps to 60–64%. Derm7pt is melanoma-heavy, which shifts the model towards calling pigmented lesions malignant, and the DermaCon-IN lookalikes are mostly pigmented benign lesions.
+- The cost lands on Indian images: DermaCon-IN falls to 0.64 and its non-cancer false-alarm rate jumps to 60–64%. The cause is not established. A likely one: Derm7pt's 664 benign photos are almost all moles, so "benign" comes to mean "looks like a mole", and DermaCon-IN's non-cancer images (mostly vitiligo, tinea, scabies, acne) look nothing like moles. Worth checking on the confusion matrix before reporting it as the reason.
