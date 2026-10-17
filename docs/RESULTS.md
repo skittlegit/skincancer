@@ -217,3 +217,27 @@ E1 trained at 320 px (resize 366) instead of 224, with test-time averaging over 
 - Bigger images help a little almost everywhere: source test 0.89 → 0.91, DDI I–II and III–IV +0.02, DermaCon-IN +0.04, MIDAS +0.03. Each gain is inside its CI.
 - DDI V–VI does not move (0.53), so the extra resolution helps the lighter-skin outside sets only and widens the skin-tone gap at DDI slightly.
 - Target val is unchanged (0.915 vs 0.916), so by the protocol it is not a better baseline, just a slightly stronger one away from home.
+
+## Acral check
+
+Acral lesions (palms, soles, nails) matter for India, where melanoma is mostly acral. There are too few for a firm analysis.
+
+| Set | Acral images | Acral melanomas |
+| --- | --- | --- |
+| Training (PAD-UFES-20 source_train) | 31 | 0 |
+| Source val / test (PAD-UFES-20) | 21 | 2 |
+| MIDAS test | 39 (25 malignant) | 7 |
+| DDI test | 9 | 7 |
+
+No model ever saw an acral melanoma in training. On MIDAS (binary AUC, acral vs non-acral; acral CIs are about ±0.22):
+
+| | Acral (n = 39) | Non-acral (n = 1,341) |
+| --- | --- | --- |
+| E1 | 0.60 [0.36, 0.83] | 0.70 |
+| E5 100% | 0.68 | 0.72 |
+| E7 CORAL λ = 10000 | 0.62 | 0.72 |
+| E1 + Derm7pt | 0.71 | 0.72 |
+| E8 ResNet50 | 0.52 | 0.62 |
+| Derm Foundation, linear | 0.79 [0.59, 0.99] | 0.82 |
+
+**Reading:** every model scores lower on acral lesions than on the rest of MIDAS, but with 39 images every acral CI is too wide to call any difference. This needs a dedicated acral dataset (a 4-2 continuation item).

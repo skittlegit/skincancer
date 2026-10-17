@@ -22,3 +22,4 @@ data/extra/
 
 # contact sheets with patient images: never commit
 reports/figures/crop_check*.png
+reports/figures/gradcam*.png
