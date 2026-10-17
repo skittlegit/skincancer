@@ -135,3 +135,22 @@ E1 with Derm7pt's 954 clinical photos (FST I–III assumed, deduplicated against
 - The selection sets do not change (target val 0.912 vs 0.916).
 - DDI V–VI rises from 0.53 to 0.60, the largest gain of any method so far, and the first whose CI does not reach below 0.5. MIDAS also rises (0.69 → 0.71). More clinic-style photos (not atlas images) help at other clinics, even though they are light-skinned.
 - The cost lands on Indian images: DermaCon-IN falls to 0.64 and its non-cancer false-alarm rate jumps to 60–64%. The cause is not established. A likely one: Derm7pt's 664 benign photos are almost all moles, so "benign" comes to mean "looks like a mole", and DermaCon-IN's non-cancer images (mostly vitiligo, tinea, scabies, acne) look nothing like moles. Worth checking on the confusion matrix before reporting it as the reason.
+
+## Stronger baselines: Derm Foundation (D15, D20)
+
+Google's Derm Foundation model, frozen; 6144-d embeddings at 448 px. Heads trained on source_train: a linear probe (`e1_fm_lr`, C = 0.001 chosen on source val; deterministic, one run) and an MLP (`e1_fm_mlp`, 3 seeds). `e5_fm_lr` is the linear probe trained on source_train + target_train, C = 0.001 chosen on target val (D20).
+
+| | Source val (macro) | Target val (macro) | Target test (macro) | PAD-UFES-20 IV–VI (macro) | DDI I–II | DDI III–IV | DDI V–VI | DDI V–VI missed (op90) | DermaCon-IN | DermaCon-IN non-cancer called malignant (argmax / op90) | MIDAS I–III |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E1 (EfficientNet-B0) | 0.894 | 0.916 | 0.888 | 0.828 | 0.645 | 0.658 | 0.526 | 36% | 0.706 | 47% / 43% | 0.685 |
+| Derm Foundation, linear | 0.916 | 0.942 | 0.947 | 0.939 | **0.779** | **0.829** | **0.606 [0.52, 0.69]** | 15% | **0.856 [0.71, 0.96]** | 78% / 73% | **0.824** |
+| Derm Foundation, MLP | 0.913 | 0.939 | 0.936 | 0.917 | 0.748 | 0.794 | 0.609 [0.53, 0.68] | 18% | 0.820 | 73% / 66% | 0.808 |
+| Derm Foundation + target labels (linear) | 0.915 | 0.957 | 0.962 | 0.935 | 0.778 | 0.834 | 0.546 [0.45, 0.65] | 25% | 0.896 [0.78, 0.98] | 57% / 53% | 0.829 |
+
+**Reading:**
+- Derm Foundation is the strongest backbone everywhere: +0.13 at DDI I–II, +0.17 at DDI III–IV, +0.15 on DermaCon-IN and +0.14 on MIDAS over E1. Only a linear layer is trained on top.
+- DDI V–VI rises to 0.61, with a CI that clears 0.5 for both heads. It misses 15% of dark-skin DDI cancers at op90, against 36% for E1. The skin-tone gradient remains: 0.78 → 0.83 → 0.61 across DDI I–II, III–IV and V–VI.
+- Its false alarms are worse: 73% of DermaCon-IN non-cancer images are called malignant at op90. The 4-class model has no "not a tumour" option, so every rash must be filed as one of four lesion classes. Why Derm Foundation files more of them as malignant than E1 is not established; one guess is that its features flag any abnormal skin, which a head trained only on tumours reads as malignant.
+- Adding the atlas dark-skin labels repeats E5: target val and target test rise (0.96), and DermaCon-IN improves (0.90) with fewer false alarms (53%), but DDI V–VI drops back to 0.55.
+- The source-only probe picked C = 0.001, the low edge of its grid {0.001 … 1}, so a lower C might do slightly better. It was not re-run, since e1_fm_lr has already had its one test-set look. (The + target probe's grid starts at 0.0001, and 0.001 won there too.)
+- Caveat (D15): Derm Foundation's pre-training may include public datasets (Fitzpatrick17k, PAD-UFES-20). DDI and MIDAS are access-controlled and DermaCon-IN post-dates the model, so those three comparisons are clean.
