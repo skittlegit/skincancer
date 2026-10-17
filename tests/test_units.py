@@ -237,3 +237,14 @@ def test_gate_scales_cancer_probabilities_and_keeps_rows_normalised():
     assert np.allclose(out.sum(1), 1)
     assert np.allclose(out[0, :3], [0.25, 0.1, 0.1]) and np.isclose(out[0, 3], 0.55)
     assert np.allclose(out[1], P[1])                      # g = 1 leaves the classifier unchanged
+
+
+def test_gate_cell_weights_balance_class_and_skin_group():
+    from skincancer.gate import cell_weights, group_auc
+    y = np.array([1] * 8 + [1] * 2 + [0] * 6 + [0] * 4)
+    grp = np.array(["light"] * 8 + ["dark"] * 2 + ["light"] * 6 + ["dark"] * 4)
+    w = cell_weights(y, grp)
+    totals = [w[(y == c) & (grp == s)].sum() for c in (0, 1) for s in ("light", "dark")]
+    assert np.allclose(totals, totals[0]) and np.isclose(w.sum(), len(y))
+    p = np.where(grp == "light", y, 1 - y).astype(float)  # perfect on light skin, inverted on dark
+    assert np.isclose(group_auc(y, p, grp), 0.5)

@@ -209,3 +209,15 @@ Added at the user's request to cut false alarms on everyday conditions, specifie
 - Scored once on the test sets. Known biases, stated in advance: the non-tumour images are all atlas photos while some tumours are PAD-UFES-20 smartphone photos, so the gate may learn "smartphone photo → tumour" (this would raise, not lower, DermaCon-IN false alarms). Near-duplicates may cross the non-tumour train/val split (no patient IDs), which slightly flatters gate val; t95 uses tumour val images only, which are properly grouped.
 
 **D26 outcome (17 Oct 2026, scored once):** gate val AUC 0.976 (C = 0.001), t95 = 0.27. The gate cuts DermaCon-IN non-cancer images called malignant from 73% to 7% (op90), but keeps only 58% of DDI V–VI cancers and scores them below V–VI non-cancers, so DDI V–VI AUC falls 0.61 → 0.44 and op90 misses rise 15% → 52%. The Indian prior moves every number by ≤ 0.015. Target val picks `e1_fm_lr` without the gate (0.942 vs 0.934), so Derm Foundation linear stays the best model. No gate variant is tuned on these test sets; a gate with dark-skin tumours in training is future work. Details: docs/RESULTS.md, E10.
+
+## D27. E10b: the gate retrained with dark skin on both sides (18 Oct 2026)
+
+Added at the user's request after E10 (D26) lost 42% of DDI V–VI cancers. Specified before any E10b number was computed.
+
+- **Why:** E10's gate learned "tumour" from FST I–III atlas photos only, and scored DDI V–VI cancers below V–VI non-cancers. E10b changes only the gate's training data and selection; the base classifier (`e1_fm_lr`) and the way the gate is applied are unchanged.
+- **Tumours:** source_train + target_train (257 Fitzpatrick17k FST IV–VI images in the four classes, the labels E5 already uses). Gate val tumours: source_val + target_val.
+- **Non-tumours:** E10's 3,150 / 675 FST I–III train / val images, plus **1,000 / 200 FST IV–VI** Fitzpatrick17k `label_exclude` images sampled (seed 0) from those not already in the E10 list (`data/gate/nontumour_dark.csv`). E10's 1,500 FST IV–VI dark_test images and 675 test images stay held out.
+- **Weighting and C:** two options, both tried: class-balanced (as E10), or every class × skin group cell (light / dark tumour, light / dark non-tumour) given equal total weight, so 257 dark tumours count as much as 2,022 light ones. C ∈ {1e-4, 1e-3, 1e-2, 1e-1} (E10 chose the grid edge 1e-3, so the grid extends down). The pair is chosen on the **mean of the light and dark gate val AUCs**.
+- **Cut-off for the diagnostics:** t95 = the lower of the two per-group cut-offs that keep 95% of val tumours (light and dark separately).
+- Scored once (`python -m skincancer.gate --variant e10b --final ...`), same test sets as E10, no Indian prior (it moved E10 by ≤ 0.015).
+- **Caveat stated in advance:** E10b was designed after seeing E10's test results, so its DDI numbers are a second look at the same test set, chosen because the first failed there. They are reported as such, next to E10, not as an independent confirmation. Target labels enter only the gate, as in E5. The near-duplicate caveat of D26 still applies.
