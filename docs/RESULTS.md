@@ -154,3 +154,17 @@ Google's Derm Foundation model, frozen; 6144-d embeddings at 448 px. Heads train
 - Adding the atlas dark-skin labels repeats E5: target val and target test rise (0.96), and DermaCon-IN improves (0.90) with fewer false alarms (53%), but DDI V–VI drops back to 0.55.
 - The source-only probe picked C = 0.001, the low edge of its grid {0.001 … 1}, so a lower C might do slightly better. It was not re-run, since e1_fm_lr has already had its one test-set look. (The + target probe's grid starts at 0.0001, and 0.001 won there too.)
 - Caveat (D15): Derm Foundation's pre-training may include public datasets (Fitzpatrick17k, PAD-UFES-20). DDI and MIDAS are access-controlled and DermaCon-IN post-dates the model, so those three comparisons are clean.
+
+## Stronger baselines: E1 at 320 px with flip TTA (D15)
+
+E1 trained at 320 px (resize 366) instead of 224, with test-time averaging over four flips.
+
+| | Source val (macro) | Target val (macro) | Source test (macro) | Target test (macro) | PAD-UFES-20 IV–VI (macro) | DDI I–II | DDI III–IV | DDI V–VI | DDI V–VI missed (op90) | DermaCon-IN | DermaCon-IN non-cancer called malignant (argmax / op90) | MIDAS I–III |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E1 (224 px) | 0.894 | 0.916 | 0.893 | 0.888 | 0.828 | 0.645 | 0.658 | 0.526 | 36% | 0.706 | 47% / 43% | 0.685 |
+| E1 320 px + TTA | 0.902 | 0.915 | 0.910 | 0.892 | 0.841 | 0.663 | 0.683 | 0.525 | 37% | 0.744 | 47% / 42% | 0.710 |
+
+**Reading:**
+- Bigger images help a little almost everywhere: source test 0.89 → 0.91, DDI I–II and III–IV +0.02, DermaCon-IN +0.04, MIDAS +0.03. Each gain is inside its CI.
+- DDI V–VI does not move (0.53), so the extra resolution helps the lighter-skin outside sets only and widens the skin-tone gap at DDI slightly.
+- Target val is unchanged (0.915 vs 0.916), so by the protocol it is not a better baseline, just a slightly stronger one away from home.
