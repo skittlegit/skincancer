@@ -660,6 +660,10 @@
 <p>Then there would be no honest outside test left. DDI's licence also restricts its use, and DermaCon-IN has only 65 relevant images.</p>
 <h4>"Is the Derm Foundation result cheating if it saw the data?"</h4>
 <p>Possibly for the public datasets, which we flag. DDI and MIDAS are access-controlled and DermaCon-IN post-dates the model, so those results stand.</p>
+<h4>"Is there a published model that does better?"</h4>
+<p>Not under the same rules. On DDI, the best models published without training on DDI score 0.72 on light skin and 0.57 on dark skin (Daneshjou et al., 2022). Our Derm Foundation model scores 0.78 and 0.61, level with a panel of three dermatologists on dark skin (0.62). Models that score higher were trained on part of DDI itself, which we deliberately never do.</p>
+<h4>"Why not combine the best parts of every model?"</h4>
+<p>We tried (E9). Network layers trained separately can't be spliced together, so we combined their predictions and their features. The best combination chosen on validation topped the home tests (0.97) but was worse than Derm Foundation alone at every outside clinic (dark skin 0.54 vs 0.61). Validation on the same atlases rewards learning those atlases.</p>
 <h4>"Why leave out actinic keratosis?"</h4>
 <p>It's a pre-cancer. Labelling it either "benign" or "cancer" would be medically wrong, so we score it separately.</p>
 <h4>"Could this be used in clinics now?"</h4>

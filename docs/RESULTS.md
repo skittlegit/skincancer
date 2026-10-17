@@ -279,3 +279,27 @@ The rest are centred on the lesion. This fits E3, where the crop hurt most on cl
 - **E1, wrong predictions:** about two-thirds still look at the lesion; the model sees it but misjudges it. The other third look elsewhere: image borders, background, a colour-calibration bar, a ruler or the eye-censor bars in one atlas photo.
 - **E7 CORAL on target test:** more maps highlight the surrounding skin, a ring around the lesion or the image edges, even when correct (about 7 of 20 correct predictions vs about 3 of 20 for E1). This fits the probe result: CORAL's alignment does not make the features more lesion-focused.
 - **No systematic shortcut** such as rulers or skin-marker ink drives the correct predictions. Atlas artefacts (watermarks, censor bars, borders) do show up in some errors.
+
+## Comparison with published models on DDI
+
+Malignant-vs-benign ROC-AUC on DDI. "Zero-shot" means never trained or tuned on DDI, as in this project. Parameter counts for our models are counted from the weights; the others are the well-known backbone sizes unless stated.
+
+| Model | Params | Trained on DDI? | DDI overall | FST I–II | FST V–VI | Source |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Ours: EfficientNet-B0 (E1)** | 4.0M | No | 0.62 | 0.65 | 0.53 | this repo |
+| **Ours: ResNet50 (E2)** | 23.5M | No | — | 0.75 | 0.58 | this repo |
+| **Ours: Derm Foundation + linear head** | 381.8M (BiT ResNet-101x3, frozen) | No | — | 0.78 | 0.61 | this repo |
+| DeepDerm (Inception-v3) | ~24M | No | 0.56 | 0.61 | 0.50 | [Daneshjou et al. 2022](https://pmc.ncbi.nlm.nih.gov/articles/PMC9374341/) |
+| HAM10000 model (Inception-v3) | ~24M | No | 0.67 | 0.72 | 0.57 | same |
+| ModelDerm (commercial API) | not stated | No | 0.65 | 0.64 | 0.55 | same |
+| DeepDerm + GroupDRO / CORAL / CDANN | ~24M | No | 0.58–0.60 | 0.61–0.63 | 0.45–0.50 | [arXiv 2203.08807](https://arxiv.org/abs/2203.08807), Supp. Table 3 |
+| Dermatologists (3 readers) | — | — | 0.72 | 0.75 | 0.62 | same, Supp. Table 2 |
+| DeepDerm / HAM10000 model, fine-tuned **on DDI** | ~24M | **Yes** | — | 0.73 / 0.77 | 0.76 / 0.78 | Daneshjou et al. 2022 |
+| PanDerm (ViT-L), linear probe **on a DDI split** | ~304M | **Yes** | 0.84 (melanoma vs others, not malignant vs benign) | — | — | [arXiv 2410.15038](https://arxiv.org/html/2410.15038v3) |
+| MONET (CLIP ViT-L/14) + concept bottleneck | ~428M | **Yes** (pooled Fitzpatrick17k + DDI test set) | 0.80–0.85 | — | — | [Kim et al. 2024](https://doi.org/10.1101/2023.06.07.23291119) |
+
+**Reading:**
+- **No published model we found beats ours under the same zero-shot protocol.** Derm Foundation + linear head (0.78 / 0.61) and even our ResNet50 (0.75 / 0.58) score above every zero-shot model in Daneshjou et al. (best: HAM10000 model, 0.72 / 0.57). Our EfficientNet-B0 is level with ModelDerm.
+- On FST V–VI, Derm Foundation (0.61) is level with the three-dermatologist ensemble (0.62). With 48 malignant V–VI images, the CIs (about ±0.09) cannot separate them.
+- **Everything that scores higher trained on DDI itself**: fine-tuned DeepDerm / HAM10000 (0.73–0.78), PanDerm's DDI probe (0.84, a different task) and MONET (pooled test set). Training on DDI closes the V–VI gap; methods without DDI data do not. DeepDerm + GroupDRO / CORAL / CDANN stay at 0.45–0.50, which matches our E7. This is the same lesson as E5: data from the target clinic helps, while data from elsewhere does not.
+- Caveats: Daneshjou's FST III–IV numbers are only in a supplementary table not retrieved here. A 2024 preprint evaluating Derm Foundation on DDI ([doi 10.1101/2024.04.17.24305983](https://doi.org/10.1101/2024.04.17.24305983)) could not be read automatically; check it before claiming this is the first such result.
