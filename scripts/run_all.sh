@@ -31,9 +31,7 @@ evaluate() { $PY -m skincancer.evaluate --exp "$@" >> "$LOGS/evaluate.log" 2>&1;
 checkpoint() {  # commit + push results and the test-only ledger
   git add -f results/*/metrics.csv runs/final_ledger.csv 2>/dev/null
   if ! git diff --cached --quiet; then
-    git commit -q -m "Results: $1
-
-Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" && { if [ -n "${NO_PUSH:-}" ]; then echo "  committed (not pushed): $1"; else git push -q && echo "  pushed: $1"; fi; }
+    git commit -q -m "Results: $1" && { if [ -n "${NO_PUSH:-}" ]; then echo "  committed (not pushed): $1"; else git push -q && echo "  pushed: $1"; fi; }
   fi
 }
 
