@@ -201,7 +201,7 @@ Only after E1–E6 are done. Everything cut from the original spec lives here, s
 
 - **If time is left this semester:** DANN as a second adaptation method; wavelet features in the texture ablation; MobileNetV3 as a third backbone; a dermatologist reviewing 30–50 Grad-CAM maps.
 - **Modality shift:** add HAM10000 (dermoscopy) as a second source and measure dermoscopy → clinical shift separately from skin-tone shift.
-- **4-1 → 4-2 continuation:** an Indian hospital collection with institutional ethics approval, used as a true external test set; a dedicated acral melanoma study; edge deployment of a quantised MobileNetV3.
+- **Beyond this project:** an Indian hospital collection with institutional ethics approval, used as a true external test set; a dedicated acral melanoma study; edge deployment of a quantised MobileNetV3.
 
 ## Key references
 

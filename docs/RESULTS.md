@@ -240,7 +240,7 @@ No model ever saw an acral melanoma in training. On MIDAS (binary AUC, acral vs 
 | E8 ResNet50 | 0.52 | 0.62 |
 | Derm Foundation, linear | 0.79 [0.59, 0.99] | 0.82 |
 
-**Reading:** every model scores lower on acral lesions than on the rest of MIDAS, but with 39 images every acral CI is too wide to call any difference. This needs a dedicated acral dataset (a 4-2 continuation item).
+**Reading:** every model scores lower on acral lesions than on the rest of MIDAS, but with 39 images every acral CI is too wide to call any difference. This needs a dedicated acral dataset (future work).
 
 ## Lesion crop check (D12)
 
