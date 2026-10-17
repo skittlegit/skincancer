@@ -119,4 +119,4 @@ Results are in [docs/RESULTS.md](docs/RESULTS.md). A plain-language walkthrough 
 11. [x] E8 (re-chosen on target_val, D23: the E5 recipe; EfficientNet-B0 = e5s_f100, ResNet50 trained); stronger baselines: Derm7pt, 320 px + TTA, Derm Foundation (D15, D16, D20); seed ensembles
 12. [x] Test-only sets via `--final` for each finished method (incl. MIDAS); [ ] acral check (too few: ~50 in Fitzpatrick17k/PAD, 39 in MIDAS); [x] UMAP
 13. [ ] Report (IEEE), presentation, one-command reproduction check on a clean machine
-14. [ ] After the full-data run: update the numbers, date and results chip in docs/PROJECT_EXPLAINER.html, then `python scripts/export_explainer.py`
+14. [x] Full-data run complete (17 Oct 2026): RESULTS.md summary, explainer and PDF updated

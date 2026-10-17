@@ -503,9 +503,9 @@
 </ul>
 
 <div class="exp">
-<h3>E8 · The best combination <span class="verdict v-no">no gain over E5</span></h3>
-<p>We combined the components that beat the baseline <em>on validation</em>: E5 fine-tuning (clearly) and E4 Indian weighting (barely). We ran the combination on both networks.</p>
-<p><strong>Result:</strong> the same as E5 alone, with DDI V–VI at 0.51 (EfficientNet) and 0.54 (ResNet50). <strong>The best combination of the planned methods does not close the gap at another hospital.</strong></p>
+<h3>E8 · The best choice on validation <span class="verdict v-no">worse outside</span></h3>
+<p>The plan was to combine every component that beat the baseline <em>on validation</em>. On the full data only E5 fine-tuning did, so E8 is fine-tuning alone. On EfficientNet that is exactly the E5 run above; we also ran it on ResNet50.</p>
+<p><strong>Result:</strong> on ResNet50, fine-tuning raised the same-atlas dark-skin score (0.79 → 0.85) and <em>lowered</em> every outside clinic: DDI light skin 0.75 → 0.67, DDI dark skin 0.58 → 0.56, India 0.76 → 0.70, MIDAS 0.65 → 0.61. <strong>The best choice on validation does not close the gap at another hospital, and can widen it.</strong> Choosing on photos from the same atlases rewards learning those atlases.</p>
 </div>
 
 <div class="exp">
@@ -513,7 +513,7 @@
 <p>Once the planned methods failed, we asked what does move the needle.</p>
 <table>
   <tr><th style="width:20%">Extra</th><th>What it is</th><th class="num" style="width:13%">DDI V–VI</th><th style="width:30%">Takeaway</th></tr>
-  <tr><td>Seed ensemble</td><td>Average the three seeds' predictions</td><td class="num">0.50</td><td>The seeds already agree; randomness isn't the problem</td></tr>
+  <tr><td>Seed ensemble</td><td>Average the three seeds' predictions</td><td class="num">0.53</td><td>The seeds already agree (changes of 0.004 at most); randomness isn't the problem</td></tr>
   <tr><td>320 px + flip TTA</td><td>Bigger images; at test time, average over 4 flipped versions</td><td class="num">0.53</td><td>Helps lighter-skin outside sites a little (India 0.71 → 0.74, MIDAS 0.69 → 0.71), not dark skin</td></tr>
   <tr><td>+ Derm7pt</td><td>About 950 extra Italian training photos</td><td class="num">0.60</td><td>Best bump among CNNs, but more false alarms on Indian photos (43% → 60%): its benign photos are almost all moles</td></tr>
   <tr class="hl"><td><strong>Derm Foundation</strong></td><td>Google's dermatology model, kept frozen; we train only one simple layer on top</td><td class="num"><strong>0.61 [0.52, 0.69]</strong></td><td><strong>Best on every outside set</strong></td></tr>

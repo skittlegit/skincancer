@@ -2,6 +2,18 @@
 
 All results use the full Fitzpatrick17k set (D21). Numbers are the mean over seeds 0, 1 and 2, with group-bootstrap 95% CIs (D8). "op90" rates use the threshold that catches 90% of cancers on each seed's source val, applied unchanged to every set (D17). Full tables are in `results/<exp>/metrics.csv`.
 
+## Summary
+
+**The gap (E1/E2).** The EfficientNet-B0 baseline scores 0.89 macro AUC at home (source test) and the same on dark-skin images from the same atlases (target test 0.89): there is no skin-tone gap inside Fitzpatrick17k. At a new hospital it falls: DDI 0.65 (FST I–II), 0.66 (III–IV) and 0.53 [0.43, 0.62] (V–VI, not above chance), and MIDAS 0.69 (mostly light skin). At the fixed cut-off (op90) it misses 9% of DDI I–II cancers but 36% of DDI V–VI cancers. Two gaps stack: a hospital gap (≈ −0.2, visible on MIDAS and DDI I–II) and a skin-tone gap on top (≈ −0.12 more at DDI V–VI). ResNet50 shows the same drop (DDI 0.75 → 0.58).
+
+**The planned methods (E3–E8).** Chosen on target val only, none beats E1 except E5 fine-tuning on Fitzpatrick17k IV–VI labels (target val 0.948 vs 0.916). Fine-tuning helps on the same atlases (target test 0.89 → 0.94) but not at DDI V–VI (0.52) or on Indian images, so E8 (D23) is the E5 recipe alone. Image processing (E3), Indian-prior weighting (E4) and texture fusion (E6) move nothing beyond noise. CORAL (E7) is the only planned method that moves all three outside clinics the same way (PAD-UFES-20 0.83 → 0.88, MIDAS 0.69 → 0.72, DDI V–VI 0.53 → 0.55), each inside its CI. On ResNet50, the same recipe (E8) raises the same-atlas test (0.79 → 0.85) but lowers every outside clinic (DDI I–II 0.75 → 0.67, MIDAS 0.65 → 0.61).
+
+**Stronger baselines.** Better pre-training is the one lever that moves every outside set: frozen Derm Foundation embeddings with a linear head reach DDI 0.78 / 0.83 / 0.61 [0.52, 0.69], DermaCon-IN 0.86 and MIDAS 0.82, and miss 15% of DDI V–VI cancers at op90. The skin-tone gradient remains (0.78 → 0.61). Adding Derm7pt's clinic photos to E1 also lifts DDI V–VI (0.60 [0.50, 0.70]), while 320 px + flip TTA helps only the lighter-skin outside sets. Averaging the three seeds changes the CNNs by at most 0.004, so seed noise is not the limit.
+
+**Deployment warnings.** (1) The four-class model has no "not a tumour" answer: on 5,379 everyday Indian conditions (vitiligo, tinea, scabies, acne) E1 calls 43% malignant at op90, Derm Foundation 73% and E1 + Derm7pt 60%. Any real tool needs an out-of-scope gate first. (2) A cut-off set at home does not travel: at DDI the op90 cut-off raises false alarms on 66–71% of benign lesions, against 31% at home.
+
+**Caveats.** Dark-skin test sets are small (86 target test images, 207 DDI V–VI), so most differences are inside their CIs. Derm Foundation may have seen the public datasets in pre-training; its DDI, MIDAS and DermaCon-IN results are clean. Fitzpatrick17k labels are atlas-scraped, and skin types are estimated from photos.
+
 ## E1 / E2: source-only baseline, EfficientNet-B0
 
 | Test set | AUC [95% CI] | Missed cancers (op90) | n |
@@ -118,6 +130,21 @@ CORAL aligns the feature covariance of source images with unlabelled target_trai
 - The external sets move in CORAL's favour as λ grows: PAD-UFES-20 0.83 → 0.88, MIDAS 0.69 → 0.72, DDI V–VI 0.53 → 0.55. Each change is inside its CI, but the direction is consistent across three independent clinics, which E3–E6 did not show.
 - DDI V–VI remains near chance (CI 0.45–0.65), so alignment to Fitzpatrick17k's dark-skin images narrows the clinic gap a little without closing the skin-tone gap.
 
+## Seed ensembles
+
+Average of the three seeds' probabilities, scored as one model (`evaluate --ensemble`, results in `results/<exp>+ens`). No new test-set look: it re-uses the seeds' saved predictions.
+
+| | Target val (macro), mean → ensemble | DDI V–VI | DermaCon-IN | MIDAS I–III |
+| --- | --- | --- | --- | --- |
+| E1 | 0.916 → 0.918 | 0.526 → 0.525 | 0.706 → 0.707 | 0.685 → 0.687 |
+| E1 320 px + TTA | 0.915 → 0.916 | 0.525 → 0.525 | 0.744 → 0.744 | 0.710 → 0.712 |
+| E1 + Derm7pt | 0.912 → 0.915 | 0.600 → 0.602 | 0.638 → 0.634 | 0.712 → 0.715 |
+| E5 100% (= E8 EfficientNet-B0) | 0.948 → 0.948 | 0.521 → 0.524 | 0.701 → 0.698 | 0.708 → 0.711 |
+| E7 CORAL λ = 10000 | 0.914 → 0.915 | 0.552 → 0.551 | 0.699 → 0.696 | 0.715 → 0.717 |
+| Derm Foundation MLP | 0.939 → 0.938 | 0.609 → 0.627 | 0.820 → 0.862 | 0.808 → 0.817 |
+
+**Reading:** the seeds already agree, so ensembling moves the CNNs by at most 0.004. Seed noise is not what limits them. Only the Derm Foundation MLP gains (DDI V–VI 0.63, DermaCon-IN 0.86), matching the linear probe.
+
 ## Domain probe and UMAP
 
 A logistic regression on frozen embeddings, 5-fold grouped cross-validation, source test vs target test (86 images per domain, balanced; chance = 50%). `python -m skincancer.analysis.probe --run ...`
@@ -132,7 +159,17 @@ A logistic regression on frozen embeddings, 5-fold grouped cross-validation, sou
 
 ## E8: chosen combination (D23)
 
-Only E5 fine-tuning beats E1 on target val, so E8 is the E5 recipe alone. On EfficientNet-B0 that is the E5 100% row above (target test 0.936, DDI V–VI 0.521). E8 ResNet50 is trained after the follow-up runs and added here.
+Only E5 fine-tuning beats E1 on target val, so E8 is the E5 recipe alone (equal steps, 100% target_train). On EfficientNet-B0 that is the E5 100% row above. On ResNet50 it is new: initialised from E1 ResNet50, layer4 unfrozen.
+
+| | Source val (macro) | Target val (macro) | Target test (macro) | PAD-UFES-20 IV–VI (macro) | DDI I–II | DDI III–IV | DDI V–VI | DDI V–VI missed (op90) | DermaCon-IN | DermaCon-IN non-cancer called malignant (argmax / op90) | MIDAS I–III |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| E8 EfficientNet-B0 (= E5 100%) | 0.872 | 0.948 | 0.936 | 0.820 | 0.664 | 0.701 | 0.521 | 34% | 0.701 | 42% / 51% | 0.708 |
+| E1 ResNet50 | 0.819 | 0.805 | 0.793 | 0.893 | 0.749 | 0.769 | 0.581 | 45% | 0.757 | 34% / 34% | 0.645 |
+| E8 ResNet50 | 0.784 | 0.838 | 0.851 [0.79, 0.91] | 0.886 | 0.667 | 0.686 | 0.556 | 47% | 0.703 | 35% / 37% | 0.608 |
+
+**Reading:**
+- On ResNet50 the trade is starker than on EfficientNet-B0. Fine-tuning on the atlas dark-skin images raises the same-atlas scores (target val 0.81 → 0.84, target test 0.79 → 0.85) and lowers every outside clinic: DDI I–II 0.75 → 0.67, III–IV 0.77 → 0.69, V–VI 0.58 → 0.56, DermaCon-IN 0.76 → 0.70, MIDAS 0.65 → 0.61.
+- The combination chosen on validation is therefore not better at other hospitals on either backbone. Validation on the same atlases rewards adapting to those atlases, which is not what transfers.
 
 ## Stronger baselines: E1 + Derm7pt clinical photos (D16)
 
