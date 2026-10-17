@@ -187,3 +187,12 @@ Picked autonomously per the standing instruction, D13/D19 rules re-applied, targ
 - **Crop failure rate (D12):** about 15–20% of 100 training crops, judged by eye on the full-set contact sheet, single reviewer.
 - **Reproducibility:** `requirements.txt` keeps loose ranges; `requirements-lock.txt` pins the exact versions the results were produced with. The E5 subsets depend on numpy's shuffle (numpy 2.5.4 draws a few different groups from 2.5.2). Training reads the committed subset files, so results are unaffected, but `make_splits` reproduces them exactly only with the locked versions.
 - **Clean-clone check (passed):** a fresh clone with a fresh venv from `requirements-lock.txt` passes all 68 tests and rebuilds `manifest.csv`, `groups.csv` and every file in `data/splits/` byte-identical from the raw data, with no failures (33 min). Training itself was not re-run (about 30 h on this CPU).
+
+## D25. E9: combining the finished models (17 Oct 2026)
+
+Added at the user's request ("pick what works best from each model"), specified here before any E9 number was computed. Layers of separately trained networks cannot be spliced together (each network's layers only make sense with the layers it was trained with), so the two standard ways to combine models are used, both selected on validation only and scored once on the test sets:
+
+- **E9a, ensemble selection (`e9_ensemble`):** average the class probabilities of several finished arms (each arm's seed mean). Members are picked by greedy forward selection on **target val macro AUC** (D1: target val chooses between methods), from the 20 finished arms (E1, E1 ResNet50, 320 px, + Derm7pt, Derm Foundation LR / MLP / + target, E3 ×4, E4, E5 100%, E6 ×3, E7 ×3, E8 ResNet50; the E5 10–50% curve points are left out). At most 4 members, each added only if it raises target val by ≥ 0.002. Deterministic: one run.
+- **E9b, feature fusion (`e9_fusion_lr`):** class-balanced logistic regression on the standardised concatenation [Derm Foundation embedding (6144-d) ‖ E1 EfficientNet-B0 embedding (1280-d) of the same seed], trained on source_train, C ∈ {1e-3, 1e-2, 1e-1, 1} chosen on source val (as `e1_fm_lr`). Three seeds (one per E1 seed).
+
+Expectation stated in advance: E9a will lean on target-trained arms (they fit the atlas that target val comes from), so it may not transfer better than its best member; E9b tests whether the CNN adds anything to Derm Foundation features.

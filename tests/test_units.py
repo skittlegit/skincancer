@@ -215,3 +215,15 @@ def test_make_loader_limits_worker_thread_pools(monkeypatch):
     df = pd.DataFrame({"image_id": ["a"], "path": ["x.jpg"], cfg["data"]["label_col"]: ["bcc"]})
     runs.make_loader(df, cfg, train=False, persistent=False)
     assert os.environ["OMP_NUM_THREADS"] == "1" and torch.get_num_threads() == n
+
+
+def test_greedy_ensemble_selection_stops_without_gain():
+    from skincancer.combine import greedy_select
+    rng = np.random.default_rng(0)
+    y = np.repeat(np.arange(4), 10)
+    good = np.eye(4)[y] * 0.6 + 0.1                       # separates every class
+    noise = rng.dirichlet(np.ones(4), size=len(y))         # carries no signal
+    members, path = greedy_select({"good": good, "noise": noise, "copy": good.copy()}, y)
+    assert members[0] in ("good", "copy")
+    assert "noise" not in members                          # adding it cannot raise AUC by >= MIN_GAIN
+    assert path[0] == 1.0

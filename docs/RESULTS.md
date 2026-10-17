@@ -8,7 +8,7 @@ All results use the full Fitzpatrick17k set (D21). Numbers are the mean over see
 
 **The planned methods (E3–E8).** Chosen on target val only, none beats E1 except E5 fine-tuning on Fitzpatrick17k IV–VI labels (target val 0.948 vs 0.916). Fine-tuning helps on the same atlases (target test 0.89 → 0.94) but not at DDI V–VI (0.52) or on Indian images, so E8 (D23) is the E5 recipe alone. Image processing (E3), Indian-prior weighting (E4) and texture fusion (E6) move nothing beyond noise. CORAL (E7) is the only planned method that moves all three outside clinics the same way (PAD-UFES-20 0.83 → 0.88, MIDAS 0.69 → 0.72, DDI V–VI 0.53 → 0.55), each inside its CI. On ResNet50, the same recipe (E8) raises the same-atlas test (0.79 → 0.85) but lowers every outside clinic (DDI I–II 0.75 → 0.67, MIDAS 0.65 → 0.61).
 
-**Stronger baselines.** Better pre-training is the one lever that moves every outside set: frozen Derm Foundation embeddings with a linear head reach DDI 0.78 / 0.83 / 0.61 [0.52, 0.69], DermaCon-IN 0.86 and MIDAS 0.82, and miss 15% of DDI V–VI cancers at op90. The skin-tone gradient remains (0.78 → 0.61). Adding Derm7pt's clinic photos to E1 also lifts DDI V–VI (0.60 [0.50, 0.70]), while 320 px + flip TTA helps only the lighter-skin outside sets. Averaging the three seeds changes the CNNs by at most 0.004, so seed noise is not the limit.
+**Stronger baselines.** Better pre-training is the one lever that moves every outside set: frozen Derm Foundation embeddings with a linear head reach DDI 0.78 / 0.83 / 0.61 [0.52, 0.69], DermaCon-IN 0.86 and MIDAS 0.82, and miss 15% of DDI V–VI cancers at op90. The skin-tone gradient remains (0.78 → 0.61). Adding Derm7pt's clinic photos to E1 also lifts DDI V–VI (0.60 [0.50, 0.70]), while 320 px + flip TTA helps only the lighter-skin outside sets. Averaging the three seeds changes the CNNs by at most 0.004, so seed noise is not the limit. Combining models (E9, D25) does not help either: the best validation-picked ensemble (Derm Foundation + target labels with E5) tops target test (0.97) but is worse than Derm Foundation alone at every outside clinic (DDI V–VI 0.54).
 
 **Deployment warnings.** (1) The four-class model has no "not a tumour" answer: on 5,379 everyday Indian conditions (vitiligo, tinea, scabies, acne) E1 calls 43% malignant at op90, Derm Foundation 73% and E1 + Derm7pt 60%. Any real tool needs an out-of-scope gate first. (2) A cut-off set at home does not travel: at DDI the op90 cut-off raises false alarms on 66–71% of benign lesions, against 31% at home.
 
@@ -129,6 +129,25 @@ CORAL aligns the feature covariance of source images with unlabelled target_trai
 - On the selection sets CORAL is level with E1 at every λ (target val 0.909–0.914 vs 0.916), so by the protocol it is not selected for E8.
 - The external sets move in CORAL's favour as λ grows: PAD-UFES-20 0.83 → 0.88, MIDAS 0.69 → 0.72, DDI V–VI 0.53 → 0.55. Each change is inside its CI, but the direction is consistent across three independent clinics, which E3–E6 did not show.
 - DDI V–VI remains near chance (CI 0.45–0.65), so alignment to Fitzpatrick17k's dark-skin images narrows the clinic gap a little without closing the skin-tone gap.
+
+## E9: combining the finished models (D25)
+
+Specified before any E9 number was computed. Layers of separately trained networks cannot be spliced, so models are combined by their outputs (E9a) or their final features (E9b). Both are chosen on validation and scored once (`python -m skincancer.combine`).
+
+- **E9a, ensemble selection:** greedy selection on target val from 20 finished arms picked **Derm Foundation + target labels** and **E5 100%** (target val 0.957 → 0.964), then stopped. Both picks were trained on the atlas dark-skin labels.
+- **E9b, feature fusion:** logistic regression on [Derm Foundation ‖ E1 EfficientNet-B0] embeddings, C = 0.001 on source val (0.922–0.926, vs 0.916 for Derm Foundation alone). Three seeds.
+
+| | Source val (macro) | Target val (macro) | Target test (macro) | PAD-UFES-20 IV–VI (macro) | DDI I–II | DDI III–IV | DDI V–VI | DDI V–VI missed (op90) | DermaCon-IN | DermaCon-IN non-cancer called malignant (argmax / op90) | MIDAS I–III |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Derm Foundation, linear (best single model outside) | 0.916 | 0.942 | 0.947 | 0.939 | 0.779 | 0.829 | **0.606** | 15% | 0.856 | 78% / 73% | 0.824 |
+| E9a ensemble (FM + target ‖ E5 100%) | 0.920 | **0.964** | **0.966** | 0.928 | 0.766 | 0.820 | 0.537 | 35% | 0.827 | 45% / 47% | 0.801 |
+| E9b fusion (FM ‖ EfficientNet) | 0.924 | 0.942 | 0.940 | 0.906 | 0.756 | 0.798 | 0.582 | 34% | 0.844 | 64% / 56% | 0.801 |
+
+**Reading:**
+- E9a is the best model the protocol can pick: the highest target val and target test of any method. At every outside clinic it is worse than Derm Foundation alone (DDI V–VI 0.54 vs 0.61, DermaCon-IN 0.83 vs 0.86, MIDAS 0.80 vs 0.82). As stated in D25, selection on target val favours the arms that learned the atlas, which is exactly what does not transfer.
+- E9b shows the CNN adds nothing to Derm Foundation at outside clinics (DDI V–VI 0.58, MIDAS 0.80), though it lowers false alarms on Indian non-cancer images (73% → 56% at op90).
+- Both combinations do cut DermaCon-IN false alarms against Derm Foundation alone, the one place they help.
+- **Combining models does not beat the best single pre-trained model where it matters.** Better pre-training, not combining weaker models, is what moves the outside sets.
 
 ## Seed ensembles
 
