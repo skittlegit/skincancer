@@ -223,3 +223,15 @@ Added at the user's request after E10 (D26) lost 42% of DDI V–VI cancers. Spec
 - **Caveat stated in advance:** E10b was designed after seeing E10's test results, so its DDI numbers are a second look at the same test set, chosen because the first failed there. They are reported as such, next to E10, not as an independent confirmation. Target labels enter only the gate, as in E5. The near-duplicate caveat of D26 still applies.
 
 **D27 outcome (18 Oct 2026, scored once):** class-balanced weighting, C = 0.001; gate val AUC light 0.977, dark 0.983; t95 = 0.28. E10b ≈ E10 everywhere: DDI V–VI AUC 0.46 (E10 0.44), op90 misses 52% (52%), DermaCon-IN non-cancer called malignant 6.5% op90 (7.3%). Target val 0.937, below `e1_fm_lr` (0.942), so neither gate is adopted. Post-hoc reason: 26 of DDI's 48 FST V–VI cancers are mycosis fungoides (rash-like lymphoma), which any tumour/non-tumour gate rejects (median g 0.14). Without them the gate still raises V–VI op90 misses from 9% to 23% (22 cancers). Details: docs/RESULTS.md, E10b.
+
+## D28. Dependencies updated (8 Nov 2026)
+
+At the user's request both local environments moved to the newest mutually compatible versions.
+
+- **`.venv`:** torch 2.14.1 → 2.15.0, torchvision 0.29.1 → 0.29.2, timm 1.0.30 → 1.0.31, numpy 2.5.2 → 2.5.4, pandas 3.0.6 → 3.1.1, pillow 12.3.0 → 13.0.0, and the minor updates below them. Exact versions are in `requirements-current.txt`.
+- **`.venv-tf`:** tensorflow-cpu 2.19.0 → 2.21.0, numpy 2.1.3 → 2.5.4, protobuf 5.29.6 → 7.36.2. The cached Derm Foundation embeddings in `data/features/` were computed with 2.19.0 and are kept.
+- **`requirements-lock.txt` is deliberately unchanged:** it still records the versions the reported results were produced with (D24). `requirements.txt` keeps its loose ranges.
+- **Check, old against new environment, on validation images only** (no test set was used): `e1_effb0`, `e1_r50` and `e3_all` (seed 0) on 48 `source_val` and 48 `target_val` images each gave identical probabilities and features, with raw decoding and preprocessing rerun. Derm Foundation on 16 validation images: largest element difference 1.2e-5, cosine 1.000000. All 71 tests pass. Training was not re-run.
+- **Caveat:** numpy 2.5.4 draws different E5 subsets from 2.5.2 (D24). `make_splits` must only be re-run from `requirements-lock.txt`. Finished results and committed split files are unaffected.
+- **Held back by other packages' pins:** albucore (albumentations 2.0.8 needs exactly 0.0.24), mpmath (sympy needs < 1.4), and h5py in `.venv-tf` (tensorflow-cpu 2.21 needs < 3.15, so it went from 3.16.0 to 3.14.0).
+- **Code:** `build_manifest` now creates the empty `group_id` column as object dtype, because pandas 3.1 warns that filling a float column with string ids will become an error. The output is unchanged.

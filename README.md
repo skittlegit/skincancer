@@ -14,7 +14,7 @@ pip install -r requirements.txt && pip install -e .
 pytest                                                 # ~1 min on CPU, synthetic data
 ```
 
-To reproduce the reported numbers exactly, install the pinned versions instead: `pip install -r requirements-lock.txt --extra-index-url https://download.pytorch.org/whl/cpu && pip install -e . --no-deps` (D24).
+To reproduce the reported numbers exactly, install the pinned versions instead: `pip install -r requirements-lock.txt --extra-index-url https://download.pytorch.org/whl/cpu && pip install -e . --no-deps` (D24). The newest versions tested against this code are in `requirements-current.txt` (D28); use them for new work, but regenerate `data/splits/` only with the locked versions.
 
 On Kaggle or Colab, torch is already installed. Run `pip install -r requirements.txt && pip install -e . --no-deps`, then set `train.num_workers` to the number of CPUs.
 
@@ -59,7 +59,7 @@ python -m skincancer.predict --run runs/e1_effb0/s0 --splits ddi_test dermacon_t
 Derm Foundation (`google/derm-foundation`, gated on Hugging Face) runs in its own TensorFlow venv so it never touches the PyTorch one:
 
 ```bash
-python -m venv .venv-tf && .venv-tf/Scripts/pip install tensorflow-cpu==2.19.0 huggingface_hub pillow pandas pyyaml
+python -m venv .venv-tf && .venv-tf/Scripts/pip install tensorflow-cpu==2.21.0 huggingface_hub pillow pandas pyyaml
 huggingface-cli login                                     # after accepting the model's terms
 .venv-tf/Scripts/python scripts/derm_foundation_embed.py  # data/features/derm_foundation/ (resumable)
 python -m skincancer.foundation --seeds 0 1 2             # e1_fm_lr, e1_fm_mlp

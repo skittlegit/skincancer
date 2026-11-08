@@ -70,7 +70,7 @@ def build(cfg: dict) -> pd.DataFrame:
         groups = pd.read_csv(groups_path)[["image_id", "group_id"]]
         df = df.merge(groups, on="image_id", how="left")
     else:
-        df["group_id"] = np.nan
+        df["group_id"] = pd.Series(np.nan, index=df.index, dtype=object)   # filled with string ids below
     df["group_id"] = df["group_id"].fillna(df["patient_id"]).fillna(df["image_id"])
     df["split"] = ""
     cols = ["image_id", "group_id", "dataset", "path", "diagnosis", "label_4class",
