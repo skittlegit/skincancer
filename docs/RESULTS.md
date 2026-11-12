@@ -56,3 +56,45 @@ This is a baseline, and it behaves as expected for a small network trained from 
 Training was still improving slowly when it ended (best epochs 54 to 56 of 60), so a longer schedule or a larger network may add a little. Neither would fix the shortcut.
 
 The test-only sets have now been scored once by this model, as recorded in `runs/final_ledger.csv`.
+
+## Second round: training the shortcut cannot exploit (12 Nov 2026)
+
+No new data. Three variants changed only how training images are drawn and augmented; one was chosen on the validation split and only that one was scored here (DECISIONS.md, section 8).
+
+**Choosing the variant (validation split, one seed each).** The deciding score is the AUC measured inside each dataset and averaged, which telling the datasets apart cannot raise.
+
+| | Baseline | A: balanced inside each dataset | B: A + hard types drawn more often | C: B + quality augmentation |
+| --- | --- | --- | --- | --- |
+| Within-source AUC | 0.850 | **0.869** | 0.847 | 0.853 |
+| AUC, cancers vs benign lookalikes | 0.713 | 0.777 | 0.790 | 0.785 |
+| False alarms on benign lookalikes | 72% | 64% | 53% | 49% |
+| False alarms overall | 36% | 39% | 41% | 43% |
+
+A was chosen. B and C halve the false alarms on benign lookalikes but raise them on everything else; they were not scored on the test sets.
+
+**Variant A against the baseline, three seeds each.**
+
+| | Baseline | Variant A |
+| --- | --- | --- |
+| Our test split: AUC | 0.887 [0.87, 0.90] | 0.890 [0.87, 0.91] |
+| Our test split: within-source AUC | 0.857 [0.83, 0.89] | 0.865 [0.84, 0.89] |
+| Our test split: AUC, cancers vs benign lookalikes | 0.723 [0.67, 0.77] | 0.783 [0.74, 0.82] |
+| False alarms, PAD-UFES-20 non-cancers | 89% [81, 96] | 63% [53, 74] |
+| False alarms, benign lookalikes | 81% [75, 86] | 65% [58, 72] |
+| False alarms, all non-cancers | 42% [40, 44] | 40% [38, 41] |
+| Missed cancers, all | 9% [7, 11] | 8% [6, 10] |
+| Missed rare cancers (51 images) | 39% [28, 50] | 22% [12, 32] |
+| DDI: AUC | 0.654 [0.61, 0.70] | 0.623 [0.58, 0.66] |
+| MIDAS: AUC | 0.603 [0.57, 0.64] | 0.628 [0.59, 0.66] |
+| MIDAS: missed cancers / false alarms | 32% / 55% | 41% / 40% |
+| DermaCon-IN tumours: AUC | 0.825 [0.63, 0.96] | 0.793 [0.62, 0.95] |
+| DermaCon-IN everyday conditions called cancer | 35% | 34% |
+| Actinic keratoses called cancer | 91% | 80% |
+
+**Reading.**
+
+- **At home it worked.** The photo-type shortcut is weaker (false alarms on PAD-UFES-20 non-cancers fell from 89% to 63%) and the model is better at the hard distinction (AUC on cancers against lookalikes up from 0.72 to 0.78), without missing more cancers.
+- **Outside nothing changed.** MIDAS rose a little and DDI fell a little; both differences are inside the confidence intervals. On MIDAS the model traded false alarms for missed cancers, which is a shift of the threshold and not a better model.
+- **So the shortcut was not what held the outside scores down.** The gap between 0.89 at home and 0.62 outside is mostly the difference between our training images and biopsy-confirmed hospital photos, which no reweighting of the same data can close.
+
+Variant A's training setup is kept for the next rounds. Next: add Derm7pt to training, then larger images.
