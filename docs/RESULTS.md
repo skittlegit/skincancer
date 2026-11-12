@@ -159,3 +159,42 @@ All three passed the 0.005 bar. G + H was the best and was the one scored on the
 - Outside, AUC moved by +0.006, which cannot be told from no change. The lower false-alarm rates on MIDAS and DDI come with more missed cancers, so they are a moved threshold, not a better model.
 - Averaging and flipping reduce noise in what the models already know. They do not add knowledge of photos from other hospitals, which is what the outside sets need.
 - It is now the standard way of predicting, and every later idea is compared after the same treatment.
+
+## Ideas J and O: MIDAS photos in training (13 Nov 2026)
+
+MIDAS was split by patient into three parts: 552 images that may be trained on, 414 for outside validation (never trained on, used to choose models) and 414 for testing. From here on a MIDAS test score is on those 414 images; earlier sections used all 1,380. Checkpoint 2 re-scored on the new parts: outside validation 0.689, MIDAS test 0.645.
+
+**Idea J** is checkpoint 1's recipe with the 552 MIDAS training images added. On the outside validation part it gained +0.093 AUC, but within-source AUC on our own validation split fell by 0.012, a supported loss, so it failed the first step and was not scored on any test set. Most of that loss was one seed stopped early at epoch 25.
+
+**Idea O** is idea J with early stopping off, so every seed trains for 60 epochs. Both compared with checkpoint 2 after test-time flips and the seed average:
+
+| Set | Score | Checkpoint 2 | Idea O | Difference [95% interval] | Supported |
+| --- | --- | --- | --- | --- | --- |
+| `midas_val` (outside validation) | AUC | 0.689 | 0.793 | +0.104 [+0.071, +0.134] | yes |
+| `val` | AUC | 0.901 | 0.898 | −0.003 [−0.008, +0.003] | no |
+| `val` | Within-source AUC | 0.888 | 0.882 | −0.006 [−0.014, +0.002] | no |
+| `midas_test` | AUC | 0.645 | 0.698 | +0.053 [+0.020, +0.089] | yes |
+| DDI | AUC | 0.629 | 0.657 | +0.028 [+0.007, +0.048] | yes |
+| DermaCon-IN tumours | AUC | 0.826 | 0.841 | +0.015 [−0.058, +0.090] | no |
+| `test` | AUC | 0.904 | 0.898 | −0.007 [−0.012, −0.001] | yes |
+| `test` | Within-source AUC | 0.883 | 0.876 | −0.007 [−0.020, +0.006] | no |
+
+At the threshold that catches 90% of cancers on our validation split:
+
+| Set | Cancers missed: checkpoint 2 | Idea O | False alarms: checkpoint 2 | Idea O |
+| --- | --- | --- | --- | --- |
+| Our test split | 9% | 10% | 33% | 34% |
+| MIDAS test | 50% | 33% | 31% | 41% |
+| DDI | 21% | 16% | 59% | 67% |
+| DermaCon-IN tumours | 21% | 16% | 30% | 35% |
+
+DermaCon-IN everyday conditions called cancer: 24% → 28%.
+
+**Reading.**
+
+- Idea O ranks cancers above non-cancers better on both hospital test sets. The DDI gain matters most: no model has trained on DDI's source or been chosen on it.
+- The MIDAS test gain is partly "has now seen this hospital", so it says less about new hospitals than the DDI gain does.
+- At the fixed threshold the outside change is mostly a shift: fewer cancers missed, more false alarms. The AUC gains say the ranking improved as well, but the threshold set on our own validation split still does not carry over to other hospitals.
+- At home it costs a little: test AUC −0.007, cancers against benign lookalikes 0.797 → 0.775.
+
+**Outcome: not decided.** The rule written beforehand required a supported gain on MIDAS test or DDI, which idea O has on both, and no supported loss on our own test split, which it misses by a small margin. Checkpoint 2 stays the current model until the team decides whether that trade is worth taking ([DECISIONS.md](../DECISIONS.md), section 12).

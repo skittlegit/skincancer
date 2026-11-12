@@ -67,11 +67,13 @@ Seven models were trained on the way to checkpoint 1, and two ideas for using it
 | F | A + Derm7pt at 320 × 320 pixels | validation, 1 seed | 0.862 against 0.869 | Discarded |
 | G | Average the three seeds of checkpoint 1 into one prediction | validation | Within-source AUC 0.882 against 0.868 | Kept as part of G+H |
 | H | Test-time flips: predict on the image and its three mirror images, average | validation | 0.879 against 0.868 | Kept as part of G+H |
+| J | Checkpoint 1's recipe with 552 MIDAS training photos added | validation only (ours and the MIDAS validation part) | MIDAS validation AUC 0.689 → 0.782, but within-source AUC on our validation split 0.888 → 0.876, a supported loss, mostly one seed stopped early at epoch 25 | Discarded at the first step; not scored on test sets. Replaced by O |
+| O | J with early stopping off (all seeds run 60 epochs) | test and outside sets, paired comparison with checkpoint 2 | MIDAS test 0.645 → 0.698 and DDI 0.629 → 0.657, both supported. Our test split 0.904 → 0.898, a small supported loss | **Open: waiting for the team's decision.** Meets the gain conditions, misses the no-loss one |
 | G+H | Both together | test and outside sets, paired comparison | Our test split: AUC 0.890 → 0.904, false alarms 40% → 33%, a supported gain. MIDAS +0.006 and DDI +0.006, neither supported | **Kept: checkpoint 2** (see above for how) |
 
 The deciding score on validation was the within-source AUC: the AUC inside each dataset, averaged. Seeds of one model differ by about 0.01 on it, so B to F are "no better than A", not "clearly worse".
 
-**What these seven runs established**
+**What these runs established**
 
 1. **Balancing cancer and not cancer inside each dataset is worth keeping.** It removes the reward for recognising the kind of photo. Every later model should start with it.
 2. **Drawing hard lesion types more often is a trade, not a gain.** It cuts false alarms on benign lookalikes by about a fifth and raises them elsewhere. It is only worth revisiting if mistaking moles for cancer becomes the main complaint.
@@ -81,6 +83,8 @@ The deciding score on validation was the within-source AUC: the AUC inside each 
 6. **Averaging seeds and test-time flips are a real but home-only gain.** Together they add about 0.015 AUC on our own test split and cut false alarms there by a sixth, at no training cost. On MIDAS and DDI the change is +0.006, too small to tell from zero. They are now the standard way of predicting (checkpoint 2), but they do not make a model travel better.
 7. **Nothing done with these two data sources moved the outside scores.** The gap between 0.89 at home and about 0.62 outside comes from how different our training images are from other hospitals' photos.
 8. **Choosing models on our own validation split cannot find outside gains,** because that split comes from the same two sources as training.
+9. **Photos from another hospital in training are the first thing that moved an outside score.** Adding 552 MIDAS photos raised AUC on DDI, a source never seen, by 0.028, and on the MIDAS test part by 0.053, at a cost of 0.007 at home. More sources of training photos is the direction that works.
+10. **Early stopping can cut a good run short.** With the learning rate still high the validation score is noisy; one seed stopped at epoch 25 would have improved by 0.03 if left to finish. Train all 60 epochs and keep the best weights.
 
 **Also settled along the way** (reasons are in [DECISIONS.md](../DECISIONS.md))
 
@@ -96,12 +100,11 @@ Each idea has a letter, continuing from A to H above. The rule is the same for e
 - **If it does not, it is discarded:** its config and trained models are deleted and it moves to the "do not repeat" table with its result and the reason.
 - One idea at a time where possible, so a gain or a loss can be traced to one change.
 
-**Setup step, before any lettered idea.** Set aside 30% of MIDAS, by patient, as an outside validation set. Nothing trains on it; models are chosen on it. The other 70% of MIDAS and all of DDI stay untouched tests. This is a change to how we measure, so it is not an experiment that can pass or fail, but without it the ideas below are judged on a split that cannot see outside gains. It cannot be undone, and is waiting for a decision.
+**Setup step: done (13 Nov 2026).** MIDAS is split by patient into a training part (552 images), an outside validation part (414, never trained on, used to choose models) and a test part (414). DDI is untouched. Ideas are now chosen on the outside validation part as well as our own.
 
 | # | Idea | What it targets | Cost | Expected effect |
 | --- | --- | --- | --- | --- |
 | I | **Add SCIN to training:** about 10,000 phone photos from the public, almost all not cancer | False alarms on everyday photos; a third kind of source | Download, label mapping, duplicate check, one training round | Fewer false alarms outside; no new cancers |
-| J | **Add part of MIDAS to training** (the share left after the outside validation and test parts) | Biopsy-confirmed hospital photos, the closest we have to the outside test images | No download; shrinks the MIDAS test set further | The most direct attack on the outside gap |
 | K | **Add ISIC 2019 to training:** about 8,500 cancers, 12,900 nevi | Far more cancers | Large download; dermoscopy, a different kind of image | Uncertain: may not carry over to ordinary photos |
 | L | **Self-supervised pretraining on our own images:** learn general skin features from all our photos without labels, then train cancer / not cancer. No outside weights | Getting more from the images we have | New training code; a few GPU hours | A real gain is plausible; the standard remedy for a small labelled set |
 | M | **A larger network** (about four times the parameters) | Capacity | One training round, longer epochs | Modest at home, little outside |
@@ -109,7 +112,7 @@ Each idea has a letter, continuing from A to H above. The rule is the same for e
 
 Counts for SCIN and ISIC 2019 are from memory and must be confirmed at download. Data details are in [DATA_PLAN.md](DATA_PLAN.md).
 
-**Suggested order:** the setup step, then I and J, then L, then M and N. K last, as a with-and-without experiment.
+**Suggested order:** I, then L, then M and N. K last, as a with-and-without experiment.
 
 **Later stages, not ideas for this one:** which type of cancer it is, and whether darker skin needs its own model or one combined model.
 

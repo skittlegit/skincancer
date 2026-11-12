@@ -235,3 +235,21 @@ Written before idea O was trained.
 - This idea was thought of after seeing idea J's validation result. That is what validation sets are for, and no test set has been looked at for J or O. But `val` and `midas_val` have now been used twice for this choice, so step 3 on the test sets is the real check.
 - If idea O also fails step 1, the trade is real and not chance: MIDAS training photos help on MIDAS and cost a little at home. Whether that trade is worth taking is then a decision for the team, not something to settle by trying more variants.
 - As for J: O has seen MIDAS's hospital. Only a gain on DDI shows it travels.
+
+**Outcome of idea O (13 Nov 2026): the gain conditions are met, the no-loss condition is not; checkpoint 3 is not declared and the decision is with the team.** Seed 2 with early stopping off reached 0.875 within-source AUC on `val` (best at epoch 47). Paired comparison with checkpoint 2:
+
+| Set | Score | Checkpoint 2 | Idea O | Difference [95% interval] | Supported |
+| --- | --- | --- | --- | --- | --- |
+| `midas_val` (outside validation) | AUC | 0.689 | 0.793 | +0.104 [+0.071, +0.134] | yes |
+| `val` | AUC | 0.901 | 0.898 | −0.003 [−0.008, +0.003] | no |
+| `val` | Within-source AUC | 0.888 | 0.882 | −0.006 [−0.014, +0.002] | no |
+| `midas_test` | AUC | 0.645 | 0.698 | +0.053 [+0.020, +0.089] | yes |
+| DDI | AUC | 0.629 | 0.657 | +0.028 [+0.007, +0.048] | yes |
+| DermaCon-IN tumours | AUC | 0.826 | 0.841 | +0.015 [−0.058, +0.090] | no |
+| `test` | AUC | 0.904 | 0.898 | −0.007 [−0.012, −0.001] | yes |
+| `test` | Within-source AUC | 0.883 | 0.876 | −0.007 [−0.020, +0.006] | no |
+
+- Step 1 passed: the gain on `midas_val` is supported and nothing on `val` is lower by a supported amount. Idea O was then scored once on the test sets.
+- Step 3, gain: supported on `midas_test` and on DDI. DDI is a source no model here has trained on or been chosen on, so this is the first gain in the project shown to travel.
+- Step 3, no loss: AUC on our own `test` is lower by 0.007, and the interval just excludes zero. The rule says nothing may be lower by a supported amount on `test`, so by the rule as written idea O is not a checkpoint.
+- The rule is not changed here. Keeping idea O would be a change of rule after the result, as with checkpoint 2, and is for the team to decide. Until then checkpoint 2 stays the current model and idea O's runs are kept.
