@@ -178,3 +178,32 @@ Written before either was computed. Both change only how checkpoint 1's three tr
 **Outcome (12 Nov 2026):** all three passed step 1 (within-source AUC on `val` 0.882, 0.879 and 0.888 against 0.868). G + H was scored outside. Its paired gain in AUC was +0.006 [−0.001, 0.014] on MIDAS and +0.006 [−0.004, 0.016] on DDI. Both intervals include zero, so it was discarded as a checkpoint, although it gained +0.015 on our own test split. The paired comparison tool (`skincancer.compare`) is kept, because every later idea is judged the same way. The tool that built G and H was removed with them.
 
 **Amended the same day:** G + H was restored and is checkpoint 2. The rule above was written before the test and G + H did not meet it; the decision to keep it anyway was made after seeing the result, on the grounds that the gain on our own test split is supported, costs nothing, and nothing is worse anywhere. This is recorded as a change of rule, not as G + H having passed. From here on an idea "works" if the paired comparison supports a gain over the current checkpoint and nothing is clearly worse elsewhere; where the gain is (at home or outside) is always stated with it. The tool that builds G + H (`skincancer.derive`) is back in the repository.
+
+## 11. MIDAS split three ways; idea J (12 Nov 2026)
+
+Written before the split was made and before idea J was trained.
+
+**Why.** Every model so far was chosen on a validation split drawn from the same two sources as training, and no choice made that way moved the outside scores. Two things were missing: outside photos to choose models on, and outside-like photos to train on. MIDAS can supply both, at the price of a smaller MIDAS test set.
+
+**The split.** MIDAS's 1,380 biopsy-confirmed tumour photos are split by patient, stratified by type of lesion:
+
+| Part | Share | Use |
+| --- | --- | --- |
+| `midas_train` | 40% | May be added to training (idea J). Unused unless an idea says so |
+| `midas_val` | 30% | Outside validation: never trained on, used to choose between models |
+| `midas_test` | 30% | Test only, scored once per model as before |
+
+- This cannot be undone: once models are chosen on `midas_val` or trained on `midas_train`, those images are no longer a clean test. MIDAS scores reported before this section were on all 1,380 images; from here `midas_test` means the 30%.
+- DDI stays whole and untouched. It is now the only test set from a source no model has trained on or been chosen on.
+- `train`, `val`, `test` and the other sets do not change. The rebuild is checked against the previous manifest.
+- A caution on reading results: a model trained on `midas_train` has seen that hospital's photos, so a gain on `midas_val` or `midas_test` shows it learned that source. Only a gain on DDI shows it travels to a source it has never seen.
+
+**Idea J** (`configs/skinnet_midas.yaml`): checkpoint 1's recipe with `midas_train` added to the training images. In the balanced drawing MIDAS counts as a third dataset. Three seeds, then test-time flips and the seed average, the same treatment as checkpoint 2.
+
+**How it is judged,** each time by paired comparison with checkpoint 2:
+
+1. On `midas_val`. It passes if the gain in AUC is supported (the interval is above zero) and the within-source AUC on our own `val` is not lower by a supported amount.
+2. If it passes, it is scored once on `test`, `midas_test`, DDI and DermaCon-IN.
+3. It becomes checkpoint 3 if the gain is supported on `midas_test` or DDI and nothing is lower by a supported amount on `test` or DDI. Where the gain is will be stated with it.
+
+If it fails step 1, it is discarded and nothing new is scored on the test sets.
