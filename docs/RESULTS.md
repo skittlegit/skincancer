@@ -120,3 +120,42 @@ Three variants built on checkpoint 1, compared with it on the validation split, 
 - Larger images did not help either. The variant at 320 pixels stopped early at epoch 56 with no gain; whatever limits the model, it is not image detail at this network size.
 - The differences from checkpoint 1 (0.007 to 0.013) are about the size of the seed-to-seed spread (0.01), so "no better" is the supported conclusion, not "worse".
 - Three rounds now point the same way: changes to how we use these two sources move the score on these two sources at most. The outside gap needs training images from other kinds of source, and a way to measure outside performance while choosing models. Both are in [DATA_PLAN.md](DATA_PLAN.md).
+
+## Ideas G and H: averaging seeds and test-time flips (12 Nov 2026)
+
+No retraining: the three models of checkpoint 1 are used differently when predicting (DECISIONS.md, section 10). G averages the three seeds into one prediction. H predicts on each image and its three mirror images and averages.
+
+**Step 1, validation split.** Within-source AUC, with a paired 95% interval on the gain over checkpoint 1:
+
+| | Within-source AUC | Gain over checkpoint 1 |
+| --- | --- | --- |
+| Checkpoint 1 | 0.868 | — |
+| G: seed average | 0.882 | +0.014 [0.010, 0.018] |
+| H: test-time flips | 0.879 | +0.010 [0.004, 0.016] |
+| G + H | 0.888 | +0.019 [0.013, 0.026] |
+
+All three passed the 0.005 bar. G + H was the best and was the one scored on the test split and the outside sets.
+
+**Step 2, G + H against checkpoint 1.** The gain column is a paired comparison on the same resampled images.
+
+| | Checkpoint 1 | G + H | Gain in AUC |
+| --- | --- | --- | --- |
+| Our test split: AUC | 0.890 | 0.904 | +0.015 [0.012, 0.018] |
+| Our test split: within-source AUC | 0.865 | 0.883 | +0.018 [0.013, 0.025] |
+| Our test split: false alarms / missed cancers | 40% / 8% | 33% / 9% | |
+| False alarms on benign lookalikes | 65% | 61% | |
+| MIDAS: AUC | 0.628 | 0.634 | +0.006 [−0.001, 0.014] |
+| MIDAS: false alarms / missed cancers | 40% / 41% | 33% / 48% | |
+| DDI: AUC | 0.623 | 0.629 | +0.006 [−0.004, 0.016] |
+| DDI: false alarms / missed cancers | 64% / 16% | 59% / 21% | |
+| DermaCon-IN tumours: AUC | 0.793 | 0.826 | +0.033 [−0.008, 0.084] |
+| DermaCon-IN everyday conditions called cancer | 34% | 24% | |
+
+**Outcome: discarded as a checkpoint.** The rule required the paired interval to be above zero on MIDAS or DDI, and on both it includes zero.
+
+**Reading.**
+
+- At home the gain is real: about 0.015 AUC and a sixth fewer false alarms, for no training cost.
+- Outside, AUC moved by +0.006, which cannot be told from no change. The lower false-alarm rates on MIDAS and DDI come with more missed cancers, so they are a moved threshold, not a better model.
+- Averaging and flipping reduce noise in what the models already know. They do not add knowledge of photos from other hospitals, which is what the outside sets need.
+- The technique stays available as a last step for any future checkpoint.

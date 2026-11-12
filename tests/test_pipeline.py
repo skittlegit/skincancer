@@ -171,6 +171,14 @@ def test_pipeline(workdir, monkeypatch):
         train.main(["--config", "configs/tiny.yaml", "--seed", "0", "--set", "name=bad", "--set",
                     "train.sampling=source_class"])                     # sampling + weighted loss: refused
 
+    # paired comparison of two models on the same images
+    from skincancer import compare
+    cmp_ = compare.main(["--a", "tiny", "--b", "tiny_bal", "--splits", "val", "test", "--n-boot", "100"])
+    assert set(cmp_["split"]) == {"val", "test"} and {"auc", "source_auc"} <= set(cmp_["metric"])
+    assert ((cmp_["ci_lo"] <= cmp_["diff"]) & (cmp_["diff"] <= cmp_["ci_hi"])).all()
+    same = compare.main(["--a", "tiny", "--b", "tiny", "--splits", "val", "--n-boot", "50"])
+    assert (same["diff"] == 0).all() and (same["supported"] == "no").all()
+
     # training on two splits at once
     train.main(["--config", "configs/tiny.yaml", "--seed", "0", "--set", "name=tiny_both", "--set",
                 "data.train_splits=[train, val]", "--set", "train.epochs=1"])

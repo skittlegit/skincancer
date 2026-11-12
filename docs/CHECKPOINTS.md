@@ -35,7 +35,7 @@ Missed cancers and false alarms use the threshold that catches 90% of cancers on
 
 ## What was tried to get here: do not repeat
 
-Seven models were trained on the way to checkpoint 1. The six that were not kept are listed with the reason, so nobody spends time on them again unless something else has changed (see the last section).
+Seven models were trained on the way to checkpoint 1, and two ideas for using it differently were tested after it. Everything that was not kept is listed with the reason, so nobody spends time on them again unless something else has changed (see the last section).
 
 | # | What was tried | Compared on | Result | Verdict |
 | --- | --- | --- | --- | --- |
@@ -46,6 +46,9 @@ Seven models were trained on the way to checkpoint 1. The six that were not kept
 | D | A + Derm7pt (958 atlas photos: 294 cancers, 664 benign) as training-only data | validation, 1 seed | 0.857 against 0.869 | Discarded |
 | E | A at 320 × 320 pixels | validation, 1 seed | 0.856 against 0.869; stopped early with no gain | Discarded |
 | F | A + Derm7pt at 320 × 320 pixels | validation, 1 seed | 0.862 against 0.869 | Discarded |
+| G | Average the three seeds of checkpoint 1 into one prediction | validation | Within-source AUC 0.882 against 0.868 | Scored outside only together with H |
+| H | Test-time flips: predict on the image and its three mirror images, average | validation | 0.879 against 0.868 | Scored outside only together with G |
+| G+H | Both together | test and outside sets, paired comparison | Our test split: AUC 0.890 → 0.904, false alarms 40% → 33%, a supported gain. MIDAS +0.006 and DDI +0.006, neither supported | Discarded as a checkpoint: no gain shown outside |
 
 The deciding score on validation was the within-source AUC: the AUC inside each dataset, averaged. Seeds of one model differ by about 0.01 on it, so B to F are "no better than A", not "clearly worse".
 
@@ -56,8 +59,9 @@ The deciding score on validation was the within-source AUC: the AUC inside each 
 3. **Degrading image quality in training does not help.**
 4. **Derm7pt does not help.** One more atlas of moles and melanomas adds little the network had not seen. Its list is still on disk (`data/extra/derm7pt.csv`) and was checked: none of its images duplicates a validation or test image.
 5. **Larger images do not help at this network size.** Image detail is not what limits the model.
-6. **Nothing done with these two data sources moved the outside scores.** The gap between 0.89 at home and about 0.62 outside comes from how different our training images are from other hospitals' photos.
-7. **Choosing models on our own validation split cannot find outside gains,** because that split comes from the same two sources as training.
+6. **Averaging seeds and test-time flips are a real but home-only gain.** Together they add about 0.015 AUC on our own test split and cut false alarms there by a sixth, at no training cost. On MIDAS and DDI the change is +0.006, too small to tell from zero. They can be applied to any future checkpoint as a last step, but they do not make a model travel better.
+7. **Nothing done with these two data sources moved the outside scores.** The gap between 0.89 at home and about 0.62 outside comes from how different our training images are from other hospitals' photos.
+8. **Choosing models on our own validation split cannot find outside gains,** because that split comes from the same two sources as training.
 
 **Also settled along the way** (reasons are in [DECISIONS.md](../DECISIONS.md))
 
@@ -67,7 +71,7 @@ The deciding score on validation was the within-source AUC: the AUC inside each 
 
 ## Ideas not tried yet
 
-Each idea has a letter, continuing from A to F above. The rule is the same for every one:
+Each idea has a letter, continuing from A to H above. The rule is the same for every one:
 
 - **If it works, it becomes the next checkpoint.** "Works" means it beats the current checkpoint by more than the seed-to-seed spread on the score fixed beforehand, and the gain shows on the outside sets, not only on our own test split.
 - **If it does not, it is discarded:** its config and trained models are deleted and it moves to the "do not repeat" table with its result and the reason.
@@ -77,8 +81,6 @@ Each idea has a letter, continuing from A to F above. The rule is the same for e
 
 | # | Idea | What it targets | Cost | Expected effect |
 | --- | --- | --- | --- | --- |
-| G | **Average the three seeds** into one prediction | Noise in a single model | Minutes, no retraining | Small gain everywhere |
-| H | **Test-time flips:** predict on the image and its mirror images, average | Sensitivity to framing | Minutes, no retraining | Small gain everywhere |
 | I | **Add SCIN to training:** about 10,000 phone photos from the public, almost all not cancer | False alarms on everyday photos; a third kind of source | Download, label mapping, duplicate check, one training round | Fewer false alarms outside; no new cancers |
 | J | **Add part of MIDAS to training** (the share left after the outside validation and test parts) | Biopsy-confirmed hospital photos, the closest we have to the outside test images | No download; shrinks the MIDAS test set further | The most direct attack on the outside gap |
 | K | **Add ISIC 2019 to training:** about 8,500 cancers, 12,900 nevi | Far more cancers | Large download; dermoscopy, a different kind of image | Uncertain: may not carry over to ordinary photos |
@@ -88,13 +90,13 @@ Each idea has a letter, continuing from A to F above. The rule is the same for e
 
 Counts for SCIN and ISIC 2019 are from memory and must be confirmed at download. Data details are in [DATA_PLAN.md](DATA_PLAN.md).
 
-**Suggested order:** the setup step, then G and H together (same day), then I and J, then L, then M and N. K last, as a with-and-without experiment.
+**Suggested order:** the setup step, then I and J, then L, then M and N. K last, as a with-and-without experiment.
 
 **Later stages, not ideas for this one:** which type of cancer it is, and whether darker skin needs its own model or one combined model.
 
-**A limit to keep in mind.** The largest known lever for performance on new hospitals is starting from pretrained weights, which this project has ruled out. A from-scratch network of this size on this much data is likely to stay well below what pretrained models reach on DDI and MIDAS, whatever comes of G to N.
+**A limit to keep in mind.** The largest known lever for performance on new hospitals is starting from pretrained weights, which this project has ruled out. A from-scratch network of this size on this much data is likely to stay well below what pretrained models reach on DDI and MIDAS, whatever comes of I to N.
 
-**When a discarded idea is worth another look:** if the training data changes a lot (new sources) or the network changes a lot (much larger), results B to F no longer apply as they stand, because they were all measured with this data and this network.
+**When a discarded idea is worth another look:** if the training data changes a lot (new sources) or the network changes a lot (much larger), results B to H no longer apply as they stand, because they were all measured with this data and this network.
 
 ## How to use a checkpoint
 
