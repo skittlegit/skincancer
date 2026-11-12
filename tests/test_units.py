@@ -2,10 +2,9 @@ import numpy as np
 import pytest
 import torch
 
-from skincancer import preprocess
 from skincancer.config import load_config
 from skincancer.labels import fst_bucket, map_diagnosis
-from skincancer.models import Classifier, coral_loss, set_trainable
+from skincancer.models import Classifier, SkinNet, target_layer
 
 
 @pytest.mark.parametrize("diagnosis,label", [
@@ -65,69 +64,78 @@ def test_fst_buckets():
 
 
 def test_config_extends_overrides_and_templates():
-    cfg = load_config("configs/e5_finetune.yaml", ["data.fraction=25", "seed=2"])
-    assert cfg["name"] == "e5_f25"
-    assert cfg["init_from"] == "runs/e1_effb0/s2/best.pt"
-    assert cfg["mode"] == "finetune" and cfg["model"]["backbone"] == "efficientnet_b0"
-    assert cfg["manifest"] == "data/manifest.csv"  # from data.yaml via base.yaml
-    cfg = load_config("configs/e7_coral.yaml", ["train.coral_lambda=10"])
-    assert cfg["name"] == "e7_coral_l10"
-    cfg = load_config("configs/e3_crop.yaml")
-    assert cfg["data"]["preprocess"] == {"color_constancy": False, "clahe": False, "lesion_crop": True}
+    cfg = load_config("configs/skinnet.yaml", ["model.width=48", "seed=2", "name=skinnet_w{model.width}"])
+    assert cfg["name"] == "skinnet_w48" and cfg["seed"] == 2
+    assert cfg["manifest"] == "data/manifest.csv"  # from data.yaml
+    assert cfg["data"]["train_splits"] == ["source_train"] and cfg["data"]["val_splits"] == ["source_val"]
+    assert not set(cfg["eval"]["splits"]) & {"ddi_test", "dermacon_test", "dermacon_other", "pad_dark_test",
+                                              "midas_test"}   # test-only sets are never scored automatically
 
 
-def _blob_image(center=(140, 90), r=25):
-    import cv2
-    img = np.full((200, 280, 3), (190, 150, 130), np.uint8)
-    cv2.circle(img, center, r, (70, 40, 30), -1)
-    return img
+def test_skinnet():
+    m = Classifier(4)
+    assert isinstance(m.backbone, SkinNet) and m.dim == 256
+    n_params = sum(p.numel() for p in m.parameters())
+    assert 2.5e6 < n_params < 3.2e6
+    assert all(p.requires_grad for p in m.parameters())          # every layer is trained
+    assert sum(isinstance(x, torch.nn.Conv2d) and x.kernel_size == (3, 3) for x in m.modules()) == 19
+    logits, f = m(torch.randn(2, 3, 96, 96), return_features=True)
+    assert logits.shape == (2, 4) and f.shape == (2, 256)
+    assert m.backbone.stages[-1](m.backbone.stages[2](m.backbone.stages[1](m.backbone.stages[0](
+        m.backbone.stem(torch.randn(1, 3, 224, 224)))))).shape == (1, 256, 7, 7)
+    assert target_layer(m) is m.backbone.stages[-1][-1]
+    small = Classifier(3, width=16, depths=[1, 1, 1, 1])
+    assert small.dim == 128 and small(torch.randn(2, 3, 64, 64)).shape == (2, 3)
+    blk = m.backbone.stages[0][0].eval()                           # blocks start as the identity
+    x = torch.rand(1, 32, 8, 8)
+    assert torch.allclose(blk(x), x)
 
 
-def test_lesion_crop_finds_off_centre_lesion():
-    img = _blob_image(center=(190, 120))
-    crop, ok = preprocess.lesion_crop(img)
-    assert ok
-    h, w = crop.shape[:2]
-    assert h == w and h < 150
-    assert crop[h // 2, w // 2].mean() < 80  # lesion at the centre of the crop
+def test_skinnet_starts_from_random_weights_per_seed():
+    from skincancer import runs
+    cfg = load_config("configs/skinnet.yaml")
+    def first_conv(seed):
+        runs.set_seed(seed)
+        return runs.build_model(cfg).backbone.stem[0].weight.detach().clone()
+    assert torch.equal(first_conv(0), first_conv(0)) and not torch.equal(first_conv(0), first_conv(1))
 
 
-def test_lesion_crop_falls_back_on_blank():
-    crop, ok = preprocess.lesion_crop(np.full((100, 100, 3), 128, np.uint8))
-    assert not ok and crop.shape[:2] == (80, 80)
+def test_one_training_step_updates_every_layer():
+    torch.manual_seed(0)
+    m = Classifier(4, width=16, depths=[1, 1, 1, 1]).train()
+    before = {n: p.detach().clone() for n, p in m.named_parameters()}
+    opt = torch.optim.AdamW(m.parameters(), lr=1e-2, weight_decay=0.0)
+    for _ in range(2):   # the second step moves the weights behind the zero-initialised block outputs
+        loss = torch.nn.functional.cross_entropy(m(torch.randn(8, 3, 64, 64)), torch.randint(0, 4, (8,)))
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+    frozen = [n for n, p in m.named_parameters() if torch.equal(p, before[n])]
+    assert not frozen, frozen
 
 
-def test_colour_constancy_and_clahe_keep_shape_and_ab():
-    import cv2
-    img = _blob_image()
-    tinted = np.clip(img.astype(int) * [1.2, 1.0, 0.8], 0, 255).astype(np.uint8)
-    cc = preprocess.shades_of_gray(tinted)
-    ch_means = cc.reshape(-1, 3).mean(0)
-    assert ch_means.max() - ch_means.min() < np.ptp(tinted.reshape(-1, 3).mean(0))
-    out = preprocess.clahe_l(img)
-    lab_in, lab_out = cv2.cvtColor(img, cv2.COLOR_RGB2LAB), cv2.cvtColor(out, cv2.COLOR_RGB2LAB)
-    assert out.shape == img.shape
-    assert np.abs(lab_in[..., 1:].astype(int) - lab_out[..., 1:]).mean() < 3  # colour ~ unchanged
-    assert preprocess.tag({"color_constancy": True, "lesion_crop": True}) == "cc-crop"
-
-
-def test_coral_loss():
-    a = torch.randn(64, 16)
-    assert coral_loss(a, a).item() == pytest.approx(0, abs=1e-7)
-    assert coral_loss(a, 3 * torch.randn(64, 16)).item() > 0
-
-
-@pytest.mark.parametrize("backbone,unfreeze,expect_trainable", [
-    ("efficientnet_b0", 0, []), ("efficientnet_b0", 3, ["blocks.5", "blocks.6", "conv_head", "bn2"]),
-    ("resnet50", 1, ["layer4"]),
-])
-def test_set_trainable(backbone, unfreeze, expect_trainable):
-    m = Classifier(backbone, 4, pretrained=False)
-    set_trainable(m, unfreeze)
-    trainable = {n.split(".")[0] if not n.startswith("blocks") else ".".join(n.split(".")[:2])
-                 for n, p in m.backbone.named_parameters() if p.requires_grad}
-    assert trainable == {t for t in expect_trainable}
-    assert all(p.requires_grad for p in m.head.parameters())
+def test_warmup_schedule_class_weights_and_augmentation():
+    from skincancer.data.dataset import eval_transform, train_transform
+    from skincancer.train import class_weights, make_scheduler
+    opt = torch.optim.SGD([torch.nn.Parameter(torch.zeros(1))], lr=1.0)
+    sched = make_scheduler(opt, epochs=10, warmup=4)
+    lrs = []
+    for _ in range(10):
+        lrs.append(opt.param_groups[0]["lr"])
+        opt.step()
+        sched.step()
+    assert lrs[:4] == pytest.approx([0.25, 0.5, 0.75, 1.0]) and lrs[4] == pytest.approx(1.0)
+    assert all(a > b for a, b in zip(lrs[4:], lrs[5:])) and lrs[-1] > 0
+    counts = np.array([900.0, 400.0, 340.0, 380.0])
+    w = class_weights(counts, "balanced")
+    assert w * counts == pytest.approx(np.full(4, counts.sum() / 4))   # each class: equal total weight
+    assert (class_weights(counts, "none") == 1).all()
+    with pytest.raises(ValueError):
+        class_weights(counts, "indian")
+    img = np.random.default_rng(0).integers(0, 255, (120, 160, 3), dtype=np.uint8)
+    out = train_transform(64)(image=img)["image"]
+    assert out.shape == (3, 64, 64) and out.dtype == torch.float32
+    assert eval_transform(64, 72)(image=img)["image"].shape == (3, 64, 64)
 
 
 def test_leakage_check_allows_external_tests_only():
@@ -138,16 +146,6 @@ def test_leakage_check_allows_external_tests_only():
     bad = pd.DataFrame({"group_id": ["a", "a"], "split": ["source_train", "ddi_test"]})
     with pytest.raises(AssertionError):
         check_no_leakage(bad)
-
-
-def test_seed_ensemble_averages_probabilities():
-    import pandas as pd
-    from skincancer.evaluate import ensemble_frame
-    classes = ["a", "b"]
-    f1 = pd.DataFrame({"image_id": ["x", "y"], "p_a": [0.2, 0.9], "p_b": [0.8, 0.1]})
-    f2 = pd.DataFrame({"image_id": ["y", "x"], "p_a": [0.7, 0.4], "p_b": [0.3, 0.6]})   # other order
-    out = ensemble_frame([f1, f2], classes).set_index("image_id")
-    assert np.allclose(out.loc["x"], [0.3, 0.7]) and np.allclose(out.loc["y"], [0.8, 0.2])
 
 
 def test_flip_tta_is_flip_invariant():
@@ -176,21 +174,6 @@ def test_flip_tta_is_flip_invariant():
     assert not np.allclose(p, p_plain, atol=1e-4)
 
 
-def test_derm7pt_rows(tmp_path):
-    import pandas as pd
-    from skincancer.data.extra import derm7pt_rows
-    base = tmp_path / "derm7pt" / "release_v0"
-    (base / "meta").mkdir(parents=True)
-    pd.DataFrame({"case_num": [1, 2, 3, 4], "clinic": ["A/a1.jpg", "A/a2.jpg", "B/b1.jpg", "B/b2.jpg"],
-                  "diagnosis": ["clark nevus", "melanoma (in situ)", "melanoma metastasis", "basal cell carcinoma"],
-                  "location": ["back", "acral", "chest", "head neck"]}).to_csv(base / "meta" / "meta.csv", index=False)
-    df = derm7pt_rows(tmp_path).set_index("image_id")
-    assert df["label_4class"].tolist() == ["benign", "mel", "exclude", "bcc"]
-    assert df.loc["derm7pt_2", "path"] == "derm7pt/release_v0/images/A/a2.jpg"
-    assert df.loc["derm7pt_2", "is_acral"] and not df.loc["derm7pt_1", "is_acral"]
-    assert df.loc["derm7pt_4", "label_3class"] == "nmsc" and df.loc["derm7pt_4", "label_binary"] == 1
-
-
 def test_worker_init_limits_threads():
     import cv2
     from skincancer.runs import _seed_worker
@@ -209,42 +192,9 @@ def test_make_loader_limits_worker_thread_pools(monkeypatch):
     from skincancer import runs
     from skincancer.config import load_config
     monkeypatch.delenv("OMP_NUM_THREADS", raising=False)
-    cfg = load_config("configs/base.yaml")
+    cfg = load_config("configs/skinnet.yaml")
     cfg["train"]["num_workers"] = 2
     n = torch.get_num_threads()
     df = pd.DataFrame({"image_id": ["a"], "path": ["x.jpg"], cfg["data"]["label_col"]: ["bcc"]})
     runs.make_loader(df, cfg, train=False, persistent=False)
     assert os.environ["OMP_NUM_THREADS"] == "1" and torch.get_num_threads() == n
-
-
-def test_greedy_ensemble_selection_stops_without_gain():
-    from skincancer.combine import greedy_select
-    rng = np.random.default_rng(0)
-    y = np.repeat(np.arange(4), 10)
-    good = np.eye(4)[y] * 0.6 + 0.1                       # separates every class
-    noise = rng.dirichlet(np.ones(4), size=len(y))         # carries no signal
-    members, path = greedy_select({"good": good, "noise": noise, "copy": good.copy()}, y)
-    assert members[0] in ("good", "copy")
-    assert "noise" not in members                          # adding it cannot raise AUC by >= MIN_GAIN
-    assert path[0] == 1.0
-
-
-def test_gate_scales_cancer_probabilities_and_keeps_rows_normalised():
-    from skincancer.gate import gated
-    classes = ["bcc", "scc", "mel", "benign"]
-    P = np.array([[0.5, 0.2, 0.2, 0.1], [0.1, 0.1, 0.1, 0.7]])
-    out = gated(P, np.array([0.5, 1.0]), classes)
-    assert np.allclose(out.sum(1), 1)
-    assert np.allclose(out[0, :3], [0.25, 0.1, 0.1]) and np.isclose(out[0, 3], 0.55)
-    assert np.allclose(out[1], P[1])                      # g = 1 leaves the classifier unchanged
-
-
-def test_gate_cell_weights_balance_class_and_skin_group():
-    from skincancer.gate import cell_weights, group_auc
-    y = np.array([1] * 8 + [1] * 2 + [0] * 6 + [0] * 4)
-    grp = np.array(["light"] * 8 + ["dark"] * 2 + ["light"] * 6 + ["dark"] * 4)
-    w = cell_weights(y, grp)
-    totals = [w[(y == c) & (grp == s)].sum() for c in (0, 1) for s in ("light", "dark")]
-    assert np.allclose(totals, totals[0]) and np.isclose(w.sum(), len(y))
-    p = np.where(grp == "light", y, 1 - y).astype(float)  # perfect on light skin, inverted on dark
-    assert np.isclose(group_auc(y, p, grp), 0.5)

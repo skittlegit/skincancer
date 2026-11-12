@@ -1,7 +1,7 @@
 """Group near-duplicate images so that splits never separate them.
 
 Groups = union of (same patient) + (pHash Hamming distance <= threshold) + (ImageNet
-embedding cosine >= threshold). Thresholds are calibrated in DECISIONS.md D10. Runs across
+embedding cosine >= threshold). Thresholds are calibrated in DECISIONS.md. Runs across
 all datasets, so a test-only image that duplicates a training image is caught too.
 Writes data/groups.csv.
 

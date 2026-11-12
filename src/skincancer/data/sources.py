@@ -60,7 +60,7 @@ def load_pad_ufes_20(ds: dict, root: Path) -> pd.DataFrame:
         fst_bucket=fst.map(fst_bucket),
         patient_id="pad_" + df["patient_id"].astype(str),
         site=region,
-        is_acral=region.isin(["HAND", "FOOT"]),  # approximate: palm vs dorsum unknown (D9)
+        is_acral=region.isin(["HAND", "FOOT"]),  # approximate: palm vs dorsum unknown
     )
 
 

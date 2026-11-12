@@ -54,8 +54,10 @@ def classes_of(cfg: dict) -> list[str]:
     return CLASSES[cfg["data"]["label_col"]]
 
 
-def split_rows(manifest: pd.DataFrame, split: str) -> pd.DataFrame:
-    return manifest[manifest["split"] == split].reset_index(drop=True)
+def split_rows(manifest: pd.DataFrame, split) -> pd.DataFrame:
+    """Rows of one split, or of several (a list of split names)."""
+    names = [split] if isinstance(split, str) else list(split)
+    return manifest[manifest["split"].isin(names)].reset_index(drop=True)
 
 
 def labelled(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
@@ -63,7 +65,7 @@ def labelled(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
 
 
 def image_loader(cfg: dict) -> ImageLoader:
-    return ImageLoader(cfg["data_root"], cfg["data"]["preprocess"], cfg.get("cache_dir"))
+    return ImageLoader(cfg["data_root"], cfg.get("cache_dir"))
 
 
 def make_loader(df: pd.DataFrame, cfg: dict, train: bool, seed: int = 0, drop_last: bool = False,
@@ -76,7 +78,7 @@ def make_loader(df: pd.DataFrame, cfg: dict, train: bool, seed: int = 0, drop_la
     nw = cfg["train"]["num_workers"]
     if nw > 0:
         # Spawned workers reserve full OpenMP/MKL thread pools when they import torch (~1.7 GB
-        # committed each, 8 workers per run). They inherit these variables, so set them before
+        # committed each). They inherit these variables, so set them before
         # the workers start; the main process keeps its own thread count.
         n = torch.get_num_threads()
         os.environ.update(OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
@@ -86,10 +88,9 @@ def make_loader(df: pd.DataFrame, cfg: dict, train: bool, seed: int = 0, drop_la
                       worker_init_fn=partial(_seed_worker, base=seed), persistent_workers=persistent and nw > 0)
 
 
-def build_model(cfg: dict, pretrained: bool | None = None) -> Classifier:
+def build_model(cfg: dict) -> Classifier:
     m = cfg["model"]
-    return Classifier(m["backbone"], len(classes_of(cfg)),
-                      m["pretrained"] if pretrained is None else pretrained, m.get("drop", 0.2))
+    return Classifier(len(classes_of(cfg)), m["width"], m["depths"], m["drop"])
 
 
 def save_config(cfg: dict, path: Path) -> None:
@@ -100,7 +101,7 @@ def load_run(rdir: str | Path):
     """-> (model on device, eval mode; resolved config)."""
     rdir = Path(rdir)
     cfg = yaml.safe_load((rdir / "config.yaml").read_text(encoding="utf-8"))
-    model = build_model(cfg, pretrained=False)
+    model = build_model(cfg)
     model.load_state_dict(torch.load(rdir / "best.pt", map_location="cpu"))
     return model.to(device()).eval(), cfg
 

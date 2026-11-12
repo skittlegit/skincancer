@@ -1,5 +1,5 @@
-"""Torch dataset over manifest rows, with an on-disk cache of preprocessed images, and
-the augmentation pipelines (no hue jitter: hue changes apparent skin tone)."""
+"""Torch dataset over manifest rows, with an on-disk cache of downsized images, and the
+augmentation pipelines (no hue jitter: hue changes apparent skin tone)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,18 +12,22 @@ import torch
 from albumentations.pytorch import ToTensorV2
 from torch.utils.data import Dataset
 
-from .. import preprocess
-
 MEAN, STD = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
 
 
 def train_transform(img_size: int) -> A.Compose:
+    """Augmentation for training from random weights on a few thousand images, where it is
+    the main guard against memorising the training set."""
     return A.Compose([
-        A.RandomResizedCrop(size=(img_size, img_size), scale=(0.7, 1.0)),
+        A.RandomResizedCrop(size=(img_size, img_size), scale=(0.4, 1.0)),
         A.HorizontalFlip(),
         A.VerticalFlip(),
+        A.RandomRotate90(),
         A.Rotate(limit=30, border_mode=cv2.BORDER_REFLECT_101),
-        A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
+        A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.7),
+        A.GaussianBlur(blur_limit=(3, 5), p=0.2),
+        A.CoarseDropout(num_holes_range=(1, 3), hole_height_range=(0.1, 0.25),
+                        hole_width_range=(0.1, 0.25), fill=0, p=0.5),
         A.Normalize(MEAN, STD),
         ToTensorV2(),
     ])
@@ -46,13 +50,12 @@ def read_rgb(path: Path) -> np.ndarray:
 
 
 class ImageLoader:
-    """Loads an image with preprocessing applied, cached as JPEG under cache_dir/<tag>/."""
+    """Loads an image, shrunk so its longer side is at most max_side, cached as JPEG under
+    cache_dir/raw/ so later epochs skip decoding the full-size original."""
 
-    def __init__(self, data_root, preprocess_cfg: dict, cache_dir=None, max_side: int = 512):
+    def __init__(self, data_root, cache_dir=None, max_side: int = 512):
         self.root = Path(data_root)
-        self.cfg = preprocess_cfg or {}
-        self.tag = preprocess.tag(self.cfg)
-        self.cache = Path(cache_dir) / self.tag if cache_dir else None
+        self.cache = Path(cache_dir) / "raw" if cache_dir else None
         self.max_side = max_side
 
     def __call__(self, image_id: str, rel_path: str) -> np.ndarray:
@@ -61,7 +64,6 @@ class ImageLoader:
             if cached.exists():
                 return read_rgb(cached)
         img = read_rgb(self.root / rel_path)
-        img, _ = preprocess.apply(img, self.cfg)
         h, w = img.shape[:2]
         if max(h, w) > self.max_side:
             s = self.max_side / max(h, w)
@@ -75,7 +77,7 @@ class ImageLoader:
 
 class SkinDataset(Dataset):
     """Returns (image tensor, class index). Index is -1 for rows whose label is not one of
-    `classes` (unlabelled target batches for CORAL, or binary-only test sets)."""
+    `classes` (binary-only test sets)."""
 
     def __init__(self, df: pd.DataFrame, loader: ImageLoader, transform, classes=None, label_col=None):
         self.df = df.reset_index(drop=True)

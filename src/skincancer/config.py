@@ -1,4 +1,4 @@
-"""YAML configs with `extends`, dotted `--set` overrides and `{key}` name templating."""
+"""YAML configs with `extends`, dotted `--set` overrides and `{key}` templating in `name`."""
 from __future__ import annotations
 
 import copy
@@ -47,15 +47,14 @@ def _fill(template: str, cfg: dict) -> str:
 
 
 def load_config(path: str | Path, overrides: list[str] | tuple = ()) -> dict:
-    """Load a config, apply `key.sub=value` overrides, then fill `{key}` templates
-    in `name` and `init_from` (e.g. name: e5_f{data.fraction})."""
+    """Load a config, apply `key.sub=value` overrides, then fill `{key}` templates in `name`
+    (e.g. name: skinnet_w{model.width})."""
     cfg = _load(Path(path))
     for item in overrides:
         key, _, raw = item.partition("=")
         set_dotted(cfg, key.strip(), yaml.safe_load(raw))
-    for key in ("name", "init_from"):
-        if isinstance(cfg.get(key), str):
-            cfg[key] = _fill(cfg[key], cfg)
+    if isinstance(cfg.get("name"), str):
+        cfg["name"] = _fill(cfg["name"], cfg)
     return cfg
 
 

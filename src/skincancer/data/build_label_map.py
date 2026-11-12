@@ -1,4 +1,4 @@
-"""Write data/label_map.csv: every (dataset, diagnosis) with its rule-based label (D5).
+"""Write data/label_map.csv: every (dataset, diagnosis) with its rule-based label.
 
 The team reviews and commits the file. Re-running only appends diagnoses that are not
 already there, so manual edits survive; --force regenerates from scratch.

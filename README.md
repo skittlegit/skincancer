@@ -1,124 +1,86 @@
-# Domain-adaptive skin cancer classification
+# Skin cancer classification with a CNN trained from scratch
 
-Code for *Epidemiology-Guided Image Processing and Texture-Aware Feature Learning for Domain-Adaptive Skin Cancer Classification*: how much a classifier trained on lighter skin (FST I–III) loses on darker skin (FST IV–VI) and on Indian images, and which fixes close that gap. The fixes tested are image processing, Indian class priors, texture fusion, localized fine-tuning and Deep CORAL.
+SkinNet is a small residual CNN of our own, trained from random weights to sort clinical photos of skin tumours into four classes: basal cell carcinoma, squamous cell carcinoma, melanoma and benign. It is trained on lighter skin (Fitzpatrick types I–III) and tested on darker skin and on Indian images.
+
+No pretrained weights are used in the classifier and no layer is frozen.
 
 This is a research prototype, not a diagnostic tool.
 
-**Read [DECISIONS.md](DECISIONS.md) before changing anything.** It holds the protocol rules (validation sets, AK handling, FST buckets, priors, statistics), and the code enforces them.
+**Read [DECISIONS.md](DECISIONS.md) before changing anything.** It holds the rules for labels, splits, the network, the training recipe and the metrics, and the code enforces them.
+
+The project was restarted on 12 Nov 2026. The earlier experiments (fine-tuned pretrained backbones and everything built on them) are in git under the tag `pre-fresh-start`.
 
 ## Setup
 
 ```bash
 python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r requirements.txt && pip install -e .
-pytest                                                 # ~1 min on CPU, synthetic data
+pytest                                                 # under a minute on CPU, synthetic data
 ```
 
-To reproduce the reported numbers exactly, install the pinned versions instead: `pip install -r requirements-lock.txt --extra-index-url https://download.pytorch.org/whl/cpu && pip install -e . --no-deps` (D24). The newest versions tested against this code are in `requirements-current.txt` (D28); use them for new work, but regenerate `data/splits/` only with the locked versions.
+`requirements-current.txt` pins the exact versions in use on the development machine.
 
-On Kaggle or Colab, torch is already installed. Run `pip install -r requirements.txt && pip install -e . --no-deps`, then set `train.num_workers` to the number of CPUs.
+## Data
 
-## Data → splits (once, then commit)
+The label map, manifest, near-duplicate groups and splits are committed (`data/`). They are frozen: do not re-run the split step.
 
-Put raw data under `data/raw/` as laid out in [configs/data.yaml](configs/data.yaml):
+The images are not in the repository. Put them under `data/raw/` as laid out in [configs/data.yaml](configs/data.yaml):
 
-| Dataset | Get it from | Notes |
+| Dataset | Used for | Get it from |
 | --- | --- | --- |
-| Fitzpatrick17k | CSV from github.com/mattgroh/fitzpatrick17k, then `python -m skincancer.data.download_fitzpatrick17k --neoplastic-only` | Dead links → `missing_image` |
-| PAD-UFES-20 | Mendeley Data; merge `imgs_part_*` into `images/` | |
-| DDI | Stanford AIMI (request access) | Test only; never in figures (licence) |
-| DermaCon-IN | Harvard Dataverse doi:10.7910/DVN/W7OUZM: `python -m skincancer.data.download_dermacon_in` | Test only |
-| MRA-MIDAS | Stanford AIMI on Redivis (request access): `python -m skincancer.data.download_midas` | Test only (`midas_test`) |
-| Derm7pt | derm.cs.sfu.ca (request form), unzip into `derm7pt/`, then `python -m skincancer.data.extra derm7pt` | Training-only extra data, outside the manifest (D16); never in figures |
+| Fitzpatrick17k | training, validation, test | github.com/mattgroh/fitzpatrick17k (full image set from the authors) |
+| PAD-UFES-20 | training, validation, test | Mendeley Data; merge `imgs_part_*` into `images/` |
+| DDI | test only | Stanford AIMI (request access); never shown in figures |
+| DermaCon-IN | test only | Harvard Dataverse: `python -m skincancer.data.download_dermacon_in` |
+| MRA-MIDAS | test only | Stanford AIMI on Redivis: `python -m skincancer.data.download_midas` |
+
+The pipeline that built the committed files, for reference:
 
 ```bash
-python -m skincancer.data.build_label_map   # data/label_map.csv: review every row, commit (D5)
+python -m skincancer.data.build_label_map   # data/label_map.csv
 python -m skincancer.data.build_manifest    # data/manifest.csv
 python -m skincancer.data.dedup             # data/groups.csv (near-duplicates + patients)
-python -m skincancer.data.make_splits       # split column + data/splits/*.csv (incl. E5 subsets)
-python -m skincancer.data.count_check       # class × FST table; BCC+SCC merge rule (D6)
+python -m skincancer.data.make_splits       # split column + data/splits/*.csv
+python -m skincancer.data.count_check       # class × skin-type table
 ```
 
-Commit `label_map.csv`, `manifest.csv`, `groups.csv` and `data/splits/`. After that, nobody re-splits.
-
-## Experiments
-
-One config per experiment in [configs/](configs/). `--set key=value` overrides any field, and `{key}` in `name` / `init_from` is filled in from the config.
+## Train and evaluate
 
 ```bash
-python -m skincancer.train --config configs/e1_effb0.yaml --seed 0
-python -m skincancer.train --config configs/e5_finetune_steps.yaml --seed 0 --set data.fraction=25   # E5 (D18)
-python -m skincancer.train --config configs/e7_coral.yaml --seed 0 --set train.coral_lambda=10000
-python -m skincancer.fusion --source-exp e1_effb0 --seeds 0 1 2                     # E6
-python -m skincancer.evaluate --exp e1_effb0 [--prior-mix all] [--ensemble]          # E4 prior shift / seed ensemble
-python -m skincancer.predict --run runs/e1_effb0/s0 --splits ddi_test dermacon_test --final
+python -m skincancer.train --config configs/skinnet.yaml --seed 0     # one seed
+python -m skincancer.predict --run runs/skinnet/s0 --splits ddi_test dermacon_test dermacon_other pad_dark_test midas_test --final
+python -m skincancer.evaluate --exp skinnet                           # results/skinnet/metrics.csv
+python -m skincancer.analysis.gradcam --run runs/skinnet/s0 --split target_test
 ```
 
-[scripts/run_all.sh](scripts/run_all.sh) runs every experiment block in order (`PY=.venv/Scripts/python bash scripts/run_all.sh [e1 e3 ...]`), scores each finished method once on the external test sets, and commits + pushes results after each block. [scripts/run_extras.sh](scripts/run_extras.sh) then runs the later additions: MIDAS scoring, the corrected E5 curve (D18), and the stronger-baseline arms (D15/D16): E1 + Derm7pt, 320 px + flip TTA, and Derm Foundation embeddings.
-
-Derm Foundation (`google/derm-foundation`, gated on Hugging Face) runs in its own TensorFlow venv so it never touches the PyTorch one:
+Or all three seeds, the test-only sets and the metrics in one go:
 
 ```bash
-python -m venv .venv-tf && .venv-tf/Scripts/pip install tensorflow-cpu==2.21.0 huggingface_hub pillow pandas pyyaml
-huggingface-cli login                                     # after accepting the model's terms
-.venv-tf/Scripts/python scripts/derm_foundation_embed.py  # data/features/derm_foundation/ (resumable)
-python -m skincancer.foundation --seeds 0 1 2             # e1_fm_lr, e1_fm_mlp
+PY=.venv/Scripts/python bash scripts/run.sh        # Windows venv; PY=python elsewhere
 ```
 
-Analysis and figures:
+`--set key=value` overrides any config field, for example `--set model.width=48 --set name=skinnet_w48`.
 
-```bash
-python -m skincancer.report tables --ref e1_effb0          # results/summary.csv (with gap)
-python -m skincancer.report gap --exps e1_effb0 e3_all e6_fusion e7_coral_l1000.0
-python -m skincancer.report curve --ref e1_effb0           # E5 data-size curve (e5s_f*)
-python -m skincancer.report fst --exps e1_effb0 e5s_f100 e1_fm_lr   # DDI AUC by skin type
-python -m skincancer.report confusion --exp e1_effb0 --split target_test
-python -m skincancer.analysis.lookalike --exp e1_effb0     # which lookalikes get confused
-python -m skincancer.analysis.gradcam --run runs/e1_effb0/s0 --split target_test
-python -m skincancer.analysis.probe --run runs/e1_effb0/s0 runs/e7_coral_l1000.0/s0
-python -m skincancer.analysis.umap_plot --run runs/e1_effb0/s0
-```
-
-## How the pieces connect
-
-Every result goes through two files:
-
-- **`data/manifest.csv`** holds one row per image: `image_id, group_id, dataset, path, diagnosis, label_4class, label_3class, label_binary, fst, fst_bucket, site, is_acral, patient_id, exclude_reason, split`.
-- **`runs/<exp>/s<seed>/preds/<split>.csv`** holds `image_id, exp, seed, p_<class>…`.
-
-Training writes prediction files. Everything downstream (metrics, CIs, prior shift, figures, lookalike tables) reads only prediction files plus the manifest. To add a method, write prediction files in that format plus a `train_prior.json`, and every evaluation and figure works on it unchanged.
+## Layout
 
 ```
-runs/<exp>/s<seed>/   best.pt  config.yaml  history.csv  train_prior.json  summary.json  preds/  emb/
-runs/final_ledger.csv one row per (run, test-only set) ever scored; committed
-results/<exp>/        metrics.csv (long format, with CIs), lookalike_*.csv, errors_*.csv
-reports/figures/      report figures
+configs/skinnet.yaml         the network and training recipe
+configs/data.yaml            dataset paths and split settings
+src/skincancer/models.py     SkinNet
+src/skincancer/train.py      training loop
+src/skincancer/predict.py    scoring a finished run; the test-set ledger
+src/skincancer/evaluate.py   metrics with confidence intervals
+src/skincancer/data/         label map, manifest, dedup, splits, dataset and augmentation
+runs/<name>/s<seed>/         best.pt  config.yaml  history.csv  summary.json  preds/
+runs/final_ledger.csv        one row per (run, test-only set) ever scored
+results/<name>/metrics.csv   long format, one row per set × subgroup × metric
 ```
+
+Two files connect everything. `data/manifest.csv` has one row per image (label, skin type, dataset, group, split). `runs/<name>/s<seed>/preds/<split>.csv` has the predicted class probabilities. Evaluation reads only those two.
 
 ## Rules the code enforces
 
-- `source_val` picks checkpoints for source-trained models; `target_val` is only for target-trained models and for choosing between methods. Test splits never choose anything.
+- `source_val` picks the checkpoint. Test splits never choose anything.
 - DDI, DermaCon-IN, MIDAS and `pad_dark_test` are never scored during training. `predict --final` scores them and refuses to score the same run on the same set twice.
-- A near-duplicate group never spans two splits (`make_splits` asserts this).
-- Seeds 0, 1, 2 for every run. Results are reported as the seed mean, with a group-bootstrap 95% CI.
-
-## Work queue
-
-Anyone takes the next unblocked item. Put your name on the issue or PR, not in this file.
-
-Results are in [docs/RESULTS.md](docs/RESULTS.md). A plain-language walkthrough of the whole project is in [docs/PROJECT_EXPLAINER.pdf](docs/PROJECT_EXPLAINER.pdf), built from [docs/PROJECT_EXPLAINER.html](docs/PROJECT_EXPLAINER.html) by `python scripts/export_explainer.py`.
-
-1. [x] Data access and downloads (full Fitzpatrick17k set from the authors, D21)
-2. [x] Build the label map, first-pass review (D5); [x] second full review ([docs/LABEL_MAP_REVIEW.md](docs/LABEL_MAP_REVIEW.md), D24); **team sign-off open**
-3. [x] Manifest → dedup → splits → count check (D6, D10)
-4. [x] `python -m skincancer.preprocess --n 100`: crops checked by eye, ~15–20% fail (D24)
-5. [x] E1 + E2, both backbones; [x] gap figure, confusion matrix, DDI-by-FST figure ([reports/figures/](reports/figures/)); [x] Grad-CAM grids (local only: patient photos; findings in RESULTS.md)
-6. [x] E3, E4 (training + prior-shift sweep)
-7. [x] Mid-sem review pack: [docs/MIDSEM_PACK.md](docs/MIDSEM_PACK.md)
-8. [x] E5 curve (corrected, D18)
-9. [x] E6 fusion and texture ablation
-10. [x] E7 CORAL, λ picked on target_val (D13); [x] domain probe before/after
-11. [x] E8 (re-chosen on target_val, D23: the E5 recipe; EfficientNet-B0 = e5s_f100, ResNet50 trained); stronger baselines: Derm7pt, 320 px + TTA, Derm Foundation (D15, D16, D20); seed ensembles
-12. [x] Test-only sets via `--final` for each finished method (incl. MIDAS); [x] acral check (counts + MIDAS AUCs in RESULTS.md; too few for conclusions); [x] UMAP
-13. [ ] Report (IEEE), presentation; [x] clean-clone reproduction check (fresh venv from `requirements-lock.txt`, tests, data pipeline; D24)
-14. [x] Full-data run complete (17 Oct 2026): RESULTS.md summary, explainer and PDF updated
+- A near-duplicate group never spans two splits.
+- Seeds 0, 1, 2. Results are the seed mean with a group-bootstrap 95% confidence interval.

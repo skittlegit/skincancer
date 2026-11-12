@@ -1,9 +1,7 @@
-"""Score a finished run on more splits, and cache embeddings.
+"""Score a finished run on more splits.
 
-    # test-only sets: once per finished method, recorded in runs/final_ledger.csv (D9)
-    python -m skincancer.predict --run runs/e1_effb0/s0 --splits ddi_test dermacon_test pad_dark_test --final
-    # embeddings for probe / UMAP / fusion
-    python -m skincancer.predict --run runs/e1_effb0/s0 --splits source_test target_test --embeddings
+    # test-only sets: once per finished run, recorded in runs/final_ledger.csv
+    python -m skincancer.predict --run runs/skinnet/s0 --splits ddi_test dermacon_test pad_dark_test --final
 """
 from __future__ import annotations
 
@@ -12,7 +10,6 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from . import runs
@@ -35,7 +32,7 @@ def check_ledger(run: str, splits: list[str], force: bool, ledger: Path = LEDGER
     hit = done[(done["run"] == run) & (done["split"].isin(splits))]
     if len(hit):
         raise SystemExit(f"{run} was already scored on {sorted(hit['split'])} "
-                         f"(see {ledger}). Test-only sets are scored once per method; --force overrides.")
+                         f"(see {ledger}). Test-only sets are scored once per run; --force overrides.")
 
 
 def append_ledger(run: str, splits: list[str], ledger: Path = LEDGER) -> None:
@@ -45,34 +42,17 @@ def append_ledger(run: str, splits: list[str], ledger: Path = LEDGER) -> None:
     rows.to_csv(ledger, mode="a", header=not ledger.exists(), index=False)
 
 
-def embeddings(rdir: Path, split: str, model=None, cfg=None, manifest=None):
-    """-> (image_ids, features); cached at <run>/emb/<split>.npz."""
-    path = rdir / "emb" / f"{split}.npz"
-    if path.exists():
-        z = np.load(path, allow_pickle=True)
-        return z["image_id"], z["features"]
-    if model is None:
-        model, cfg = runs.load_run(rdir)
-    manifest = manifest if manifest is not None else pd.read_csv(cfg["manifest"])
-    df = runs.split_rows(manifest, split)
-    _, F = runs.infer(model, runs.make_loader(df, cfg, train=False, persistent=False), with_features=True)
-    path.parent.mkdir(exist_ok=True)
-    np.savez(path, image_id=df["image_id"].to_numpy(), features=F)
-    return df["image_id"].to_numpy(), F
-
-
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--run", required=True)
     ap.add_argument("--splits", nargs="+", required=True)
     ap.add_argument("--final", action="store_true", help="required for test-only sets")
     ap.add_argument("--force", action="store_true")
-    ap.add_argument("--embeddings", action="store_true")
     args = ap.parse_args(argv)
     rdir = Path(args.run)
     test_only = [s for s in args.splits if s in TEST_ONLY]
     if test_only and not args.final:
-        raise SystemExit(f"{test_only} are test-only: pass --final (scored once per method, D9)")
+        raise SystemExit(f"{test_only} are test-only: pass --final (scored once per run)")
     if args.final:
         # A run that crashed mid-training can leave a best.pt from an early epoch; scoring
         # it would use up its one test-set look on a half-trained model.
@@ -89,12 +69,9 @@ def main(argv=None):
         if len(df) == 0:
             print(f"{split}: no rows, skipped")
             continue
-        P, F = runs.infer(model, runs.make_loader(df, cfg, train=False, persistent=False), with_features=True,
-                          tta=cfg["eval"].get("tta", False))
+        P = runs.infer(model, runs.make_loader(df, cfg, train=False, persistent=False),
+                       tta=cfg["eval"].get("tta", False))
         runs.prediction_frame(df, P, classes, cfg).to_csv(rdir / "preds" / f"{split}.csv", index=False)
-        if args.embeddings:
-            (rdir / "emb").mkdir(exist_ok=True)
-            np.savez(rdir / "emb" / f"{split}.npz", image_id=df["image_id"].to_numpy(), features=F)
         scored.append(split)
         print(f"{split}: {len(df)} images")
     if args.final:

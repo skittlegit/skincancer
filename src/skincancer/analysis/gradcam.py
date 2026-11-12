@@ -1,7 +1,7 @@
 """Grad-CAM grid: N correct and N wrong predictions from one split, overlaid on the image.
 Look for attention on rulers, markings, borders or background.
 
-    python -m skincancer.analysis.gradcam --run runs/e1_effb0/s0 --split target_test --n 20
+    python -m skincancer.analysis.gradcam --run runs/skinnet/s0 --split target_test --n 20
 """
 from __future__ import annotations
 

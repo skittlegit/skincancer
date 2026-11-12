@@ -10,7 +10,7 @@ features_dir: data/features    # cached texture features
 datasets:
   fitzpatrick17k:
     csv: fitzpatrick17k/fitzpatrick17k.csv
-    image_dir: fitzpatrick17k/images          # <md5hash>.jpg: the full set from the authors (D21)
+    image_dir: fitzpatrick17k/images          # <md5hash>.jpg: the full set from the authors
   pad_ufes_20:
     csv: pad_ufes_20/metadata.csv
     image_dir: pad_ufes_20/images             # merge imgs_part_1..3 into this folder
@@ -36,12 +36,10 @@ datasets:
 
 splits:
   seed: 2026                   # split seed; independent of training seeds
-  source: [0.70, 0.15, 0.15]   # FST I-III  -> source_train / source_val / source_test   (D1)
+  source: [0.70, 0.15, 0.15]   # FST I-III  -> source_train / source_val / source_test
   target: [0.60, 0.20, 0.20]   # FST IV-VI  -> target_train / target_val / target_test
-  e5_fractions: [10, 25, 50]   # nested subsets of target_train, per training seed (D9)
-  e5_seeds: [0, 1, 2]
-  min_pad_dark: 20             # D4
+  min_pad_dark: 20             # pad_dark_test needs at least this many images
 
-dedup:                         # calibrated by eye on real pairs (D10)
+dedup:                         # calibrated by eye on real pairs
   phash_max_distance: 2        # Hamming distance on 64-bit pHash; >=4 collides on unrelated lesions
   embed_min_cosine: 0.90       # ImageNet EfficientNet-B0 embedding; >=0.90 was always the same lesion

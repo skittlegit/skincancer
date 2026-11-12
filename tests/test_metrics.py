@@ -3,7 +3,6 @@ import pytest
 from sklearn.metrics import roc_auc_score
 
 from skincancer import metrics as M
-from skincancer.labels import indian_prior
 
 CLASSES = ["bcc", "scc", "mel", "benign"]
 
@@ -50,25 +49,6 @@ def test_bootstrap_ci_brackets_point_and_seeds_averaged():
     assert r["ci_lo"] <= r["mean"] <= r["ci_hi"]
     assert r["mean"] == pytest.approx((M.macro_auc(y, P) + M.macro_auc(y, P2)) / 2)
     assert r["std"] > 0
-
-
-def test_prior_shift_identity_and_direction():
-    _, _, P = _data()
-    u = np.full(4, 0.25)
-    assert np.allclose(M.prior_shift(P, u, u), P)
-    to = indian_prior(CLASSES, u, "consensus")
-    Q = M.prior_shift(P, u, to)
-    assert np.allclose(Q.sum(1), 1)
-    assert Q[:, 0].mean() > P[:, 0].mean() and Q[:, 2].mean() < P[:, 2].mean()   # BCC up, MEL down
-    assert Q[:, 3].mean() == pytest.approx(P[:, 3].mean(), abs=0.02)            # benign ~kept
-
-
-def test_indian_prior_keeps_benign_share():
-    p = indian_prior(CLASSES, [10, 10, 30, 50], "consensus")
-    assert p[3] == pytest.approx(0.5)
-    assert p[:3] / p[:3].sum() == pytest.approx([0.45, 0.40, 0.15])
-    p3 = indian_prior(["nmsc", "mel", "benign"], [1, 1, 2])
-    assert p3 == pytest.approx([0.5 * 0.85, 0.5 * 0.15, 0.5])
 
 
 def test_sensitivity_threshold_and_operating_point():

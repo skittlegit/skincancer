@@ -1,15 +1,71 @@
-"""Backbone classifier, staged unfreezing, the E6 fusion head and the Deep CORAL loss."""
+"""SkinNet: our own convolutional network, trained from random weights. No pretrained
+weights are used anywhere in the classifier."""
 from __future__ import annotations
 
-import timm
-import torch
 import torch.nn as nn
 
 
-class Classifier(nn.Module):
-    def __init__(self, backbone: str, num_classes: int, pretrained: bool = True, drop: float = 0.2):
+def _conv_bn(cin: int, cout: int, k: int = 3, stride: int = 1) -> list[nn.Module]:
+    return [nn.Conv2d(cin, cout, k, stride, k // 2, bias=False), nn.BatchNorm2d(cout)]
+
+
+class ResBlock(nn.Module):
+    """Two 3x3 convolutions with a skip connection. When the block halves the resolution or
+    changes width, the skip is average-pool + 1x1 convolution."""
+
+    def __init__(self, cin: int, cout: int, stride: int):
         super().__init__()
-        self.backbone = timm.create_model(backbone, pretrained=pretrained, num_classes=0)
+        self.body = nn.Sequential(*_conv_bn(cin, cout, 3, stride), nn.ReLU(inplace=True), *_conv_bn(cout, cout))
+        self.skip = None
+        if stride != 1 or cin != cout:
+            pool = [nn.AvgPool2d(stride)] if stride != 1 else []
+            self.skip = nn.Sequential(*pool, *_conv_bn(cin, cout, 1))
+        self.act = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        return self.act(self.body(x) + (x if self.skip is None else self.skip(x)))
+
+
+class SkinNet(nn.Module):
+    """Stem of three 3x3 convolutions and a max-pool, then four stages of residual blocks.
+    Each stage after the first halves the resolution and doubles the width. Global average
+    pooling gives the embedding. Defaults (width 32, two blocks per stage): 17 convolution
+    layers on the main path, 2.8M parameters, a 256-d embedding, 224 px in -> 7x7 feature map."""
+
+    def __init__(self, width: int = 32, depths=(2, 2, 2, 2)):
+        super().__init__()
+        self.stem = nn.Sequential(*_conv_bn(3, width // 2, 3, 2), nn.ReLU(inplace=True),
+                                  *_conv_bn(width // 2, width // 2), nn.ReLU(inplace=True),
+                                  *_conv_bn(width // 2, width), nn.ReLU(inplace=True),
+                                  nn.MaxPool2d(3, 2, 1))
+        stages, cin = [], width
+        for i, depth in enumerate(depths):
+            cout = width * 2 ** i
+            stages.append(nn.Sequential(*[ResBlock(cin if j == 0 else cout, cout, 2 if (j == 0 and i > 0) else 1)
+                                          for j in range(depth)]))
+            cin = cout
+        self.stages = nn.ModuleList(stages)
+        self.num_features = cin
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+        for m in self.modules():   # each block starts as the identity, which steadies early training
+            if isinstance(m, ResBlock):
+                nn.init.zeros_(m.body[-1].weight)
+
+    def forward(self, x):
+        x = self.stem(x)
+        for stage in self.stages:
+            x = stage(x)
+        return x.mean((2, 3))
+
+
+class Classifier(nn.Module):
+    """SkinNet + dropout + one linear layer."""
+
+    def __init__(self, num_classes: int, width: int = 32, depths=(2, 2, 2, 2), drop: float = 0.3):
+        super().__init__()
+        self.backbone = SkinNet(width, depths)
         self.dim = self.backbone.num_features
         self.head = nn.Sequential(nn.Dropout(drop), nn.Linear(self.dim, num_classes))
 
@@ -19,74 +75,6 @@ class Classifier(nn.Module):
         return (logits, f) if return_features else logits
 
 
-def _stages(backbone: nn.Module) -> list[nn.Module]:
-    """Backbone pieces from input to output, so the last k are the 'top blocks'."""
-    if hasattr(backbone, "blocks") and hasattr(backbone, "conv_head"):      # EfficientNet / MobileNet
-        return [nn.ModuleList([backbone.conv_stem, backbone.bn1]), *backbone.blocks,
-                nn.ModuleList([backbone.conv_head, backbone.bn2])]
-    if hasattr(backbone, "layer4"):                                           # ResNet
-        return [nn.ModuleList([backbone.conv1, backbone.bn1]), backbone.layer1, backbone.layer2,
-                backbone.layer3, backbone.layer4]
-    return [backbone]
-
-
-def set_trainable(model: Classifier, unfreeze: int) -> None:
-    """unfreeze = 0: head only; k > 0: head + top k stages (EfficientNet counts the
-    final conv_head as one stage); -1: everything."""
-    for p in model.backbone.parameters():
-        p.requires_grad = unfreeze == -1
-    if unfreeze > 0:
-        for stage in _stages(model.backbone)[-unfreeze:]:
-            for p in stage.parameters():
-                p.requires_grad = True
-    for p in model.head.parameters():
-        p.requires_grad = True
-
-
-def train_mode(model: nn.Module) -> None:
-    """model.train(), but BatchNorm layers with frozen weights stay in eval mode so their
-    running statistics are not overwritten."""
-    model.train()
-    for m in model.modules():
-        if isinstance(m, nn.modules.batchnorm._BatchNorm) and not any(p.requires_grad for p in m.parameters()):
-            m.eval()
-
-
-def param_groups(model: Classifier, lr_head: float, lr_backbone: float, weight_decay: float):
-    groups = [{"params": [p for p in model.head.parameters()], "lr": lr_head}]
-    bb = [p for p in model.backbone.parameters() if p.requires_grad]
-    if bb and lr_backbone > 0:
-        groups.append({"params": bb, "lr": lr_backbone})
-    for g in groups:
-        g["weight_decay"] = weight_decay
-    return groups
-
-
-def coral_loss(fs: torch.Tensor, ft: torch.Tensor) -> torch.Tensor:
-    """Sun & Saenko (2016): squared Frobenius distance between feature covariances / 4d^2."""
-    d = fs.size(1)
-    cs = torch.cov(fs.float().T)
-    ct = torch.cov(ft.float().T)
-    return ((cs - ct) ** 2).sum() / (4 * d * d)
-
-
-class FusionMLP(nn.Module):
-    """E6 head on [CNN embedding ‖ texture features] (or either alone)."""
-
-    def __init__(self, in_dim: int, num_classes: int, hidden: int = 256, drop: float = 0.3):
-        super().__init__()
-        self.net = nn.Sequential(nn.Linear(in_dim, hidden), nn.ReLU(), nn.Dropout(drop),
-                                 nn.Linear(hidden, num_classes))
-
-    def forward(self, x):
-        return self.net(x)
-
-
 def target_layer(model: Classifier) -> nn.Module:
-    """Last conv block, for Grad-CAM."""
-    bb = model.backbone
-    if hasattr(bb, "conv_head"):
-        return bb.conv_head
-    if hasattr(bb, "layer4"):
-        return bb.layer4[-1]
-    raise ValueError("unknown backbone for Grad-CAM")
+    """Last residual block, for Grad-CAM."""
+    return model.backbone.stages[-1][-1]

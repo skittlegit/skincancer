@@ -1,6 +1,5 @@
 """End-to-end run on synthetic data shaped like the real metadata files: label map ->
-manifest -> dedup -> splits -> train (source / finetune / coral) -> predict --final ->
-evaluate (+ prior shift) -> fusion -> report / analysis."""
+manifest -> dedup -> splits -> train from random weights -> predict --final -> evaluate -> Grad-CAM."""
 import shutil
 from pathlib import Path
 
@@ -77,24 +76,19 @@ def workdir(tmp_path_factory):
     for f in (REPO / "configs").glob("*.yaml"):
         shutil.copy(f, root / "configs" / f.name)
     data = yaml.safe_load((root / "configs/data.yaml").read_text())
-    data["splits"]["e5_fractions"] = [25, 50]
-    data["splits"]["e5_seeds"] = [0, 1]
     data["splits"]["min_pad_dark"] = 5
     (root / "configs/data.yaml").write_text(yaml.safe_dump(data))
-    tiny = {"extends": "base.yaml", "model": {"backbone": "resnet18", "pretrained": False},
-            "data": {"img_size": 64, "resize_short": 72},
-            "train": {"batch_size": 16, "num_workers": 0, "amp": False,
-                      "stages": [{"epochs": 1, "unfreeze": 0, "lr_head": 1e-3, "lr_backbone": 0.0, "early_stop": False},
-                                 {"epochs": 2, "unfreeze": 1, "lr_head": 1e-3, "lr_backbone": 1e-4,
-                                  "early_stop": True, "patience": 1}]}}
+    tiny = {"extends": "skinnet.yaml", "name": "tiny", "data": {"img_size": 64, "resize_short": 72},
+            "model": {"width": 8, "depths": [1, 1, 1, 1]},
+            "train": {"epochs": 3, "warmup_epochs": 1, "patience": 2, "batch_size": 16, "num_workers": 0,
+                      "amp": False}}
     (root / "configs/tiny.yaml").write_text(yaml.safe_dump(tiny))
     return root
 
 
 def test_pipeline(workdir, monkeypatch):
     monkeypatch.chdir(workdir)
-    from skincancer import evaluate, fusion, predict, report, train
-    from skincancer.analysis import lookalike, probe
+    from skincancer import evaluate, predict, train
     from skincancer.data import build_label_map, build_manifest, count_check, dedup, make_splits
 
     build_label_map.main([])
@@ -111,59 +105,44 @@ def test_pipeline(workdir, monkeypatch):
     assert set(m.loc[m["label_4class"] == "ak", "split"]) <= {"ak_side", "excluded"}
     assert (m["split"] == "pad_dark_test").sum() > 0
     make_splits.check_no_leakage(m)
-    f25 = set(pd.read_csv("data/splits/e5/target_train_f25_s0.csv")["image_id"])
-    f50 = set(pd.read_csv("data/splits/e5/target_train_f50_s0.csv")["image_id"])
-    assert f25 < f50  # nested (D9)
+    assert not Path("data/splits/e5").exists()
     text, _ = count_check.report(m)
     assert "SCC images in target_test" in text
 
     for seed in (0, 1):
-        train.main(["--config", "configs/tiny.yaml", "--seed", str(seed), "--set", "name=e1_tiny"])
-        train.main(["--config", "configs/tiny.yaml", "--seed", str(seed), "--set", "name=e5_f50", "--set",
-                    "mode=finetune", "--set", "data.fraction=50", "--set", f"init_from=runs/e1_tiny/s{seed}/best.pt"])
-    train.main(["--config", "configs/tiny.yaml", "--seed", "0", "--set", "name=e7_tiny", "--set", "mode=coral",
-                "--set", "train.coral_lambda=1.0"])
-    hist = pd.read_csv("runs/e7_tiny/s0/history.csv")
-    assert "target_val_auc" in hist and (hist["coral"] > 0).any()
-    assert Path("runs/e1_tiny/s0/preds/target_test.csv").exists()
-    assert not Path("runs/e1_tiny/s0/preds/ddi_test.csv").exists()  # test-only never automatic
+        train.main(["--config", "configs/tiny.yaml", "--seed", str(seed)])
+    hist = pd.read_csv("runs/tiny/s0/history.csv")
+    assert 1 <= len(hist) <= 3 and hist["lr"].iloc[0] == pytest.approx(1e-3)   # 1 warm-up epoch
+    summary = yaml.safe_load(Path("runs/tiny/s0/summary.json").read_text())
+    assert summary["n_train"] == (m["split"] == "source_train").sum() and summary["n_params"] > 0
+    assert Path("runs/tiny/s0/preds/target_test.csv").exists()
+    assert not Path("runs/tiny/s0/preds/ddi_test.csv").exists()  # test-only never automatic
+    train.main(["--config", "configs/tiny.yaml", "--seed", "0"])   # finished: skipped, not retrained
+    assert len(pd.read_csv("runs/tiny/s0/history.csv")) == len(hist)
 
     with pytest.raises(SystemExit):
-        predict.main(["--run", "runs/e1_tiny/s0", "--splits", "ddi_test"])  # needs --final
+        predict.main(["--run", "runs/tiny/s0", "--splits", "ddi_test"])  # needs --final
     for seed in (0, 1):
-        predict.main(["--run", f"runs/e1_tiny/s{seed}", "--splits", "ddi_test", "pad_dark_test", "--final"])
+        predict.main(["--run", f"runs/tiny/s{seed}", "--splits", "ddi_test", "pad_dark_test", "--final"])
     with pytest.raises(SystemExit):
-        predict.main(["--run", "runs/e1_tiny/s0", "--splits", "ddi_test", "--final"])  # only once
+        predict.main(["--run", "runs/tiny/s0", "--splits", "ddi_test", "--final"])  # only once
+    ledger = pd.read_csv("runs/final_ledger.csv")
+    assert set(ledger["run"]) == {"runs/tiny/s0", "runs/tiny/s1"}
 
-    out = evaluate.evaluate("e1_tiny", n_boot=50)
+    out = evaluate.evaluate("tiny", n_boot=50)
     assert set(out["eval_set"]) >= {"source_test", "target_test", "ddi_test", "ak_side"}
     assert "pad_dark_test" not in set(out["eval_set"])  # 6 images < MIN_SUBGROUP: skipped, not reported
     auc = out[(out["eval_set"] == "target_test") & (out["metric"] == "macro_auc") & (out["subgroup"] == "all")].iloc[0]
     assert auc["n_seeds"] == 2 and auc["ci_lo"] <= auc["mean"] <= auc["ci_hi"]
     assert set(out.loc[out["eval_set"] == "ddi_test", "metric"]) == {"binary_auc", "missed_cancer_rate", "false_alarm_rate",
                                                                      "missed_cancer_rate_op90", "false_alarm_rate_op90"}
-    shifted = evaluate.evaluate("e1_tiny", prior_mix="consensus", n_boot=20)
-    assert shifted["exp"].iloc[0] == "e1_tiny+prior_consensus"
-    evaluate.evaluate("e5_f50", n_boot=20)
-    no_sk = evaluate.evaluate("e1_tiny", n_boot=20, drop_diagnoses=["seborrheic keratosis", "NEV"], tag="no_benign")
-    assert no_sk["exp"].iloc[0] == "e1_tiny+no_benign"
-    fa = no_sk[(no_sk["metric"] == "false_alarm_rate") & (no_sk["eval_set"] != "ddi_test")]
-    assert fa["mean"].isna().all()  # no benign left outside DDI (its benign is verruca)
+    assert Path("results/tiny/metrics.csv").exists()
 
-    fusion.main(["--source-exp", "e1_tiny", "--seeds", "0", "1", "--workers", "1"])
-    assert Path("data/features/texture.csv").exists()
-    for name in ("e6_fusion", "e6_embed_mlp", "e6_texture_lr"):
-        evaluate.evaluate(name, n_boot=20)
-
-    report.main(["tables", "--ref", "e1_tiny"])
-    report.main(["gap", "--ref", "e1_tiny", "--exps", "e1_tiny", "e5_f50", "e6_fusion"])
-    report.main(["curve", "--ref", "e1_tiny", "--prefix", "e5_f"])
-    report.main(["confusion", "--exp", "e1_tiny", "--split", "target_test"])
-    assert Path("reports/figures/gap.png").exists() and Path("results/summary.csv").exists()
-    table, _ = lookalike.analyse("e1_tiny", "target_test")
-    assert len(table)
-    p = probe.probe("runs/e1_tiny/s0")
-    assert 0 <= p["acc_mean"] <= 1
+    # training on two splits at once
+    train.main(["--config", "configs/tiny.yaml", "--seed", "0", "--set", "name=tiny_both", "--set",
+                "data.train_splits=[source_train, target_train]", "--set", "train.epochs=1"])
+    both = yaml.safe_load(Path("runs/tiny_both/s0/summary.json").read_text())
+    assert both["n_train"] == m["split"].isin(["source_train", "target_train"]).sum()
 
     from skincancer.analysis import gradcam
-    gradcam.main(["--run", "runs/e1_tiny/s0", "--split", "target_test", "--n", "3"])
+    gradcam.main(["--run", "runs/tiny/s0", "--split", "target_test", "--n", "3"])

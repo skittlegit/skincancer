@@ -1,13 +1,8 @@
-"""Classes, diagnosis-mapping rules, FST buckets and Indian class priors.
-
-The reasoning behind every rule is in DECISIONS.md (D2-D7).
-"""
+"""Classes, diagnosis-mapping rules and FST buckets. The reasoning is in DECISIONS.md."""
 from __future__ import annotations
 
 import math
 import re
-
-import numpy as np
 
 CLASSES = {
     "label_4class": ["bcc", "scc", "mel", "benign"],
@@ -68,7 +63,7 @@ def is_malignant(label) -> bool:
 # ---- skin type -------------------------------------------------------------------
 SOURCE_FST = {1, 2, 3}
 TARGET_FST = {4, 5, 6}
-DDI_BINS = {12: "I-II", 34: "III-IV", 56: "V-VI"}  # D3: DDI keeps its native bins
+DDI_BINS = {12: "I-II", 34: "III-IV", 56: "V-VI"}  # DDI keeps its native bins
 
 
 def clean_fst(value) -> float:
@@ -90,28 +85,3 @@ def fst_bucket(fst) -> str | None:
     if v <= 3:
         return "I-III"
     return "IV" if v == 4 else "V-VI"
-
-
-# ---- Indian priors (D7) -------------------------------------------------------------
-# Share of each cancer among cancers in Indian hospital series (normalised when used).
-INDIAN_MIXES = {
-    "consensus": {"bcc": 45, "scc": 40, "mel": 15},
-    "malwa_punjab": {"bcc": 55, "scc": 37, "mel": 8},
-    "central_india": {"bcc": 41, "scc": 30, "mel": 9},
-    "manipur": {"bcc": 33, "scc": 44, "mel": 14},
-}
-
-
-def indian_prior(classes: list[str], base_prior, mix: str = "consensus") -> np.ndarray:
-    """Keep the benign share of `base_prior`; split the malignant share by the Indian mix."""
-    base = np.asarray(base_prior, dtype=float)
-    base = base / base.sum()
-    m = INDIAN_MIXES[mix]
-    if "nmsc" in classes:
-        m = {"nmsc": m["bcc"] + m["scc"], "mel": m["mel"]}
-    weights = np.array([m.get(c, 0.0) for c in classes], dtype=float)
-    weights = weights / weights.sum()
-    benign = classes.index("benign")
-    out = (1.0 - base[benign]) * weights
-    out[benign] = base[benign]
-    return out

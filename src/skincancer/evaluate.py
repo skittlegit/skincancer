@@ -1,15 +1,13 @@
 """Metrics with CIs for one experiment, from its prediction files only.
 
-    python -m skincancer.evaluate --exp e1_effb0
-    python -m skincancer.evaluate --exp e1_effb0 --prior-mix all      # E4 prior-shift sweep
+    python -m skincancer.evaluate --exp skinnet
 
-Reads runs/<exp>/s*/preds/<split>.csv; writes results/<exp>[+prior_<mix>]/metrics.csv in long
+Reads runs/<exp>/s*/preds/<split>.csv; writes results/<exp>/metrics.csv in long
 format: exp, eval_set, subgroup_col, subgroup, metric, mean, std, ci_lo, ci_hi, n, n_malignant, n_seeds.
 """
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
 import numpy as np
@@ -17,9 +15,9 @@ import pandas as pd
 import yaml
 
 from . import metrics as M
-from .labels import CLASSES, INDIAN_MIXES, indian_prior
+from .labels import CLASSES
 
-# eval set -> (task, subgroup columns). DDI / DermaCon-IN are binary-only (plan, Metrics).
+# eval set -> (task, subgroup columns). DDI / DermaCon-IN are scored cancer vs not only.
 EVAL_SETS = {
     "source_val": ("multiclass", []),
     "source_test": ("multiclass", ["fst_bucket", "dataset", "is_acral"]),
@@ -30,10 +28,11 @@ EVAL_SETS = {
     "midas_test": ("multiclass", ["fst_bucket", "is_acral"]),     # biopsy-proven, Stanford, light skin
     "dermacon_test": ("binary", ["fst_bucket"]),
     "ak_side": ("rates", []),
-    "dermacon_other": ("rates", ["fst_bucket"]),   # non-cancer Indian clinic images (D9)
+    "dermacon_other": ("rates", ["fst_bucket"]),   # non-cancer Indian clinic images
 }
 MIN_SUBGROUP = 10
-OP_SENSITIVITY = 0.90   # D17: operating point fixed on source_val, applied to every set
+OP_SENSITIVITY = 0.90   # operating point: threshold fixed on OP_SPLIT, applied to every set
+OP_SPLIT = "source_val"
 
 
 def load_preds(exp_dir: Path, split: str) -> tuple[list[int], list[pd.DataFrame]]:
@@ -46,16 +45,12 @@ def load_preds(exp_dir: Path, split: str) -> tuple[list[int], list[pd.DataFrame]
     return seeds, frames
 
 
-def run_config(exp_dir: Path) -> tuple[dict, dict[int, np.ndarray]]:
-    """-> (resolved config of the first seed, {seed: effective training prior})."""
+def run_config(exp_dir: Path) -> dict:
+    """Resolved config of the first seed."""
     sdirs = sorted(exp_dir.glob("s*"))
     if not sdirs:
         raise FileNotFoundError(f"no runs under {exp_dir}")
-    cfg_path = sdirs[0] / "config.yaml"
-    cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) if cfg_path.exists() else {}
-    priors = {int(s.name[1:]): np.array(json.loads((s / "train_prior.json").read_text())["effective_prior"])
-              for s in sdirs if (s / "train_prior.json").exists()}
-    return cfg, priors
+    return yaml.safe_load((sdirs[0] / "config.yaml").read_text(encoding="utf-8"))
 
 
 def score_set(split: str, frames: list[pd.DataFrame], manifest: pd.DataFrame, classes: list[str],
@@ -73,7 +68,7 @@ def score_set(split: str, frames: list[pd.DataFrame], manifest: pd.DataFrame, cl
     rows = []
 
     if task == "rates":
-        # D2 / D9: share of images called malignant, and called each class (no true positives).
+        # Share of images called malignant, and called each class (these sets hold no cancers).
         fns = {"pred_malignant_rate": lambda y_, yb, P: float(M.pred_malignant(P, classes).mean())}
         for k, c in enumerate(classes):
             fns[f"pred_{c}_rate"] = lambda y_, yb, P, k=k: float((P.argmax(1) == k).mean())
@@ -104,69 +99,32 @@ def score_set(split: str, frames: list[pd.DataFrame], manifest: pd.DataFrame, cl
     return rows
 
 
-def ensemble_frame(frames: list[pd.DataFrame], classes: list[str]) -> pd.DataFrame:
-    cols = [f"p_{c}" for c in classes]
-    ids = frames[0]["image_id"]
-    P = np.mean([f.set_index("image_id").loc[ids, cols].to_numpy() for f in frames], axis=0)
-    out = pd.DataFrame(P, columns=cols)
-    out.insert(0, "image_id", ids.to_numpy())
-    return out
-
-
 def evaluate(exp: str, runs_dir="runs", results_dir="results", manifest_path=None,
-             prior_mix: str | None = None, n_boot: int = 1000, splits=None,
-             drop_diagnoses: list[str] | None = None, tag: str | None = None,
-             ensemble: bool = False) -> pd.DataFrame:
-    """drop_diagnoses: evaluation-time sensitivity check, e.g. without pyogenic granuloma;
-    results go to results/<exp>+<tag>/. ensemble: average the seeds' probabilities into one
-    prediction (D15); CIs then come from resampling images only; results/<exp>+ens/."""
+             n_boot: int = 1000, splits=None) -> pd.DataFrame:
     exp_dir = Path(runs_dir) / exp
-    cfg, priors = run_config(exp_dir)
+    cfg = run_config(exp_dir)
     label_col = cfg.get("data", {}).get("label_col", "label_4class")
     classes = CLASSES[label_col]
+    cols = [f"p_{c}" for c in classes]
     manifest = pd.read_csv(manifest_path or cfg.get("manifest", "data/manifest.csv"))
-    name = exp if prior_mix is None else f"{exp}+prior_{prior_mix}"
-    if drop_diagnoses:
-        dropped = set(manifest.loc[manifest["diagnosis"].isin(drop_diagnoses), "image_id"])
-        name += f"+{tag or 'drop'}"
-    if ensemble:
-        name += "+ens"
 
-    def prepared(split) -> dict | None:
-        """-> {seed: prediction frame} (or {"ens": frame}) after the requested transforms."""
-        seeds, frames = load_preds(exp_dir, split)
-        if drop_diagnoses:
-            frames = [f[~f["image_id"].isin(dropped)].reset_index(drop=True) for f in frames]
-        if not frames or frames[0].empty:
-            return None
-        if prior_mix is not None:
-            # D7: divide by the effective training prior, multiply by the Indian prior.
-            cols = [f"p_{c}" for c in classes]
-            for seed, f in zip(seeds, frames):
-                pi = priors[seed]
-                f[cols] = M.prior_shift(f[cols].to_numpy(), pi, indian_prior(classes, pi, prior_mix))
-        if ensemble:
-            return {"ens": ensemble_frame(frames, classes)}
-        return dict(zip(seeds, frames))
-
-    # D17: per-seed threshold reaching OP_SENSITIVITY on source_val (same transforms applied).
+    # Per-seed threshold on P(malignant) that catches OP_SENSITIVITY of the cancers in OP_SPLIT.
     thresholds = {}
-    val = prepared("source_val")
-    if val is not None:
-        yb = manifest.set_index("image_id")["label_binary"]
-        thresholds = {k: M.sensitivity_threshold(yb.loc[f["image_id"]].to_numpy(),
-                                                 M.p_malignant(f[[f"p_{c}" for c in classes]].to_numpy(), classes),
-                                                 OP_SENSITIVITY) for k, f in val.items()}
+    seeds, frames = load_preds(exp_dir, OP_SPLIT)
+    yb = manifest.set_index("image_id")["label_binary"]
+    for seed, f in zip(seeds, frames):
+        thresholds[seed] = M.sensitivity_threshold(yb.loc[f["image_id"]].to_numpy(),
+                                                   M.p_malignant(f[cols].to_numpy(), classes), OP_SENSITIVITY)
     rows = []
     for split in splits or EVAL_SETS:
-        frames = prepared(split)
-        if frames is None:
+        seeds, frames = load_preds(exp_dir, split)
+        if not frames or frames[0].empty:
             continue
-        thr = [thresholds.get(k, np.nan) for k in frames]
-        rows += score_set(split, list(frames.values()), manifest, classes, label_col, n_boot, thr)
+        rows += score_set(split, frames, manifest, classes, label_col, n_boot,
+                          [thresholds.get(s, np.nan) for s in seeds])
     out = pd.DataFrame(rows)
-    out.insert(0, "exp", name)
-    odir = Path(results_dir) / name
+    out.insert(0, "exp", exp)
+    odir = Path(results_dir) / exp
     odir.mkdir(parents=True, exist_ok=True)
     out.to_csv(odir / "metrics.csv", index=False)
     return out
@@ -175,21 +133,15 @@ def evaluate(exp: str, runs_dir="runs", results_dir="results", manifest_path=Non
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--exp", required=True, nargs="+")
-    ap.add_argument("--prior-mix", choices=[*INDIAN_MIXES, "all"])
     ap.add_argument("--n-boot", type=int, default=1000)
     ap.add_argument("--runs-dir", default="runs")
     ap.add_argument("--results-dir", default="results")
-    ap.add_argument("--drop-diagnoses", nargs="+", help="sensitivity check, e.g. 'pyogenic granuloma'")
-    ap.add_argument("--tag", help="suffix for --drop-diagnoses results")
-    ap.add_argument("--ensemble", action="store_true", help="score the mean of the seeds' probabilities (D15)")
     args = ap.parse_args(argv)
-    mixes = list(INDIAN_MIXES) if args.prior_mix == "all" else [args.prior_mix]
     for exp in args.exp:
-        for mix in mixes:
-            out = evaluate(exp, args.runs_dir, args.results_dir, prior_mix=mix, n_boot=args.n_boot,
-                           drop_diagnoses=args.drop_diagnoses, tag=args.tag, ensemble=args.ensemble)
-            head = out[(out["subgroup"] == "all") & out["metric"].isin(["macro_auc", "binary_auc", "missed_cancer_rate"])]
-            print(head[["exp", "eval_set", "metric", "mean", "ci_lo", "ci_hi", "n_seeds"]].to_string(index=False))
+        out = evaluate(exp, args.runs_dir, args.results_dir, n_boot=args.n_boot)
+        head = out[(out["subgroup"] == "all")
+                   & out["metric"].isin(["macro_auc", "binary_auc", "missed_cancer_rate_op90"])]
+        print(head[["exp", "eval_set", "metric", "mean", "ci_lo", "ci_hi", "n", "n_seeds"]].to_string(index=False))
 
 
 if __name__ == "__main__":

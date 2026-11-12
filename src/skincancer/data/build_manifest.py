@@ -30,11 +30,11 @@ def attach_labels(meta: pd.DataFrame, label_map: pd.DataFrame) -> pd.DataFrame:
                          f"build_label_map and review:\n{missing.head(20).to_string()}")
     df["label_3class"] = df["label_4class"].map(TO_3CLASS)
     binary = df["label_4class"].map(lambda l: 1.0 if l in MALIGNANT else (0.0 if l == "benign" else np.nan))
-    # DDI: biopsy flag is the binary truth for every image (D9).
+    # DDI: biopsy flag is the binary truth for every image.
     ddi = df["dataset"] == "ddi"
     df["label_binary"] = np.where(ddi, df["malignant_flag"], binary)
     # DermaCon-IN non-cancer clinic images (not lookalikes, not rare cancers) -> binary 0 for
-    # the dermacon_other false-alarm set (D9).
+    # the dermacon_other false-alarm set.
     other = (df["dataset"] == "dermacon_in") & (df["label_4class"] == "exclude")
     df.loc[other, "label_binary"] = 0.0
     return df
@@ -47,14 +47,14 @@ def exclusion_reason(row, root: Path) -> str | float:
         if isinstance(row["qc"], str) and row["qc"].strip().startswith("3"):
             return "qc_wrong_label"            # Fitzpatrick17k QC: "3 Wrongly labelled"
         if pd.isna(row["fst"]):
-            return "unknown_fst"               # D4
+            return "unknown_fst"
     if row["dataset"] == "ddi":
         return np.nan                          # all DDI images are scored (binary)
     if row["dataset"] == "dermacon_in":
         if isinstance(row["qc"], str) and row["qc"].strip().lower().startswith("no"):
             return "quality_insufficient"
         if row["label_4class"] == "exclude":
-            return np.nan                      # kept for dermacon_other (D9)
+            return np.nan                      # kept for dermacon_other
     if row["label_4class"] not in TRAINABLE and row["label_4class"] != "ak":
         return f"label_{row['label_4class']}"
     return np.nan

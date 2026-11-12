@@ -1,4 +1,4 @@
-"""Metrics, group bootstrap over seeds (D8) and prior-shift correction (D7).
+"""Metrics and the group bootstrap over seeds.
 
 Everything here works on arrays: y (class index, -1 = not in the class set), y_bin
 (1 malignant / 0 benign / nan), P (n x K probabilities), and the class list.
@@ -22,7 +22,7 @@ def auc(y: np.ndarray, score: np.ndarray) -> float:
 
 
 def macro_auc(y: np.ndarray, P: np.ndarray) -> float:
-    """Macro one-vs-rest AUC over classes present in y (D8). Rows with y = -1 are dropped."""
+    """Macro one-vs-rest AUC over classes present in y. Rows with y = -1 are dropped."""
     keep = y >= 0
     y, P = y[keep], P[keep]
     vals = [auc(y == k, P[:, k]) for k in range(P.shape[1]) if 0 < (y == k).sum() < len(y)]
@@ -51,7 +51,7 @@ def false_alarm_rate(y_bin, P, classes) -> float:
 
 
 def sensitivity_threshold(y_bin, p_mal, sens: float) -> float:
-    """Largest threshold t with share(p_mal >= t | malignant) >= sens (D17)."""
+    """Largest threshold t with share(p_mal >= t | malignant) >= sens."""
     s = np.sort(np.asarray(p_mal)[np.asarray(y_bin) == 1])[::-1]
     if not len(s):
         return np.nan
@@ -128,13 +128,6 @@ def bootstrap(fns: dict, y, y_bin, Ps: list[np.ndarray], groups, n_boot: int = 1
             "n_boot_valid": int(len(bs)),
         }
     return out
-
-
-def prior_shift(P: np.ndarray, pi_from, pi_to) -> np.ndarray:
-    """p_new(y|x) ∝ p(y|x) * pi_to(y) / pi_from(y), renormalised (Saerens et al. 2002)."""
-    w = np.asarray(pi_to, float) / np.asarray(pi_from, float)
-    Q = P * w[None, :]
-    return Q / Q.sum(1, keepdims=True)
 
 
 def confusion(y, P, k: int) -> np.ndarray:

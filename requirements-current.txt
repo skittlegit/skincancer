@@ -1,6 +1,6 @@
-# Newest mutually compatible versions, installed in .venv on 2026-11-08 (Windows, Python 3.12, CPU). See D28.
+# Exact versions installed in .venv on 2026-11-08 (Windows, Python 3.12, CPU). The environment also
+# holds packages the earlier experiments needed; requirements.txt lists what the code uses now.
 #   pip install -r requirements-current.txt --extra-index-url https://download.pytorch.org/whl/cpu && pip install -e . --no-deps
-# These are NOT the versions the reported results were produced with: requirements-lock.txt is (D24).
 albucore==0.0.24
 albumentations==2.0.8
 annotated-types==0.8.0

@@ -1,4 +1,4 @@
-"""Assign every manifest row to a split and freeze the result in data/splits/ (D1, D4, D9).
+"""Assign every manifest row to a split and freeze the result in data/splits/.
 
     python -m skincancer.data.make_splits
 
@@ -91,27 +91,6 @@ def grouped_split(df: pd.DataFrame, names: list[str], fractions: list[float], se
     return df["group_id"].map(assign)
 
 
-def nested_fractions(train: pd.DataFrame, fractions: list[int], seed: int) -> dict[int, list[str]]:
-    """Nested subsets (10 ⊂ 25 ⊂ 50) of target_train, by group, stratified by class."""
-    rng = np.random.default_rng(seed)
-    gl = train.groupby("group_id").agg(label=("label_4class", lambda s: s.mode().iloc[0]),
-                                       n=("image_id", "size"))
-    order = []
-    for _, g in gl.groupby("label"):
-        ids = g.index.to_numpy()
-        rng.shuffle(ids)
-        sizes = g.loc[ids, "n"].to_numpy()
-        order.append((ids, np.cumsum(sizes) / sizes.sum()))
-    out = {}
-    for f in sorted(fractions):
-        keep = set()
-        for ids, cum in order:
-            k = int(np.searchsorted(cum, f / 100.0)) + 1   # at least one group per class
-            keep.update(ids[:k])
-        out[f] = train.loc[train["group_id"].isin(keep), "image_id"].tolist()
-    return out
-
-
 def make(manifest: pd.DataFrame, cfg: dict, groups: pd.DataFrame | None = None):
     df = manifest.copy()
     if groups is not None:
@@ -132,12 +111,7 @@ def make(manifest: pd.DataFrame, cfg: dict, groups: pd.DataFrame | None = None):
     n_dark = (df["split"] == "pad_dark_test").sum()
     if 0 < n_dark < sp["min_pad_dark"]:
         df.loc[df["split"] == "pad_dark_test", ["split", "exclude_reason"]] = ["excluded", "pad_dark_too_small"]
-    fractions = {}
-    target_train = df[df["split"] == "target_train"]
-    if len(target_train):
-        for s in sp["e5_seeds"]:
-            fractions[s] = nested_fractions(target_train, sp["e5_fractions"], seed=sp["seed"] + 1000 + s)
-    return df.drop(columns="pool"), fractions
+    return df.drop(columns="pool")
 
 
 EXTERNAL_TEST = {"ddi_test", "dermacon_test", "dermacon_other", "pad_dark_test", "midas_test"}
@@ -153,14 +127,11 @@ def check_no_leakage(df: pd.DataFrame) -> None:
     assert bad.empty, f"{len(bad)} groups appear in more than one split: {bad.head().to_dict()}"
 
 
-def write(df: pd.DataFrame, fractions: dict, cfg: dict) -> None:
+def write(df: pd.DataFrame, cfg: dict) -> None:
     out = Path(cfg["splits_dir"])
-    (out / "e5").mkdir(parents=True, exist_ok=True)
+    out.mkdir(parents=True, exist_ok=True)
     for split, g in df[df["split"] != "excluded"].groupby("split"):
         g[["image_id"]].to_csv(out / f"{split}.csv", index=False)
-    for seed, fr in fractions.items():
-        for f, ids in fr.items():
-            pd.DataFrame({"image_id": ids}).to_csv(out / "e5" / f"target_train_f{f}_s{seed}.csv", index=False)
     table = pd.crosstab(df["split"], df["label_4class"], margins=True)
     (out / "SUMMARY.md").write_text("# Split summary\n\n```\n" + table.to_string() + "\n```\n",
                                     encoding="utf-8")
@@ -175,10 +146,10 @@ def main(argv=None):
     groups = pd.read_csv(cfg["groups"]) if Path(cfg["groups"]).exists() else None
     if groups is None:
         print("WARNING: no groups.csv — run dedup first; splitting by patient/image only")
-    df, fractions = make(manifest, cfg, groups)
+    df = make(manifest, cfg, groups)
     check_no_leakage(df)
     df.to_csv(cfg["manifest"], index=False)
-    write(df, fractions, cfg)
+    write(df, cfg)
     print(pd.crosstab(df["split"], df["label_4class"], margins=True).to_string())
 
 

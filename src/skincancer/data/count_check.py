@@ -1,4 +1,4 @@
-"""Week-2 count check: images per class x FST bucket x split, and the D6 merge rule.
+"""Count check: images per class x FST bucket x split, and the BCC + SCC merge rule.
 
     python -m skincancer.data.count_check
 """
@@ -10,7 +10,7 @@ import pandas as pd
 
 from ..config import load_data_config
 
-MIN_SCC_TARGET_TEST = 15  # D6
+MIN_SCC_TARGET_TEST = 15
 
 
 def report(m: pd.DataFrame) -> tuple[str, bool]:
@@ -22,11 +22,11 @@ def report(m: pd.DataFrame) -> tuple[str, bool]:
     lines.append("\n## Exclusions")
     lines.append(m["exclude_reason"].value_counts().to_string())
     acral = used[(used["is_acral"] == True) & (used["label_4class"] == "mel")]  # noqa: E712
-    lines.append(f"\nAcral melanoma images (approximate, D9): {len(acral)}")
+    lines.append(f"\nAcral melanoma images (approximate): {len(acral)}")
     scc = int(((used["split"] == "target_test") & (used["label_4class"] == "scc")).sum())
     merge = scc < MIN_SCC_TARGET_TEST
     lines.append(f"\nSCC images in target_test: {scc} (threshold {MIN_SCC_TARGET_TEST}) -> "
-                 + ("MERGE: set data.label_col: label_3class in configs/base.yaml and record it in DECISIONS.md D6"
+                 + ("MERGE: set data.label_col: label_3class in configs/skinnet.yaml and record it in DECISIONS.md"
                     if merge else "keep 4 classes"))
     return "\n".join(lines), merge
 

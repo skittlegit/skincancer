@@ -1,0 +1,38 @@
+# SkinNet trained from random weights. The recipe is fixed in DECISIONS.md (Training);
+# change it there first. `--set key=value` overrides any field for a one-off run.
+extends: data.yaml
+
+name: skinnet                  # runs go to runs/<name>/s<seed>/
+seed: 0
+runs_dir: runs
+results_dir: results
+
+data:
+  label_col: label_4class      # bcc / scc / mel / benign
+  train_splits: [source_train] # manifest splits to train on
+  val_splits: [source_val]     # picks the checkpoint and stops training; never a test split
+  img_size: 224
+  resize_short: 256            # evaluation: shorter side to 256, centre crop 224
+
+model:
+  width: 32                    # channels of the first stage; doubles every stage
+  depths: [2, 2, 2, 2]         # residual blocks per stage
+  drop: 0.3                    # dropout before the final linear layer
+
+train:
+  epochs: 150
+  warmup_epochs: 5             # linear warm-up, then cosine decay to zero
+  patience: 30                 # stop after this many epochs without a better val AUC (0 = never)
+  lr: 1.0e-3                   # AdamW, every layer
+  weight_decay: 0.05
+  label_smoothing: 0.1
+  class_weighting: balanced    # balanced | none
+  batch_size: 32
+  num_workers: 4
+  amp: true                    # mixed precision, GPU only
+
+eval:
+  # Predicted automatically after training. Test-only sets (ddi_test, dermacon_test,
+  # dermacon_other, pad_dark_test, midas_test) are never here: they go through `predict --final`.
+  splits: [source_val, source_test, target_val, target_test, ak_side]
+  tta: false                   # average over the four flips when predicting

@@ -1,237 +1,92 @@
 # Decisions
 
-Settled protocol choices that the semester plan left open or got wrong. Where this file and the plan disagree, this file wins; the code enforces every rule below. Changing a decision means changing it here, in the code, and re-running whatever it touches.
+The rules this project runs by. The code enforces them. Changing a rule means changing it here, in the code, and re-running whatever it touches.
 
-## D1. Two validation sets, with fixed jobs
+## 1. Fresh start (12 Nov 2026)
 
-The plan early-stopped every model on the FST IV–VI validation split. For E1 that leaks target labels into the "source-only" model and understates the gap.
+The project was restarted on 12 Nov 2026. The classifier is now one convolutional network of our own (SkinNet), trained from random weights. Nothing in it is pretrained and no layer is frozen.
 
-| Split | Size | Used for |
+- Everything from before the restart was removed from the working tree: the pretrained-backbone fine-tuning runs, image-processing ablation, Indian-prior loss, texture fusion, Deep CORAL, Derm Foundation heads, model ensembles, the "not a tumour" gates, and their results, figures and write-ups.
+- That work is kept in git under the tag `pre-fresh-start` (`git checkout pre-fresh-start`). Its local run folders, results and figures were moved to `archive/pre-fresh-start/`, which git ignores.
+- The data foundation is unchanged: the label map, manifest, near-duplicate groups and splits are the same files as before. Sections 2 to 4 restate the rules they were built with.
+- The ledger of test-set looks starts empty. The test sets themselves are not new: the earlier experiments were scored on them, and those scores were seen. No choice in this file was made from them.
+
+## 2. Classes and labels
+
+Four classes: `bcc`, `scc`, `mel`, `benign`. The first three are malignant.
+
+- **Diagnosis mapping.** Ordered rules in `src/skincancer/labels.py` map each dataset's diagnosis strings. `data/label_map.csv` holds every (dataset, diagnosis) pair with its label, was reviewed row by row ([docs/LABEL_MAP_REVIEW.md](docs/LABEL_MAP_REVIEW.md)), and is the source of truth. `build_manifest` refuses to run if a diagnosis is unmapped.
+- **Benign means tumour lookalikes only:** melanocytic nevi of all kinds, seborrheic keratosis (and dermatosis papulosa nigra), dermatofibroma, solar lentigo, pyogenic granuloma.
+- **Actinic keratosis is not benign.** It is precancerous, so it is never trained on. AK images form the `ak_side` set, where we report the share the model calls malignant.
+- **Excluded:** rare cancers (Kaposi sarcoma, DFSP, mycosis fungoides, Merkel cell and others), non-melanocytic "nevi", and everything Fitzpatrick17k marks non-neoplastic. Bowen's disease counts as SCC.
+- **Unknown skin type is dropped** from the trainable pools, as are Fitzpatrick17k rows its own QC marked as wrongly labelled.
+- **BCC + SCC merge rule.** `count_check` recommends three classes (`nmsc / mel / benign`) if `target_test` holds fewer than 15 SCC images. It holds 23, so four classes are kept.
+
+## 3. Splits
+
+Frozen in `data/manifest.csv` (`split` column) and `data/splits/`. Nobody re-splits.
+
+| Split | Images | What it is |
 | --- | --- | --- |
-| `source_val` | 15% of the FST I–III pool | Early stopping / checkpoint choice for every model trained on source labels only: E1, E3, E4, E6, E7 |
-| `target_val` | 20% of the FST IV–VI pool | Early stopping for models trained on target labels (E5 fine-tuning); picking between finished methods (CORAL λ, E3 combination, what goes into E8) |
-| test splits | — | Never used to choose anything |
-
-- Source pool (FST I–III) splits 70 / 15 / 15 train / val / test. Target pool (FST IV–VI) splits 60 / 20 / 20, as in the plan.
-- **CORAL λ:** chosen on `target_val`, which uses target labels for selection only. So that the "zero labels" claim stays honest, E7 also reports the untuned λ from the Deep CORAL paper's balancing rule (λ ≈ 1000 here, see D13) as the strictly label-free number.
-- E7 early-stops on `source_val`, so its checkpoint choice never sees a target label.
-
-## D2. Actinic keratosis is not "benign"
-
-AK is precancerous, and SCC vs AK is a real clinical confusion. Putting it in the benign class would blur the missed-cancer metric.
-
-- AK images (PAD-UFES-20 `ACK`, Fitzpatrick17k actinic keratosis) are never trained on.
-- They keep `label_4class = ak` and go to the `ak_side` split. Every model is scored on it, and we report the % of AK images it calls malignant (and which cancer) as a side analysis.
-- Related: Bowen's disease (SCC in situ) counts as SCC; PAD-UFES-20 already merges it. Keratoacanthoma maps to SCC but is flagged for review in the label map. Porokeratosis is not AK despite the "actinic" in some of its names, and is excluded.
-
-## D3. FST buckets: I–III / IV / V–VI
-
-The plan's I–II / III–IV / V–VI buckets put training-domain FST III next to target-domain FST IV.
-
-- Fitzpatrick17k, PAD-UFES-20 and DermaCon-IN are reported in **I–III (source) / IV / V–VI**.
-- DDI only provides 3 bins (12 / 34 / 56), so it is reported in its native **I–II / III–IV / V–VI**, and the headline DDI number is V–VI only. No other DDI bucket is compared directly with a Fitzpatrick17k bucket.
-
-## D4. Unknown skin type is dropped from training
-
-- Fitzpatrick17k `fitzpatrick_scale = -1` and PAD-UFES-20 rows with no `fitspatrick` value are excluded (`exclude_reason = unknown_fst`) and counted in the data report.
-- PAD-UFES-20 rows with FST IV–VI are not added to target training. They form a separate test-only set, `pad_dark_test` (biopsy-confirmed, a different country and different cameras), reported only if it has at least 20 images.
-- Fitzpatrick17k rows that the dataset's own QC marked as wrongly labelled are excluded.
-
-## D5. Label map: rules first, then a committed human review
-
-Diagnosis strings are mapped by ordered rules in `src/skincancer/labels.py`. `build_label_map` writes every distinct (dataset, diagnosis) pair to `data/label_map.csv` with the label it got and a `needs_review` flag. The team checks every row (all of them, not only the flagged ones), edits the file, and commits it. After that the file is the source of truth: `build_manifest` refuses to run if any diagnosis is unmapped, and re-running `build_label_map` only adds new rows.
-
-What goes in each class:
-- **bcc / scc / mel:** every subtype of each (morpheiform BCC, lentigo maligna, superficial spreading melanoma and so on).
-- **benign (lookalikes only):** melanocytic nevi of all kinds (including acral, blue, halo, congenital, dysplastic), seborrheic keratosis and its darker-skin variant dermatosis papulosa nigra, dermatofibroma, solar lentigo, and pyogenic granuloma (an amelanotic melanoma / SCC lookalike; flagged).
-- **exclude:** rare cancers (Kaposi sarcoma, DFSP, sebaceous carcinoma, mycosis fungoides, Merkel cell), non-melanocytic "nevi" (sebaceous, epidermal, Becker's, comedonicus, flammeus, depigmentosus, anemicus, lipomatosus; flagged), and everything Fitzpatrick17k marks non-neoplastic.
-
-Status (14 Oct 2026): first-pass review of all 443 rows done (`review_note` column); team confirmation pending. Pyogenic granuloma is about a third of Fitzpatrick17k's benign class, so it gets an evaluation-time sensitivity check (`evaluate --drop-diagnoses`).
-
-## D6. BCC + SCC merge rule
-
-`count_check` recommends the 3-class view (`nmsc / mel / benign`) when `target_test` would hold **fewer than 15 SCC images**: one-vs-rest AUC on fewer positives than that is noise. The decision is made once in week 2 and recorded here. Switching is one config line (`data.label_col: label_3class`).
-
-> **On the partial download (14 Oct 2026, development only):** SCC in target_test = 16 (≥ 15), so `label_col = label_4class`. It was a near miss, so the rule is re-applied on the full set (D21).
-
-**Partial download used during development (superseded by D21):** Fitzpatrick17k 1,919 of 4,491 neoplastic images (Atlas 1,083 + Wayback 836, all MD5-verified), PAD-UFES-20 complete, DDI complete, DermaCon-IN complete. Splits: source 1255 / 271 / 271, target 152 / 51 / 51, DDI 656, DermaCon-IN 65 + 5,379 non-cancer, pad_dark_test 60, ak_side 246. Twelve DermaCon-IN patients appear in both `dermacon_test` and `dermacon_other`. Both are external test sets, so nothing leaks, but don't pool the two sets.
-
-## D7. How class priors work (E4)
-
-- The Indian case series only describe the mix *among cancers*. So the Indian prior **keeps the benign share at its training value** and splits the malignant share 45 : 40 : 15 (BCC : SCC : MEL), or by one of the published series in the sensitivity sweep (Malwa, central India, Manipur; normalised).
-- Prior-shift correction divides by the **effective** training prior, not the raw class counts. A model trained with class-balanced loss behaves as if the prior were uniform, so dividing by the raw counts would correct twice. Each run saves its effective prior in `train_prior.json`.
-- The weighted-loss variant runs on the consensus mix only (3 seeds). The full sensitivity sweep uses prior-shift correction, which needs no retraining.
-
-## D8. Statistics
-
-- Bootstrap: 1,000 resamples **by group** (`group_id` = patient where known, otherwise near-duplicate cluster), percentile 95% CI.
-- Seeds: every resample is scored on all 3 seeds with the same indices and averaged. So the CI covers test-set sampling of the seed-mean, and `std` reports seed-to-seed spread.
-- Macro AUC skips any class with no positives in a subgroup and records which classes went in. A subgroup with fewer than 2 scorable classes reports NaN.
-
-## D10. Near-duplicate thresholds (calibrated on real pairs, 14 Oct 2026)
-
-Calibration used ~4,000 real images (PAD-UFES-20, DDI, the Fitzpatrick17k images available then), with sampled pairs checked by eye at each distance.
-- **pHash Hamming ≤ 2.** d = 0–2 were always true duplicates. At d = 4–6, unrelated "small brown papule on plain skin" images collide, including a PAD-UFES-20 nevus and a DDI nevus.
-- **Embedding cosine ≥ 0.90** (ImageNet EfficientNet-B0). Every pair at or above 0.90 was the same lesion: re-crops, watermarked copies, or a second photo of the same lesion. All of them were within one dataset. Below ~0.89, pairs are merely similar-looking skin.
-- A group is the union of: same patient, pHash ≤ 2, and cosine ≥ 0.90.
-
-## D11. Stage-2 learning rate: 3e-5, not 1e-5
-
-Chosen on `source_val` only (pilot split, EfficientNet-B0, seed 0, 14 Oct 2026). Best source_val macro AUC: 1e-5 → 0.858 (epoch 30 of 35, still rising at the cap); 3e-5 → 0.866 (epoch 17); 1e-4 → 0.867 (epoch 13). The AUC differences are within noise. The deciding factor is that 1e-5 doesn't converge within the epoch budget. 3e-5 was preferred to 1e-4 because it is gentler on the small E5 fine-tuning sets. The head learning rate stays at 1e-4. Applies to every config (base, ResNet50, E5).
-
-## D12. Lesion crop: tuned on training images only; failure rate judged by eye
-
-- **First version:** latched onto white rulers, dark clothing or background, and hair in ~10% of crops.
-- **Fixes:**
-  - mask bright, colourless pixels (rulers, paper) anywhere;
-  - mask very dark pixels only where they touch the image border (background, clothing), so a dark central melanoma is never masked;
-  - a 9 px opening to remove thin hairs;
-  - minimum lesion area 0.2% of the image instead of 1%.
-- **Tuning data:** contact sheets sample `source_train` / `target_train` only. Looking at test images to tune would be test-set peeking, and DDI's terms forbid showing its images.
-- **After the fixes,** ~5 of 60 training crops (~8%) are off target, mostly wide face shots where the lesion is tiny. The automatic fallback (`crop_ok`) almost never triggers, so it under-reports failures. E3 therefore reports the **by-eye failure rate on 100 training crops**, not `crop_ok`.
-
-## D13. CORAL λ grid: {100, 1000, 10000}, not {0.1, 1, 10}
-
-With 1280-d EfficientNet-B0 features and the paper's 1/(4d²) normalisation, the CORAL loss in the pilot sat at ~3×10⁻⁴, against a cross-entropy of 0.4–1.2. At λ = 1 the alignment term is ~0.1% of the loss, so the plan's grid would have tested a method that does nothing, three times over. Sun & Saenko (2016) choose λ so the two losses are about equal at the end of training, which gives λ ≈ 1000 here (0.37 / 3.5×10⁻⁴). The grid is that value ×0.1, ×1 and ×10. λ = 1000 is the untuned, label-free setting: the rule uses only source labels and unlabelled target images.
-
-## D9. Small protocol details
-
-- **E5 fractions are nested.** For each seed, 10% ⊂ 25% ⊂ 50% ⊂ 100% of `target_train`, sampled by group and stratified by class. The 0% point is E1 itself.
-- **E6 needs a fair control.** Besides the plan's fusion MLP and texture-only LR, an embedding-only MLP with the same head is trained, so a gain from fusion can't just be an MLP-vs-linear-head gain. Texture is computed after colour constancy, CLAHE and lesion crop. The plan's specification gives **78 features**, not ~130: LBP 2×10, GLCM 4 props × 4 angles, Gabor 12 filters × 2 stats, colour 6 channels × 3 stats.
-- **Lookalike confusion.** The model has a single benign class, so the analysis reads both ways: which *benign diagnoses* get called which cancer, and how many cancers of each type get called benign. It is reported per FST bucket, together with the highest-confidence error examples.
-- **Pilot disclosure (14 Oct 2026).** Pilot runs on partial data (`runs/pilot`, `data/pilot`) scored `source_test` and `target_test` to validate the pipeline. Their numbers were seen, but no decision was based on them: D11 used source_val, D12 training images, D13 loss magnitudes. No pilot model was ever scored on DDI, DermaCon-IN or pad_dark_test. From then on, method choices use validation splits only.
-- **Test-only sets (DDI, DermaCon-IN, pad_dark_test)** are scored only through `predict --final`, which appends to `runs/final_ledger.csv` and refuses to score the same run on the same set twice.
-- **DDI binary scope.** All DDI images are used, with DDI's own `malignant` flag. Every DDI lesion was biopsied, so every benign one is by definition a lookalike. DDI's terms forbid redistributing images, so DDI images never appear in figures; only metrics are reported.
-- **DermaCon-IN** (19 cancers, 46 benign lookalikes): `dermacon_test` holds the images mapped to the 4 classes and gives a binary AUC (wide CIs) plus the lookalike false-alarm rate. `dermacon_other` holds the ~5,300 non-cancer clinic images (inflammatory, infectious, pigmentary and so on). For those, only the share called malignant is reported: the false-alarm rate on an everyday Indian dermatology caseload. Images DermaCon-IN marks as insufficient quality are excluded.
-- **Acral.** PAD-UFES-20 `HAND` / `FOOT` is flagged `is_acral`, but this is approximate: palm and dorsum are not told apart. Fitzpatrick17k and DDI are flagged when the diagnosis name says acral (DDI has 7 acral lentiginous melanomas). Fewer than 10 acral melanomas means counts only.
-- **Fitzpatrick17k images.** DermaAmin's links are dead. The Wayback Machine holds 837 of the 3,408 DermaAmin neoplastic images, and every recovered file is MD5-checked against the dataset's `md5hash`, so it is byte-identical to the original. The authors then sent the full image set (D21), which every result uses.
-
-## D14. E8 drops image processing (14 Oct 2026)
-
-Picked autonomously per the standing instruction (pick the recommended option mid-run). E3 on target_val macro AUC: E1 0.891, cc 0.881, clahe 0.889, crop 0.883, all 0.820. No variant beats the baseline, so E8 is built from E4/E5/E6/E7 components only, again chosen on target_val. The external-test differences (DDI V–VI 0.50 → 0.53) were not used for this choice.
-
-## D15. Stronger-baseline arms (14 Oct 2026)
-
-Added at the team's request after E3, each pre-specified as one arm, compared with E1 on source_val / target_val only and scored once on the test-only sets (ledger):
-- **Seed ensemble** (`evaluate --ensemble`, results/<exp>+ens): mean of the three seeds' probabilities. CIs come from the group bootstrap over images only (one prediction). Computed from the already-saved predictions; no test set is predicted again.
-- **E1-strong** (`configs/e1_effb0_320.yaml`): the E1 recipe at 320 px (resize 366, same 0.875 crop ratio) with flip TTA (mean softmax over identity, horizontal, vertical and both flips) for saved predictions. Early stopping stays without TTA. Size and TTA are one arm, not ablated on test sets.
-- **E1-FM** (`skincancer.foundation`): frozen Google Derm Foundation embeddings (6144-d, 448 px short-side resize + centre crop) with (a) the E6 MLP head, seeds 0–2, directly comparable with e6_embed_mlp; and (b) a class-balanced linear probe with C ∈ {0.001, 0.01, 0.1, 1} picked on source_val macro AUC. Embeddings are computed in a separate TensorFlow venv (.venv-tf) and kept local (gitignored), since DDI embeddings are derivatives.
-- HAM10000/ISIC are not added: they are dermoscopy, a different modality from every test set. Derm7pt *clinical* images (CC BY-NC-ND) are added as training-only extra data (D16).
-- New arms are also scored on midas_test from the start (FINAL in scripts/run_extras.sh).
-
-## D17. Missed-cancer and false-alarm rates at a fixed operating point (14 Oct 2026)
-
-Argmax rates move with calibration and class weighting (the E1 seed ensemble has the same DDI V–VI AUC as the seed mean but misses 58% instead of 51%), so they don't compare methods fairly. Every experiment now also reports `missed_cancer_rate_op90`, `false_alarm_rate_op90` and, for the no-cancer sets, `pred_malignant_rate_op90`. Per seed, the threshold on p(malignant) is the one that catches 90% of cancers in that seed's source_val predictions, after the same prior shift or ensembling as the set being scored. It is then applied unchanged to every set. A 90% sensitivity target is a common triage operating point; it is fixed here and not tuned. The argmax rates stay in the tables. This is an evaluation-only addition, made under the standing instruction to improve in scope.
-
-## D16. Derm7pt as training-only extra data (14 Oct 2026)
-
-Derm7pt (Kawahara et al., IEEE JBHI 2019; CC BY-NC-ND 4.0; academic use, no redistribution) has one clinical (non-dermoscopic) photo for each of 1,011 cases from an Italian dermoscopy atlas. Only those clinical photos are used. It fills the two thinnest training classes: the partial-download source_train had 128 melanomas and 143 benign. Rules:
-- **Outside the frozen manifest.** Rows live in `data/extra/derm7pt.csv` (gitignored; rebuilt by `python -m skincancer.data.extra derm7pt`) with split `source_train_extra`, and `configs/e1_effb0_d7.yaml` opts in with `data.extra_train`. data/manifest.csv, groups.csv and every validation and test split are unchanged, so `e1_effb0_d7` compares directly with `e1_effb0`. Early stopping stays on source_val.
-- **Skin type.** Derm7pt has no Fitzpatrick labels. The Italian clinic population is taken as FST I–III (`fst_bucket` = "I-III (assumed)"). This is a deliberate exception to D4, which drops unknown FST, and it is allowed because these images are never evaluated.
-- **Labels.** The existing rules apply. "melanoma metastasis" (4) is excluded as not a primary skin lesion; vascular lesion (29), melanosis (16) and miscellaneous (8) map to exclude by default.
-- **Leakage.** Any Derm7pt image within pHash ≤ 2 or embedding cosine ≥ 0.90 (D10) of any evaluation image (every split except source_train / target_train) is dropped.
-- **No images in figures or the repo** (licence: no redistribution, no derivatives).
-
-## D18. E5 re-run with equal optimizer steps per fraction (14 Oct 2026)
-
-**Bug in the first E5 run.** Batch size 32 with `drop_last=True` gave the 10% subsets (17–18 images) zero gradient steps, and the 25% / 50% subsets 1–2 steps per epoch. Their best checkpoint was therefore the E1 model, and those points of the curve measure nothing. Found from the training logs (loss 0.0, n_train 18), not from any test result.
-
-**Fix.** `train.steps_per_epoch` draws a fixed number of batches per epoch, cycling through the subset with fresh augmentation; a set smaller than one batch becomes one batch. E5 uses 5 steps per epoch for every fraction (≈ one pass over the full 152-image target_train), so the curve compares the amount of target data at equal training compute, the standard learning-curve setup. Everything else (init from E1, one stage, LR, early stopping on target_val) is unchanged.
-
-**Naming and test sets.** The corrected runs are new experiments, `e5s_f10…f100` (`configs/e5_finetune_steps.yaml`), each scored once on the test sets. The old `e5_f*` results stay in results/ and runs/final_ledger.csv for the record, marked as superseded, and are not used for E8 or reported as E5.
-
-## D19. E8 composition, chosen on target val (14 Oct 2026)
-
-Picked autonomously per the standing instruction, using target_val macro AUC only (seed mean). E1 scored 0.891. The candidates:
-
-| | E3 best (CLAHE) | E4 Indian loss | E5s 100% | E6 fusion | E7 CORAL best (λ = 1000) |
-| --- | --- | --- | --- | --- | --- |
-| Target val macro AUC | 0.889 | 0.895 | **0.933** | 0.879 | 0.883 |
-
-Components that beat E1 are E5 fine-tuning (clearly) and E4 Indian-prior weighting (marginally, +0.004). E8 = the E5 recipe (equal steps, 100% target_train, init from the source-only model of the same backbone and seed) + Indian-prior weighted loss. `configs/e8_combined.yaml` (EfficientNet-B0) and `configs/e8_r50.yaml` (ResNet50, layer4 unfrozen as in e1_r50). Each is scored once on the test sets. Preprocessing (D14), fusion and CORAL are left out because none of them beat E1 on target val. Their external-set trends (E7 on DDI V–VI) were not used for this choice.
-
-## D20. Derm Foundation + target data arm (15 Oct 2026)
-
-Added under the standing instruction to improve in scope: `e5_fm_lr` asks E5's question on the Derm Foundation backbone. It is the linear probe trained on source_train + target_train, with C ∈ {1e-4, 1e-3, 1e-2, 1e-1} picked on target_val, since it is target-trained (D1). The grid extends one step below e1_fm_lr's, because that probe chose its grid edge. It is scored once on the test sets like every other arm. It needs only minutes, since the embeddings are cached.
-
-## D21. One dataset: the full Fitzpatrick17k image set (16 Oct 2026)
-
-The authors sent the complete image set: 16,577 JPEGs, one per CSV row, each named by its MD5. 40 of 40 sampled files hash to their names, and 300 of 300 of our earlier downloads are byte-identical to the authors' copies. So the full set strictly adds images.
-
-- **One version only.** Every reported result comes from the full set. The runs on the partial download (1,919 of 4,491 neoplastic images, 14–15 Oct) were development runs. They shaped the protocol fixes logged in D13–D20, which are kept, but their results are retired and not reported. They remain in git history under the tag `data-v1`. Numbers quoted inside D6–D20 are from those development runs and only explain why each rule was made.
-- **Rebuilt from scratch, same rules.** Label map (unchanged: all 114 Fitzpatrick17k diagnoses were already reviewed), manifest, dedup (D10 thresholds), splits (same seed and fractions) and count check (the D6 rule re-applied). The test-set ledger starts empty, so every run is scored once. Derm7pt's training-only list is rebuilt against the new evaluation splits (D16).
-- **The protocol fixes are built in from the start.** These are E5 with equal steps (D18; `steps_per_epoch: auto` = one pass over the full target_train), MIDAS in every block's test sets, the operating-point metrics (D17) and the memory fixes.
-- **Choices are re-made on the new validation sets.** E3's preprocessing (D14), CORAL's λ (D13) and E8's composition (D19) are re-chosen on target_val by the same rules. The development run's choices are not carried over.
-
-## D22. E8 keeps no image processing, re-chosen on the full set (16 Oct 2026)
-
-D14's rule re-applied (picked autonomously). E3 on target_val macro AUC, 3 seeds each: E1 0.916, colour constancy 0.917, CLAHE 0.896, crop 0.897, all three 0.895. Colour constancy's +0.001 is far inside the CI (0.87–0.96) and below its own seed-to-seed spread, so it does not count as beating the baseline; the simpler pipeline is kept. E8 is again built from E4/E5/E6/E7 components only. External-test results (e.g. CLAHE's DDI V–VI 0.55) were not used.
-
-## D23. CORAL λ and E8 composition, re-chosen on the full set (17 Oct 2026)
-
-Picked autonomously per the standing instruction, D13/D19 rules re-applied, target_val macro AUC only (seed mean, 3 seeds each). E1 scored 0.916.
-
-| | E3 best (colour constancy) | E4 Indian loss | E5s 100% | E6 fusion | E7 CORAL λ = 100 / 1000 / 10000 |
-| --- | --- | --- | --- | --- | --- |
-| Target val macro AUC | 0.917 | 0.915 | **0.948** | 0.914 | 0.909 / 0.912 / 0.914 |
-
-- **CORAL λ = 10000** is the E7 arm reported (best of the grid on target val); it still does not beat E1.
-- **Only E5 fine-tuning beats E1** (colour constancy's +0.001 is a tie, D22). E4 no longer clears E1 on the full set, so the Indian-prior weighting from D19 is dropped.
-- **E8 = the E5 recipe alone** (equal steps, 100% target_train, init from the source-only model of the same backbone and seed). On EfficientNet-B0 that is exactly the finished e5s_f100 run, so it is not trained again: E8 EfficientNet-B0 is reported as e5s_f100 (no second test-set look at the same method). E8 ResNet50 (`configs/e8_r50.yaml`) is new and trained after the follow-up queue.
-- E4's post-hoc prior shift (D7) scores 0.920–0.921 on target val for all four regional mixes. It is an evaluation-time adjustment of E1, not a training component, so as in D19 only the retrained E4 arm is a candidate. Its gain (+0.005) is also inside the CI.
-- External-test trends (CORAL's DDI V–VI 0.55, PAD-UFES-20 0.88) were not used for these choices.
-
-## D24. Team checks closed out on the full set (17 Oct 2026)
-
-- **Label map:** second full review of all 460 rows ([docs/LABEL_MAP_REVIEW.md](docs/LABEL_MAP_REVIEW.md)). One definite error (DDI acral-melanotic-macule, 1 image, exclude → benign) and a few bookkeeping items; none affects any reported score (DDI is scored on its biopsy flag). The committed map is kept unchanged, since it was frozen before any experiment (D5). The open questions listed there are for the team's sign-off.
-- **Crop failure rate (D12):** about 15–20% of 100 training crops, judged by eye on the full-set contact sheet, single reviewer.
-- **Reproducibility:** `requirements.txt` keeps loose ranges; `requirements-lock.txt` pins the exact versions the results were produced with. The E5 subsets depend on numpy's shuffle (numpy 2.5.4 draws a few different groups from 2.5.2). Training reads the committed subset files, so results are unaffected, but `make_splits` reproduces them exactly only with the locked versions.
-- **Clean-clone check (passed):** a fresh clone with a fresh venv from `requirements-lock.txt` passes all 68 tests and rebuilds `manifest.csv`, `groups.csv` and every file in `data/splits/` byte-identical from the raw data, with no failures (33 min). Training itself was not re-run (about 30 h on this CPU).
-
-## D25. E9: combining the finished models (17 Oct 2026)
-
-Added at the user's request ("pick what works best from each model"), specified here before any E9 number was computed. Layers of separately trained networks cannot be spliced together (each network's layers only make sense with the layers it was trained with), so the two standard ways to combine models are used, both selected on validation only and scored once on the test sets:
-
-- **E9a, ensemble selection (`e9_ensemble`):** average the class probabilities of several finished arms (each arm's seed mean). Members are picked by greedy forward selection on **target val macro AUC** (D1: target val chooses between methods), from the 20 finished arms (E1, E1 ResNet50, 320 px, + Derm7pt, Derm Foundation LR / MLP / + target, E3 ×4, E4, E5 100%, E6 ×3, E7 ×3, E8 ResNet50; the E5 10–50% curve points are left out). At most 4 members, each added only if it raises target val by ≥ 0.002. Deterministic: one run.
-- **E9b, feature fusion (`e9_fusion_lr`):** class-balanced logistic regression on the standardised concatenation [Derm Foundation embedding (6144-d) ‖ E1 EfficientNet-B0 embedding (1280-d) of the same seed], trained on source_train, C ∈ {1e-3, 1e-2, 1e-1, 1} chosen on source val (as `e1_fm_lr`). Three seeds (one per E1 seed).
-
-Expectation stated in advance: E9a will lean on target-trained arms (they fit the atlas that target val comes from), so it may not transfer better than its best member; E9b tests whether the CNN adds anything to Derm Foundation features.
-
-## D26. E10: a "not a tumour" gate, plus the Indian prior on Derm Foundation (17 Oct 2026)
-
-Added at the user's request to cut false alarms on everyday conditions, specified before any E10 number was computed.
-
-- **Why:** the four-class model must file every image as BCC, SCC, melanoma or benign tumour. On DermaCon-IN's 5,379 non-tumour images (vitiligo, tinea, scabies, acne...), 43–78% are called malignant (op90 / argmax, Derm Foundation linear). A first step that recognises "not a tumour" attacks the cause.
-- **Gate training data:** Fitzpatrick17k's non-tumour images (label `exclude`, never used so far; 13,742, not in any split). A fixed random sample (seed 0) of **4,500 FST I–III** images is split 70/15/15 into gate train / val / test, and **1,500 FST IV–VI** images are held out as a dark-skin rejection test (`data/gate/nontumour.csv`). Tumours are the existing source_train (BCC/SCC/mel/benign, FST I–III). The gate is source-only like E1: no FST IV–VI image of any kind trains it. AK and rare cancers are left out of gate training.
-- **Gate model:** class-balanced logistic regression on the frozen Derm Foundation embedding, tumour vs non-tumour, C ∈ {1e-3, 1e-2, 1e-1, 1} chosen on gate val AUC (source val tumours + val non-tumours).
-- **System (`e10_gate`):** gate probability g(x) = P(tumour) times the `e1_fm_lr` classifier: p'(c) = g·p(c) for the three cancers, p'(benign) = 1 − g·Σ p(cancer). The binary malignant score is g·P(malignant), so every existing metric (AUCs, op90 missed cancers and false alarms, with op90 re-set on source val) applies unchanged. Reported alongside: the share of real cancers the gate keeps at the cut-off g ≥ t95 (t95 keeps 95% of source val tumours).
-- **Indian prior:** the D7 prior shift with the consensus Indian mix, fixed in advance, on `e1_fm_lr` and on `e10_gate` (`evaluate --prior-mix consensus`). It re-weights only among the three cancers, so it composes with the gate.
-- Scored once on the test sets. Known biases, stated in advance: the non-tumour images are all atlas photos while some tumours are PAD-UFES-20 smartphone photos, so the gate may learn "smartphone photo → tumour" (this would raise, not lower, DermaCon-IN false alarms). Near-duplicates may cross the non-tumour train/val split (no patient IDs), which slightly flatters gate val; t95 uses tumour val images only, which are properly grouped.
-
-**D26 outcome (17 Oct 2026, scored once):** gate val AUC 0.976 (C = 0.001), t95 = 0.27. The gate cuts DermaCon-IN non-cancer images called malignant from 73% to 7% (op90), but keeps only 58% of DDI V–VI cancers and scores them below V–VI non-cancers, so DDI V–VI AUC falls 0.61 → 0.44 and op90 misses rise 15% → 52%. The Indian prior moves every number by ≤ 0.015. Target val picks `e1_fm_lr` without the gate (0.942 vs 0.934), so Derm Foundation linear stays the best model. No gate variant is tuned on these test sets; a gate with dark-skin tumours in training is future work. Details: docs/RESULTS.md, E10.
-
-## D27. E10b: the gate retrained with dark skin on both sides (18 Oct 2026)
-
-Added at the user's request after E10 (D26) lost 42% of DDI V–VI cancers. Specified before any E10b number was computed.
-
-- **Why:** E10's gate learned "tumour" from FST I–III atlas photos only, and scored DDI V–VI cancers below V–VI non-cancers. E10b changes only the gate's training data and selection; the base classifier (`e1_fm_lr`) and the way the gate is applied are unchanged.
-- **Tumours:** source_train + target_train (257 Fitzpatrick17k FST IV–VI images in the four classes, the labels E5 already uses). Gate val tumours: source_val + target_val.
-- **Non-tumours:** E10's 3,150 / 675 FST I–III train / val images, plus **1,000 / 200 FST IV–VI** Fitzpatrick17k `label_exclude` images sampled (seed 0) from those not already in the E10 list (`data/gate/nontumour_dark.csv`). E10's 1,500 FST IV–VI dark_test images and 675 test images stay held out.
-- **Weighting and C:** two options, both tried: class-balanced (as E10), or every class × skin group cell (light / dark tumour, light / dark non-tumour) given equal total weight, so 257 dark tumours count as much as 2,022 light ones. C ∈ {1e-4, 1e-3, 1e-2, 1e-1} (E10 chose the grid edge 1e-3, so the grid extends down). The pair is chosen on the **mean of the light and dark gate val AUCs**.
-- **Cut-off for the diagnostics:** t95 = the lower of the two per-group cut-offs that keep 95% of val tumours (light and dark separately).
-- Scored once (`python -m skincancer.gate --variant e10b --final ...`), same test sets as E10, no Indian prior (it moved E10 by ≤ 0.015).
-- **Caveat stated in advance:** E10b was designed after seeing E10's test results, so its DDI numbers are a second look at the same test set, chosen because the first failed there. They are reported as such, next to E10, not as an independent confirmation. Target labels enter only the gate, as in E5. The near-duplicate caveat of D26 still applies.
-
-**D27 outcome (18 Oct 2026, scored once):** class-balanced weighting, C = 0.001; gate val AUC light 0.977, dark 0.983; t95 = 0.28. E10b ≈ E10 everywhere: DDI V–VI AUC 0.46 (E10 0.44), op90 misses 52% (52%), DermaCon-IN non-cancer called malignant 6.5% op90 (7.3%). Target val 0.937, below `e1_fm_lr` (0.942), so neither gate is adopted. Post-hoc reason: 26 of DDI's 48 FST V–VI cancers are mycosis fungoides (rash-like lymphoma), which any tumour/non-tumour gate rejects (median g 0.14). Without them the gate still raises V–VI op90 misses from 9% to 23% (22 cancers). Details: docs/RESULTS.md, E10b.
-
-## D28. Dependencies updated (8 Nov 2026)
-
-At the user's request both local environments moved to the newest mutually compatible versions.
-
-- **`.venv`:** torch 2.14.1 → 2.15.0, torchvision 0.29.1 → 0.29.2, timm 1.0.30 → 1.0.31, numpy 2.5.2 → 2.5.4, pandas 3.0.6 → 3.1.1, pillow 12.3.0 → 13.0.0, and the minor updates below them. Exact versions are in `requirements-current.txt`.
-- **`.venv-tf`:** tensorflow-cpu 2.19.0 → 2.21.0, numpy 2.1.3 → 2.5.4, protobuf 5.29.6 → 7.36.2. The cached Derm Foundation embeddings in `data/features/` were computed with 2.19.0 and are kept.
-- **`requirements-lock.txt` is deliberately unchanged:** it still records the versions the reported results were produced with (D24). `requirements.txt` keeps its loose ranges.
-- **Check, old against new environment, on validation images only** (no test set was used): `e1_effb0`, `e1_r50` and `e3_all` (seed 0) on 48 `source_val` and 48 `target_val` images each gave identical probabilities and features, with raw decoding and preprocessing rerun. Derm Foundation on 16 validation images: largest element difference 1.2e-5, cosine 1.000000. All 71 tests pass. Training was not re-run.
-- **Caveat:** numpy 2.5.4 draws different E5 subsets from 2.5.2 (D24). `make_splits` must only be re-run from `requirements-lock.txt`. Finished results and committed split files are unaffected.
-- **Held back by other packages' pins:** albucore (albumentations 2.0.8 needs exactly 0.0.24), mpmath (sympy needs < 1.4), and h5py in `.venv-tf` (tensorflow-cpu 2.21 needs < 3.15, so it went from 3.16.0 to 3.14.0).
-- **Code:** `build_manifest` now creates the empty `group_id` column as object dtype, because pandas 3.1 warns that filling a float column with string ids will become an error. The output is unchanged.
+| `source_train` / `source_val` / `source_test` | 2,022 / 435 / 435 | Fitzpatrick17k + PAD-UFES-20, skin types I–III, split 70 / 15 / 15 |
+| `target_train` / `target_val` / `target_test` | 257 / 86 / 86 | Fitzpatrick17k, skin types IV–VI, split 60 / 20 / 20 |
+| `pad_dark_test` | 60 | PAD-UFES-20, skin types IV–VI (biopsy-confirmed, Brazil) |
+| `ddi_test` | 656 | DDI (Stanford, biopsy-confirmed), scored cancer vs not |
+| `midas_test` | 1,380 | MRA-MIDAS clinical photos (Stanford, biopsy-confirmed) |
+| `dermacon_test` / `dermacon_other` | 65 / 5,379 | DermaCon-IN (India): tumours / everyday non-tumour conditions |
+| `ak_side` | 311 | Actinic keratoses |
+
+- **No leakage.** Near-duplicate images (perceptual hash distance ≤ 2, or embedding cosine ≥ 0.90) and images of the same patient form a group. A group never spans two splits; `make_splits` asserts this. The duplicate search used an ImageNet EfficientNet-B0 as a similarity measure. That is data preparation, and it is the only place pretrained weights appear in this repository.
+- **Skin-type buckets** are I–III / IV / V–VI. DDI only provides I–II / III–IV / V–VI and is reported in those.
+- **DDI and Derm7pt images never appear in a figure** (licence terms). The repository stays private because the manifest carries DDI metadata.
+
+## 4. What trains, what selects, what tests
+
+- **Training data:** `source_train` (2,022 images, skin types I–III). The question stays the one the project started with: how well does a model trained on lighter skin hold up on darker skin and on Indian images?
+- **Selection:** `source_val` picks the checkpoint and stops training. `target_val` is only for choosing between finished models. Test splits never choose anything.
+- **Test-only sets** (`ddi_test`, `dermacon_test`, `dermacon_other`, `pad_dark_test`, `midas_test`) are never scored during training. `predict --final` scores them once per finished run and records it in `runs/final_ledger.csv`; a second look is refused.
+- `data.train_splits` and `data.val_splits` in the config are lists, so training on more data (for example adding `target_train`) is a config change. Doing so changes the question, so record it here first.
+
+## 5. The network: SkinNet
+
+Defined in `src/skincancer/models.py`. A residual CNN, sized for a training set of about 2,000 images.
+
+| Part | Layers | Output for a 224 × 224 input |
+| --- | --- | --- |
+| Stem | 3 × (3×3 conv, batch norm, ReLU), widths 16, 16, 32, the first with stride 2; then 3×3 max-pool, stride 2 | 32 × 56 × 56 |
+| Stage 1 | 2 residual blocks, 32 channels | 32 × 56 × 56 |
+| Stage 2 | 2 residual blocks, 64 channels, first one stride 2 | 64 × 28 × 28 |
+| Stage 3 | 2 residual blocks, 128 channels, first one stride 2 | 128 × 14 × 14 |
+| Stage 4 | 2 residual blocks, 256 channels, first one stride 2 | 256 × 7 × 7 |
+| Head | global average pool, dropout 0.3, linear to 4 classes | 4 |
+
+- A residual block is two 3×3 convolutions, each followed by batch norm, with a skip connection around them. Where a block changes resolution or width, the skip is average-pool then 1×1 convolution.
+- 2.8 million parameters, 17 convolution layers on the main path.
+- Weights start random (Kaiming normal). The last batch norm of each block starts at zero, so every block begins as the identity. Each seed gives a different start.
+
+## 6. Training
+
+Fixed on 12 Nov 2026, before any SkinNet run was scored. The config is `configs/skinnet.yaml`.
+
+| Setting | Value |
+| --- | --- |
+| Layers trained | all, from the first step |
+| Optimiser | AdamW, learning rate 1e-3, weight decay 0.05 |
+| Schedule | 5 epochs linear warm-up, then cosine decay to zero at epoch 150 |
+| Stopping | best `source_val` macro AUC is kept; stop after 30 epochs without improvement |
+| Loss | cross-entropy, label smoothing 0.1, class-balanced weights |
+| Batch | 32 images, 224 × 224 |
+| Augmentation | random resized crop (40–100% of the image), horizontal and vertical flips, 90° turns, rotation ±30°, brightness and contrast ±20%, light blur, 1–3 erased patches |
+| Not used | hue or saturation changes: they change apparent skin tone |
+| Seeds | 0, 1, 2 |
+
+- Class-balanced weights give each class the same total weight in the loss, so the 902 BCC images do not outvote the 337 melanomas.
+- Evaluation images are resized to 256 on the shorter side and centre-cropped to 224.
+- **Expectation, stated in advance:** with 2,022 training images and no pretraining, SkinNet will probably score below the earlier ImageNet-pretrained EfficientNet-B0 (macro AUC 0.89 on `source_test`, in the tag). Small from-scratch networks on a few thousand medical images usually trail pretrained ones by a wide margin.
+
+## 7. Metrics and statistics
+
+- **Macro AUC** (one-vs-rest, averaged over the four classes) on the four-class sets. **Binary AUC** (cancer vs not) on DDI and DermaCon-IN.
+- **Missed cancers and false alarms at a fixed operating point ("op90"):** per seed, the threshold on P(malignant) that catches 90% of cancers in `source_val`, applied unchanged to every other set.
+- On `ak_side` and `dermacon_other`, which hold no cancers, the share of images called malignant.
+- Every number is the mean of the three seeds, with a 95% confidence interval from 1,000 bootstrap resamples of groups (not single images). Subgroups under 10 images are not reported.

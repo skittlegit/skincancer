@@ -1,5 +1,7 @@
 # Label map review (17 Oct 2026)
 
+> Written before the 12 Nov 2026 restart. "D2" and "D5" are sections of the earlier DECISIONS.md (git tag `pre-fresh-start`); the same rules are now in [DECISIONS.md](../DECISIONS.md), section 2. The `evaluate --drop-diagnoses` option and the README work queue it mentions no longer exist.
+
 Second review of all 460 rows of [data/label_map.csv](../data/label_map.csv) against the D2 / D5 rules, [src/skincancer/labels.py](../src/skincancer/labels.py) and the manifest. Done by Claude for the team; **the team signs off** (README work queue, item 2).
 
 ## Verdict
