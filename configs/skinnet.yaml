@@ -14,7 +14,6 @@ data:
   extra_train: []              # training-only extra sets from data/extra/, e.g. [derm7pt]
   img_size: 224
   resize_short: 256            # evaluation: shorter side to 256, centre crop 224
-  quality_augment: false       # also degrade resolution / JPEG quality at random when training
 
 model:
   width: 32                    # channels of the first stage; doubles every stage
@@ -29,7 +28,7 @@ train:
   weight_decay: 0.05
   label_smoothing: 0.1
   class_weighting: balanced    # balanced | none: weight of each class in the loss
-  sampling: none               # none | source_class | source_class_type: which images an epoch draws
+  sampling: none               # none | source_class: which images an epoch draws
   select_metric: auc           # auc | source_auc: the validation score that picks the checkpoint
   batch_size: 32
   num_workers: 8               # processes that load and augment images

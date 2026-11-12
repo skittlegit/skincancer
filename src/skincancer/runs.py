@@ -74,8 +74,7 @@ def make_loader(df: pd.DataFrame, cfg: dict, train: bool, seed: int = 0, drop_la
     sample_weights: draw each epoch's images at random in proportion to these weights (with
     replacement), instead of one pass over every image."""
     d = cfg["data"]
-    tf = (train_transform(d["img_size"], d.get("quality_augment", False)) if train
-          else eval_transform(d["img_size"], d["resize_short"]))
+    tf = train_transform(d["img_size"]) if train else eval_transform(d["img_size"], d["resize_short"])
     ds = SkinDataset(df, image_loader(cfg), tf, classes_of(cfg), d["label_col"])
     g = torch.Generator().manual_seed(seed)
     nw = cfg["train"]["num_workers"]

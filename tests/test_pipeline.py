@@ -159,10 +159,10 @@ def test_pipeline(workdir, monkeypatch):
     hard = out[(out["eval_set"] == "test") & (out["subgroup"] == "cancer_vs_lookalike")]
     assert len(hard) and hard["n"].iloc[0] < auc["n"]
 
-    # a variant: balanced sampling, quality augmentation, checkpoint picked on the within-source AUC
+    # balanced sampling, checkpoint picked on the within-source AUC
     train.main(["--config", "configs/tiny.yaml", "--seed", "0", "--set", "name=tiny_bal", "--set",
-                "train.sampling=source_class_type", "--set", "train.class_weighting=none", "--set",
-                "train.select_metric=source_auc", "--set", "data.quality_augment=true"])
+                "train.sampling=source_class", "--set", "train.class_weighting=none", "--set",
+                "train.select_metric=source_auc"])
     assert yaml.safe_load(Path("runs/tiny_bal/s0/summary.json").read_text())["select_metric"] == "source_auc"
     val_only = evaluate.evaluate("tiny_bal", n_boot=20, splits=["val"])
     assert set(val_only["eval_set"]) == {"val"} and Path("results/tiny_bal/metrics_val.csv").exists()

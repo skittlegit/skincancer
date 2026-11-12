@@ -133,6 +133,8 @@ The other two variants are never scored on `test` or the outside sets. Training 
 
 **If none helps,** the next steps are in [docs/DATA_PLAN.md](docs/DATA_PLAN.md) (Derm7pt first) and then larger images.
 
+**Outcome (12 Nov 2026):** A was chosen and became checkpoint 1 ([docs/CHECKPOINTS.md](docs/CHECKPOINTS.md)). B and C were discarded: their configs, trained models and the two code options only they used were removed. The comparison is kept in [docs/RESULTS.md](docs/RESULTS.md).
+
 ## 9. Third round: more hard cases and larger images (12 Nov 2026)
 
 Written after the second-round results and before any of these models was trained.
@@ -153,6 +155,6 @@ Written after the second-round results and before any of these models was traine
 | E | `skinnet_320` | Images at 320 × 320 pixels instead of 224 × 224 (evaluation: shorter side to 366, centre crop 320) |
 | F | `skinnet_d7_320` | Both |
 
-**How one is chosen:** the rule of section 8. Seed 0 of D, E and F is compared with seed 0 of variant A on `val`: within-source AUC first, and the AUC on cancers against benign lookalikes breaks a tie of less than 0.005. If none beats variant A by 0.005 or more on within-source AUC, variant A stays and nothing new is scored outside. Otherwise the winner gets seeds 1 and 2 and is scored once on `test` and the outside sets.
+**How one is chosen:** the rule of section 8. Seed 0 of D, E and F is compared with seed 0 of variant A (checkpoint 1) on `val`: within-source AUC first, and the AUC on cancers against benign lookalikes breaks a tie of less than 0.005. If none beats checkpoint 1 by 0.005 or more on within-source AUC, checkpoint 1 carries forward as checkpoint 2 and nothing new is scored outside. Otherwise the winner gets seeds 1 and 2, is scored once on `test` and the outside sets, and becomes checkpoint 2.
 
 **What would count as helping:** a higher AUC on MIDAS and DDI than variant A's 0.63 and 0.62. An improvement on our own test split alone would repeat the second round's outcome.

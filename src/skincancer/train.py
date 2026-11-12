@@ -37,24 +37,15 @@ def sample_weights(df: pd.DataFrame, mode: str, label_col: str) -> np.ndarray | 
     """Per-image sampling weights for training (mean 1), or None for one plain pass per epoch.
 
     source_class: inside each dataset, cancer and not cancer are drawn equally often, so the
-    kind of photo no longer predicts the class. A dataset keeps its share of the draws.
-    source_class_type: the same, and inside each dataset x class cell a lesion type's share of
-    the draws is proportional to the square root of its image count, so small, hard types
-    (benign tumours that resemble cancer, rare cancers) are seen more often than their numbers."""
+    kind of photo no longer predicts the class. A dataset keeps its share of the draws."""
     if mode == "none":
         return None
-    if mode not in ("source_class", "source_class_type"):
+    if mode != "source_class":
         raise ValueError(f"unknown train.sampling {mode!r}")
     w = np.zeros(len(df))
     for _, cell in df.groupby(["dataset", label_col]):
-        n_dataset = (df["dataset"] == cell["dataset"].iloc[0]).sum()
-        cell_total = n_dataset / df.loc[df["dataset"] == cell["dataset"].iloc[0], label_col].nunique()
-        if mode == "source_class":
-            w[cell.index] = cell_total / len(cell)
-        else:
-            counts = cell["label_fine"].value_counts()
-            share = np.sqrt(counts) / np.sqrt(counts).sum()
-            w[cell.index] = (cell_total * share / counts).reindex(cell["label_fine"]).to_numpy()
+        in_dataset = df["dataset"] == cell["dataset"].iloc[0]
+        w[cell.index] = in_dataset.sum() / df.loc[in_dataset, label_col].nunique() / len(cell)
     return w / w.mean()
 
 

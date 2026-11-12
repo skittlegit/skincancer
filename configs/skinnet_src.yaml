@@ -1,5 +1,5 @@
-# Variant A: cancer and not cancer drawn equally often inside each dataset.
-# Chosen against the other variants on the validation split only (DECISIONS.md, section 8).
+# Checkpoint 1 (docs/CHECKPOINTS.md): cancer and not cancer drawn equally often inside each
+# dataset, so the kind of photo no longer predicts the class (DECISIONS.md, section 8).
 extends: skinnet.yaml
 name: skinnet_src
 train:

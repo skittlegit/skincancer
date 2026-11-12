@@ -15,13 +15,9 @@ from torch.utils.data import Dataset
 MEAN, STD = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
 
 
-def train_transform(img_size: int, quality: bool = False) -> A.Compose:
+def train_transform(img_size: int) -> A.Compose:
     """Augmentation for training from random weights on a few thousand images, where it is
-    the main guard against memorising the training set. quality=True also degrades image
-    quality at random (resolution, JPEG compression), so that how sharp or compressed a photo
-    is says less about which dataset, and so which class, it came from."""
-    degrade = [A.Downscale(scale_range=(0.35, 0.9), p=0.4),
-               A.ImageCompression(quality_range=(35, 95), p=0.5)] if quality else []
+    the main guard against memorising the training set."""
     return A.Compose([
         A.RandomResizedCrop(size=(img_size, img_size), scale=(0.4, 1.0)),
         A.HorizontalFlip(),
@@ -30,7 +26,6 @@ def train_transform(img_size: int, quality: bool = False) -> A.Compose:
         A.Rotate(limit=30, border_mode=cv2.BORDER_REFLECT_101),
         A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.7),
         A.GaussianBlur(blur_limit=(3, 5), p=0.2),
-        *degrade,
         A.CoarseDropout(num_holes_range=(1, 3), hole_height_range=(0.1, 0.25),
                         hole_width_range=(0.1, 0.25), fill=0, p=0.5),
         A.Normalize(MEAN, STD),

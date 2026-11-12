@@ -10,6 +10,7 @@ runs/*
 !runs/final_ledger.csv
 results/
 archive/
+checkpoints/
 *.pt
 *.npz
 data/pilot/
