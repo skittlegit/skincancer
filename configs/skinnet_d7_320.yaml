@@ -1,0 +1,8 @@
+# Variant F: variant A plus Derm7pt, at 320 x 320 pixels.
+# Chosen against the other third-round variants on the validation split only (DECISIONS.md, section 9).
+extends: skinnet_src.yaml
+name: skinnet_d7_320
+data:
+  extra_train: [derm7pt]
+  img_size: 320
+  resize_short: 366            # same crop ratio as 224 / 256

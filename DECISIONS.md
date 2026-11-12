@@ -132,3 +132,27 @@ The other two variants are never scored on `test` or the outside sets. Training 
 **What would count as helping:** on the outside sets, a higher AUC on MIDAS and DDI than the baseline's 0.60 and 0.65; on our own `test` split, fewer false alarms on PAD-UFES-20 non-cancers and on benign lookalikes at the same share of cancers caught. Plain AUC on `test` may fall, since part of the baseline's 0.887 came from the shortcut.
 
 **If none helps,** the next steps are in [docs/DATA_PLAN.md](docs/DATA_PLAN.md) (Derm7pt first) and then larger images.
+
+## 9. Third round: more hard cases and larger images (12 Nov 2026)
+
+Written after the second-round results and before any of these models was trained.
+
+**What the second round showed.** Balanced drawing (variant A) weakened the shortcut and improved the hard distinction on our own test split, but the outside sets did not move (MIDAS 0.63, DDI 0.62). Variant A's training setup is the starting point for everything below.
+
+**Derm7pt as training-only data.** 954 clinical photos from an Italian atlas with a usable label: 290 cancers (248 melanomas, 42 BCCs) and 664 benign tumours, mostly nevi. It has no SCC and records no skin type.
+- It is kept outside the manifest (`data/extra/derm7pt.csv`, built by `python -m skincancer.data.extra derm7pt`) and joins `train` only. `val`, `test` and the outside sets are untouched, so models with and without it are scored on exactly the same images.
+- Any Derm7pt image that near-duplicates a validation or test image is dropped, with the same thresholds as the main duplicate search.
+- In the balanced drawing it counts as a third dataset: cancer and not cancer are drawn equally often inside it.
+- Derm7pt images never appear in a figure (licence terms), and its list is not committed.
+
+**Three variants.**
+
+| Variant | Config | Change from variant A |
+| --- | --- | --- |
+| D | `skinnet_d7` | Derm7pt added to training |
+| E | `skinnet_320` | Images at 320 × 320 pixels instead of 224 × 224 (evaluation: shorter side to 366, centre crop 320) |
+| F | `skinnet_d7_320` | Both |
+
+**How one is chosen:** the rule of section 8. Seed 0 of D, E and F is compared with seed 0 of variant A on `val`: within-source AUC first, and the AUC on cancers against benign lookalikes breaks a tie of less than 0.005. If none beats variant A by 0.005 or more on within-source AUC, variant A stays and nothing new is scored outside. Otherwise the winner gets seeds 1 and 2 and is scored once on `test` and the outside sets.
+
+**What would count as helping:** a higher AUC on MIDAS and DDI than variant A's 0.63 and 0.62. An improvement on our own test split alone would repeat the second round's outcome.

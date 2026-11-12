@@ -178,6 +178,29 @@ def train_transform_quality():
     return train_transform(64, quality=True)(image=img)["image"]
 
 
+def test_derm7pt_extra_rows_and_loading(tmp_path):
+    import pandas as pd
+    from skincancer.data import extra
+    base = tmp_path / "derm7pt" / "release_v0"
+    (base / "meta").mkdir(parents=True)
+    (base / "images" / "A").mkdir(parents=True)
+    diagnoses = ["clark nevus", "melanoma (in situ)", "basal cell carcinoma", "vascular lesion", "seborrheic keratosis"]
+    for k in range(1, 5):                                  # case 5's image is missing on disk
+        (base / "images" / "A" / f"a{k}.jpg").write_bytes(b"x")
+    pd.DataFrame({"case_num": [1, 2, 3, 4, 5], "clinic": [f"A/a{k}.jpg" for k in range(1, 6)],
+                  "diagnosis": diagnoses, "location": ["back", "acral", "chest", "head neck", "back"]}
+                 ).to_csv(base / "meta" / "meta.csv", index=False)
+    df = extra.build("derm7pt", {"data_root": str(tmp_path)}, check_duplicates=False).set_index("image_id")
+    assert df["label_cancer"].tolist()[:3] == ["not_cancer", "cancer", "cancer"]
+    assert df.loc["derm7pt_2", "path"] == "derm7pt/release_v0/images/A/a2.jpg" and df.loc["derm7pt_2", "label_fine"] == "mel"
+    assert df.loc["derm7pt_4", "exclude_reason"] == "no_cancer_label"      # vascular lesion: no tumour label
+    assert df.loc["derm7pt_5", "exclude_reason"] == "missing_image"
+    assert df["split"].tolist() == ["train_extra"] * 3 + ["excluded"] * 2
+    df.reset_index().to_csv(tmp_path / "derm7pt.csv", index=False)
+    loaded = extra.load_extra(["derm7pt"], "label_cancer", ["not_cancer", "cancer"], extra_dir=tmp_path)
+    assert loaded["image_id"].tolist() == ["derm7pt_1", "derm7pt_2", "derm7pt_3"] and set(loaded["dataset"]) == {"derm7pt"}
+
+
 def test_leakage_check_allows_external_tests_only():
     import pandas as pd
     from skincancer.data.make_splits import check_no_leakage

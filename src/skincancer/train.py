@@ -84,6 +84,10 @@ def train(cfg: dict) -> dict:
     t = cfg["train"]
     manifest = pd.read_csv(cfg["manifest"])
     train_df = runs.labelled(runs.split_rows(manifest, cfg["data"]["train_splits"]), cfg)
+    if cfg["data"].get("extra_train"):   # training-only data kept outside the manifest (data/extra.py)
+        from .data.extra import load_extra
+        extra = load_extra(cfg["data"]["extra_train"], cfg["data"]["label_col"], runs.classes_of(cfg))
+        train_df = pd.concat([train_df, extra[train_df.columns.intersection(extra.columns)]], ignore_index=True)
     val_df = runs.labelled(runs.split_rows(manifest, cfg["data"]["val_splits"]), cfg)
     label_col = cfg["data"]["label_col"]
     counts = train_df[label_col].value_counts().reindex(classes, fill_value=0).to_numpy(float)

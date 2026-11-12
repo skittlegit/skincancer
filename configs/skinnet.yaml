@@ -11,6 +11,7 @@ data:
   label_col: label_cancer      # not_cancer / cancer
   train_splits: [train]        # manifest splits to train on
   val_splits: [val]            # picks the checkpoint and stops training; never a test split
+  extra_train: []              # training-only extra sets from data/extra/, e.g. [derm7pt]
   img_size: 224
   resize_short: 256            # evaluation: shorter side to 256, centre crop 224
   quality_augment: false       # also degrade resolution / JPEG quality at random when training
