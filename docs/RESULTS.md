@@ -112,7 +112,7 @@ Three variants built on checkpoint 1, compared with it on the validation split, 
 | False alarms overall | 39% | 41% | 42% | 40% |
 | Training images | 12,562 | 13,520 | 12,562 | 13,520 |
 
-**No variant beat checkpoint 1,** so it carries forward unchanged as checkpoint 2.
+**No variant beat checkpoint 1,** so it stays the current model. Everything tried so far is summarised in [CHECKPOINTS.md](CHECKPOINTS.md).
 
 **Reading.**
 
