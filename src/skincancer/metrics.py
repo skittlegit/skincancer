@@ -88,7 +88,7 @@ def balanced_accuracy(y, P) -> float:
 
 
 def metric_fns(classes: list[str], task: str) -> dict:
-    """name -> f(y, y_bin, P). task: 'multiclass' (4/3-class labels) or 'binary'."""
+    """name -> f(y, y_bin, P). task: 'multiclass' or 'binary'."""
     fns = {
         "binary_auc": lambda y, yb, P: auc(yb[~np.isnan(yb)] == 1, p_malignant(P, classes)[~np.isnan(yb)]),
         "missed_cancer_rate": lambda y, yb, P: missed_cancer_rate(yb, P, classes),

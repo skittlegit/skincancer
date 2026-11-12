@@ -4,12 +4,14 @@ from __future__ import annotations
 import math
 import re
 
+# label_5class is what the model predicts. label_4class is the tumour type alone; the label
+# map and the tumour-only test sets use it.
 CLASSES = {
+    "label_5class": ["bcc", "scc", "mel", "benign", "other"],
     "label_4class": ["bcc", "scc", "mel", "benign"],
-    "label_3class": ["nmsc", "mel", "benign"],
 }
-MALIGNANT = {"bcc", "scc", "mel", "nmsc"}
-TO_3CLASS = {"bcc": "nmsc", "scc": "nmsc", "mel": "mel", "benign": "benign"}
+MALIGNANT = {"bcc", "scc", "mel"}
+OTHER = "other"   # a skin condition that is not a tumour (psoriasis, eczema, acne, ...)
 
 # Ordered (pattern, label, needs_review). First match wins, so specific rules sit
 # above general ones ("lentigo maligna" before "lentigo", subtyped nevi before "nevus").
@@ -38,7 +40,8 @@ RULES: list[tuple[str, str, bool]] = [
     (r"pyogenic granuloma|granuloma pyogenic", "benign", True),
 ]
 
-TRAINABLE = set(CLASSES["label_4class"])
+TUMOUR = set(CLASSES["label_4class"])
+TRAINABLE = set(CLASSES["label_5class"])
 
 
 def normalize(diagnosis) -> str:

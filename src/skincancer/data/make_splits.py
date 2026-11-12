@@ -2,10 +2,11 @@
 
     python -m skincancer.data.make_splits
 
-Pools: source = Fitzpatrick17k + PAD-UFES-20 at FST I-III; target = Fitzpatrick17k at
-FST IV-VI; pad_dark_test = PAD-UFES-20 at FST IV-VI; ak_side = actinic keratoses;
-ddi_test / dermacon_test = test-only datasets. A near-duplicate group that touches a
-test-only set, or spans two trainable pools, loses its trainable members.
+Pools: main = Fitzpatrick17k (all skin types) + PAD-UFES-20 at FST I-III, in the five
+classes, split into train / val / test; pad_dark_test = PAD-UFES-20 at FST IV-VI;
+ak_side = actinic keratoses; ddi_test / dermacon_test / dermacon_other / midas_test =
+test-only datasets. A near-duplicate group that touches a test-only set, or spans two
+pools, loses its trainable members.
 """
 from __future__ import annotations
 
@@ -16,10 +17,11 @@ import numpy as np
 import pandas as pd
 
 from ..config import load_data_config
-from ..labels import SOURCE_FST, TARGET_FST, TRAINABLE
+from ..labels import SOURCE_FST, TARGET_FST, TRAINABLE, TUMOUR
 
-TRAINABLE_POOLS = {"source", "target", "pad_dark_test", "ak_side"}
+TRAINABLE_POOLS = {"main", "pad_dark_test", "ak_side"}
 TEST_ONLY_POOLS = {"ddi_test", "dermacon_test", "dermacon_other", "midas_test"}
+MADE_HERE = {"ak_patient_in_other_pool", "dup_of_test_only", "dup_cross_pool", "pad_dark_too_small"}
 
 
 def assign_pool(row) -> str:
@@ -29,21 +31,19 @@ def assign_pool(row) -> str:
     if ds == "ddi":
         return "ddi_test"
     if ds == "midas":
-        return "midas_test" if label in TRAINABLE else "excluded"   # biopsy-proven 4-class only
+        return "midas_test" if label in TUMOUR else "excluded"   # biopsy-proven 4-class only
     if ds == "dermacon_in":
-        if label in TRAINABLE:
+        if label in TUMOUR:
             return "dermacon_test"
         return "dermacon_other" if label == "exclude" else "excluded"
     if label == "ak":
         return "ak_side"
-    if label not in TRAINABLE:
+    if row["label_5class"] not in TRAINABLE:
         return "excluded"
     fst = int(row["fst"])
-    if fst in SOURCE_FST:
-        return "source"
-    if fst in TARGET_FST:
-        return "target" if ds == "fitzpatrick17k" else "pad_dark_test"
-    return "excluded"
+    if ds == "pad_ufes_20" and fst in TARGET_FST:
+        return "pad_dark_test"
+    return "main" if fst in SOURCE_FST | TARGET_FST else "excluded"
 
 
 def resolve_group_conflicts(df: pd.DataFrame) -> pd.DataFrame:
@@ -68,14 +68,15 @@ def resolve_group_conflicts(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def grouped_split(df: pd.DataFrame, names: list[str], fractions: list[float], seed: int) -> pd.Series:
-    """Group split stratified by label_4class. Greedy: groups in random order (largest
+def grouped_split(df: pd.DataFrame, names: list[str], fractions: list[float], seed: int,
+                  strata: pd.Series) -> pd.Series:
+    """Group split stratified by `strata` (here class x skin-type bucket). Greedy: groups in random order (largest
     first), each to the split furthest below its per-class target. Unlike
     StratifiedGroupKFold it works when a class has only a handful of images."""
     frac = np.asarray(fractions, float)
     assert abs(frac.sum() - 1) < 1e-6, fractions
     rng = np.random.default_rng(seed)
-    counts = pd.crosstab(df["group_id"], df["label_4class"])
+    counts = pd.crosstab(df["group_id"], strata)
     groups = counts.index.to_numpy()[rng.permutation(len(counts))]
     groups = sorted(groups, key=lambda g: -counts.loc[g].sum())  # stable: random among equal sizes
     target = frac[:, None] * counts.sum(axis=0).to_numpy()[None, :]
@@ -93,6 +94,8 @@ def grouped_split(df: pd.DataFrame, names: list[str], fractions: list[float], se
 
 def make(manifest: pd.DataFrame, cfg: dict, groups: pd.DataFrame | None = None):
     df = manifest.copy()
+    # start from build_manifest's exclusions: drop the ones an earlier run of this step added
+    df.loc[df["exclude_reason"].isin(MADE_HERE), "exclude_reason"] = np.nan
     if groups is not None:
         df = df.drop(columns="group_id").merge(groups[["image_id", "group_id"]], on="image_id", how="left")
         df["group_id"] = df["group_id"].fillna(df["patient_id"]).fillna(df["image_id"])
@@ -100,14 +103,10 @@ def make(manifest: pd.DataFrame, cfg: dict, groups: pd.DataFrame | None = None):
     df = resolve_group_conflicts(df)
     sp = cfg["splits"]
     df["split"] = df["pool"]
-    src = df["pool"] == "source"
-    tgt = df["pool"] == "target"
-    if src.any():
-        df.loc[src, "split"] = grouped_split(df[src], ["source_train", "source_val", "source_test"],
-                                             sp["source"], sp["seed"])
-    if tgt.any():
-        df.loc[tgt, "split"] = grouped_split(df[tgt], ["target_train", "target_val", "target_test"],
-                                             sp["target"], sp["seed"])
+    main = df["pool"] == "main"
+    if main.any():
+        strata = df.loc[main, "label_5class"] + " " + df.loc[main, "fst_bucket"]
+        df.loc[main, "split"] = grouped_split(df[main], ["train", "val", "test"], sp["fractions"], sp["seed"], strata)
     n_dark = (df["split"] == "pad_dark_test").sum()
     if 0 < n_dark < sp["min_pad_dark"]:
         df.loc[df["split"] == "pad_dark_test", ["split", "exclude_reason"]] = ["excluded", "pad_dark_too_small"]
@@ -132,9 +131,15 @@ def write(df: pd.DataFrame, cfg: dict) -> None:
     out.mkdir(parents=True, exist_ok=True)
     for split, g in df[df["split"] != "excluded"].groupby("split"):
         g[["image_id"]].to_csv(out / f"{split}.csv", index=False)
-    table = pd.crosstab(df["split"], df["label_4class"], margins=True)
-    (out / "SUMMARY.md").write_text("# Split summary\n\n```\n" + table.to_string() + "\n```\n",
-                                    encoding="utf-8")
+    for old in out.glob("*.csv"):   # splits of an earlier design
+        if old.stem not in set(df["split"]):
+            old.unlink()
+    table = pd.crosstab(df["split"], df["label_5class"], margins=True)
+    main = df[df["split"].isin(["train", "val", "test"])]
+    by_fst = pd.crosstab([main["split"], main["fst_bucket"]], main["label_5class"], margins=True)
+    (out / "SUMMARY.md").write_text("# Split summary\n\n```\n" + table.to_string() + "\n```\n\n"
+                                    "## train / val / test by skin type\n\n```\n" + by_fst.to_string()
+                                    + "\n```\n", encoding="utf-8")
 
 
 def main(argv=None):
@@ -150,7 +155,7 @@ def main(argv=None):
     check_no_leakage(df)
     df.to_csv(cfg["manifest"], index=False)
     write(df, cfg)
-    print(pd.crosstab(df["split"], df["label_4class"], margins=True).to_string())
+    print(pd.crosstab(df["split"], df["label_5class"], margins=True).to_string())
 
 
 if __name__ == "__main__":

@@ -11,9 +11,9 @@ import yaml
 
 REPO = Path(__file__).resolve().parents[1]
 CLASS_COLOR = {"bcc": (200, 60, 60), "scc": (60, 200, 60), "mel": (30, 30, 30), "benign": (120, 80, 50),
-               "ak": (200, 200, 60)}
+               "ak": (200, 200, 60), "other": (230, 120, 160)}
 FITZ = {"bcc": "basal cell carcinoma", "scc": "squamous cell carcinoma", "mel": "melanoma",
-        "benign": "seborrheic keratosis", "ak": "actinic keratosis"}
+        "benign": "seborrheic keratosis", "ak": "actinic keratosis", "other": "psoriasis"}
 PAD = {"bcc": "BCC", "scc": "SCC", "mel": "MEL", "benign": "NEV", "ak": "ACK"}
 
 
@@ -35,17 +35,17 @@ def workdir(tmp_path_factory):
     for d in (fz, "pad_ufes_20/images", "ddi/images"):
         (raw / d).mkdir(parents=True)
     rows = []
-    for i in range(260):
-        cls = ["bcc", "scc", "mel", "benign"][i % 4] if i < 250 else "ak"
+    for i in range(340):
+        cls = ["bcc", "scc", "mel", "benign"][i % 4] if i < 250 else "ak" if i < 260 else "other"
         fst = int(rng.integers(1, 7))
         h = f"h{i:04d}"
         _img(raw / f"{fz}/{h}.jpg", cls, rng, skin=(220 - 25 * fst, 170 - 20 * fst, 150 - 18 * fst))
         rows.append({"md5hash": h, "fitzpatrick_scale": fst, "fitzpatrick_centaur": fst, "label": FITZ[cls],
-                     "nine_partition_label": "x", "three_partition_label": "malignant" if cls != "benign" else "benign",
+                     "nine_partition_label": "x", "three_partition_label": {"benign": "benign", "other": "non-neoplastic"}.get(cls, "malignant"),
                      "qc": np.nan, "url": "http://x", "url_alphanum": "x"})
     rows.append(dict(rows[0], md5hash="nofst", fitzpatrick_scale=-1))           # unknown FST -> excluded
-    rows.append(dict(rows[0], md5hash="psor", label="psoriasis", three_partition_label="non-neoplastic"))
-    for extra in ("nofst", "psor"):
+    rows.append(dict(rows[0], md5hash="cyst", label="pilar cyst", three_partition_label="benign"))  # tumour outside the classes
+    for extra in ("nofst", "cyst"):
         _img(raw / f"{fz}/{extra}.jpg", "benign", rng)
     shutil.copy(raw / f"{fz}/h0001.jpg", raw / f"{fz}/dup1.jpg")
     rows.append(dict(rows[1], md5hash="dup1", fitzpatrick_scale=6 if rows[1]["fitzpatrick_scale"] <= 3 else 1))
@@ -93,29 +93,39 @@ def test_pipeline(workdir, monkeypatch):
 
     build_label_map.main([])
     lm = pd.read_csv("data/label_map.csv")
-    assert lm.set_index("diagnosis").loc["psoriasis", "label_4class"] == "exclude"
+    assert lm.set_index("diagnosis").loc["psoriasis", "label_4class"] == "exclude"   # no tumour label ...
     build_manifest.main([])
     dedup.main(["--no-embed"])  # embedding pass needs pretrained weights
     make_splits.main([])
     m = pd.read_csv("data/manifest.csv")
     reasons = m.set_index("image_id")["exclude_reason"]
+    by_id = m.set_index("image_id")
+    assert by_id.loc["f17k_h0300", "label_5class"] == "other" and by_id.loc["f17k_h0300", "label_binary"] == 0   # ... but the fifth class
+    assert by_id.loc["f17k_h0300", "split"] in {"train", "val", "test"}
+    assert reasons["f17k_cyst"] == "label_exclude" and by_id.loc["f17k_cyst", "split"] == "excluded"
+    main = m[m["split"].isin(["train", "val", "test"])]
+    assert set(main["label_5class"]) == {"bcc", "scc", "mel", "benign", "other"}
+    assert set(main["fst_bucket"]) == {"I-III", "IV", "V-VI"}          # every skin type trains and tests
+    assert 0.6 < (main["split"] == "train").mean() < 0.8
     assert reasons["f17k_nofst"] == "unknown_fst"
-    assert reasons["f17k_dup1"] == "dup_cross_pool" and reasons["f17k_h0001"] == "dup_cross_pool"
+    assert by_id.loc["f17k_dup1", "split"] == by_id.loc["f17k_h0001", "split"]   # duplicates stay together
     assert set(m.loc[m["dataset"] == "ddi", "split"]) == {"ddi_test"}
     assert set(m.loc[m["label_4class"] == "ak", "split"]) <= {"ak_side", "excluded"}
     assert (m["split"] == "pad_dark_test").sum() > 0
     make_splits.check_no_leakage(m)
-    assert not Path("data/splits/e5").exists()
-    text, _ = count_check.report(m)
-    assert "SCC images in target_test" in text
+    assert {p.stem for p in Path("data/splits").glob("*.csv")} == set(m["split"]) - {"excluded"}
+    assert "skin-type bucket" in count_check.report(m)
+    make_splits.main([])                                               # re-running changes nothing
+    assert pd.read_csv("data/manifest.csv")["split"].equals(m["split"])
 
     for seed in (0, 1):
         train.main(["--config", "configs/tiny.yaml", "--seed", str(seed)])
     hist = pd.read_csv("runs/tiny/s0/history.csv")
     assert 1 <= len(hist) <= 3 and hist["lr"].iloc[0] == pytest.approx(1e-3)   # 1 warm-up epoch
     summary = yaml.safe_load(Path("runs/tiny/s0/summary.json").read_text())
-    assert summary["n_train"] == (m["split"] == "source_train").sum() and summary["n_params"] > 0
-    assert Path("runs/tiny/s0/preds/target_test.csv").exists()
+    assert summary["n_train"] == (m["split"] == "train").sum() and summary["n_params"] > 0
+    preds = pd.read_csv("runs/tiny/s0/preds/test.csv")
+    assert [c for c in preds if c.startswith("p_")] == ["p_bcc", "p_scc", "p_mel", "p_benign", "p_other"]
     assert not Path("runs/tiny/s0/preds/ddi_test.csv").exists()  # test-only never automatic
     train.main(["--config", "configs/tiny.yaml", "--seed", "0"])   # finished: skipped, not retrained
     assert len(pd.read_csv("runs/tiny/s0/history.csv")) == len(hist)
@@ -130,19 +140,22 @@ def test_pipeline(workdir, monkeypatch):
     assert set(ledger["run"]) == {"runs/tiny/s0", "runs/tiny/s1"}
 
     out = evaluate.evaluate("tiny", n_boot=50)
-    assert set(out["eval_set"]) >= {"source_test", "target_test", "ddi_test", "ak_side"}
+    assert set(out["eval_set"]) >= {"val", "test", "ddi_test", "ak_side"}
     assert "pad_dark_test" not in set(out["eval_set"])  # 6 images < MIN_SUBGROUP: skipped, not reported
-    auc = out[(out["eval_set"] == "target_test") & (out["metric"] == "macro_auc") & (out["subgroup"] == "all")].iloc[0]
+    auc = out[(out["eval_set"] == "test") & (out["metric"] == "macro_auc") & (out["subgroup"] == "all")].iloc[0]
     assert auc["n_seeds"] == 2 and auc["ci_lo"] <= auc["mean"] <= auc["ci_hi"]
     assert set(out.loc[out["eval_set"] == "ddi_test", "metric"]) == {"binary_auc", "missed_cancer_rate", "false_alarm_rate",
                                                                      "missed_cancer_rate_op90", "false_alarm_rate_op90"}
     assert Path("results/tiny/metrics.csv").exists()
+    test_rows = out[(out["eval_set"] == "test") & (out["metric"] == "macro_auc")]
+    assert {"I-III", "IV", "V-VI"} & set(test_rows["subgroup"])           # reported by skin type
+    assert "recall_other" in set(out.loc[out["eval_set"] == "test", "metric"])
 
     # training on two splits at once
     train.main(["--config", "configs/tiny.yaml", "--seed", "0", "--set", "name=tiny_both", "--set",
-                "data.train_splits=[source_train, target_train]", "--set", "train.epochs=1"])
+                "data.train_splits=[train, val]", "--set", "train.epochs=1"])
     both = yaml.safe_load(Path("runs/tiny_both/s0/summary.json").read_text())
-    assert both["n_train"] == m["split"].isin(["source_train", "target_train"]).sum()
+    assert both["n_train"] == m["split"].isin(["train", "val"]).sum()
 
     from skincancer.analysis import gradcam
-    gradcam.main(["--run", "runs/tiny/s0", "--split", "target_test", "--n", "3"])
+    gradcam.main(["--run", "runs/tiny/s0", "--split", "test", "--n", "3"])

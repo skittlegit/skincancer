@@ -67,20 +67,21 @@ def test_config_extends_overrides_and_templates():
     cfg = load_config("configs/skinnet.yaml", ["model.width=48", "seed=2", "name=skinnet_w{model.width}"])
     assert cfg["name"] == "skinnet_w48" and cfg["seed"] == 2
     assert cfg["manifest"] == "data/manifest.csv"  # from data.yaml
-    assert cfg["data"]["train_splits"] == ["source_train"] and cfg["data"]["val_splits"] == ["source_val"]
+    assert cfg["data"]["train_splits"] == ["train"] and cfg["data"]["val_splits"] == ["val"]
+    assert cfg["data"]["label_col"] == "label_5class"
     assert not set(cfg["eval"]["splits"]) & {"ddi_test", "dermacon_test", "dermacon_other", "pad_dark_test",
                                               "midas_test"}   # test-only sets are never scored automatically
 
 
 def test_skinnet():
-    m = Classifier(4)
+    m = Classifier(5)
     assert isinstance(m.backbone, SkinNet) and m.dim == 256
     n_params = sum(p.numel() for p in m.parameters())
     assert 2.5e6 < n_params < 3.2e6
     assert all(p.requires_grad for p in m.parameters())          # every layer is trained
     assert sum(isinstance(x, torch.nn.Conv2d) and x.kernel_size == (3, 3) for x in m.modules()) == 19
     logits, f = m(torch.randn(2, 3, 96, 96), return_features=True)
-    assert logits.shape == (2, 4) and f.shape == (2, 256)
+    assert logits.shape == (2, 5) and f.shape == (2, 256)
     assert m.backbone.stages[-1](m.backbone.stages[2](m.backbone.stages[1](m.backbone.stages[0](
         m.backbone.stem(torch.randn(1, 3, 224, 224)))))).shape == (1, 256, 7, 7)
     assert target_layer(m) is m.backbone.stages[-1][-1]
@@ -141,9 +142,9 @@ def test_warmup_schedule_class_weights_and_augmentation():
 def test_leakage_check_allows_external_tests_only():
     import pandas as pd
     from skincancer.data.make_splits import check_no_leakage
-    ok = pd.DataFrame({"group_id": ["a", "a", "b"], "split": ["dermacon_test", "dermacon_other", "source_train"]})
+    ok = pd.DataFrame({"group_id": ["a", "a", "b"], "split": ["dermacon_test", "dermacon_other", "train"]})
     check_no_leakage(ok)
-    bad = pd.DataFrame({"group_id": ["a", "a"], "split": ["source_train", "ddi_test"]})
+    bad = pd.DataFrame({"group_id": ["a", "a"], "split": ["train", "ddi_test"]})
     with pytest.raises(AssertionError):
         check_no_leakage(bad)
 

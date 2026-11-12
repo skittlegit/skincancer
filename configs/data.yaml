@@ -36,8 +36,7 @@ datasets:
 
 splits:
   seed: 2026                   # split seed; independent of training seeds
-  source: [0.70, 0.15, 0.15]   # FST I-III  -> source_train / source_val / source_test
-  target: [0.60, 0.20, 0.20]   # FST IV-VI  -> target_train / target_val / target_test
+  fractions: [0.70, 0.15, 0.15]   # train / val / test, by group, stratified by class x skin type
   min_pad_dark: 20             # pad_dark_test needs at least this many images
 
 dedup:                         # calibrated by eye on real pairs

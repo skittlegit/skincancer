@@ -2,8 +2,10 @@
 
     python -m skincancer.data.build_manifest
 
-Columns: image_id, group_id, dataset, path, diagnosis, label_4class, label_3class,
+Columns: image_id, group_id, dataset, path, diagnosis, label_4class, label_5class,
 label_binary, fst, fst_bucket, site, is_acral, patient_id, exclude_reason, split.
+label_4class is the label map's tumour label. label_5class adds `other`: the images
+Fitzpatrick17k itself marks non-neoplastic.
 `split` is left empty here; make_splits fills it.
 """
 from __future__ import annotations
@@ -15,7 +17,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import load_data_config
-from ..labels import MALIGNANT, TO_3CLASS, TRAINABLE
+from ..labels import MALIGNANT, OTHER, TRAINABLE
 from .sources import load_all
 
 TRAIN_DATASETS = {"fitzpatrick17k", "pad_ufes_20"}
@@ -28,8 +30,13 @@ def attach_labels(meta: pd.DataFrame, label_map: pd.DataFrame) -> pd.DataFrame:
     if len(missing):
         raise ValueError(f"{len(missing)} diagnoses missing from the label map; run "
                          f"build_label_map and review:\n{missing.head(20).to_string()}")
-    df["label_3class"] = df["label_4class"].map(TO_3CLASS)
-    binary = df["label_4class"].map(lambda l: 1.0 if l in MALIGNANT else (0.0 if l == "benign" else np.nan))
+    # The fifth class: not a tumour. Only Fitzpatrick17k says which of its images are
+    # non-neoplastic, so only those get it; its other unmapped diagnoses (cysts, syringoma,
+    # epidermal nevi ...) are tumours outside our four classes and stay excluded.
+    non_tumour = ((df["dataset"] == "fitzpatrick17k") & (df["label_4class"] == "exclude")
+                  & (df["partition"] == "non-neoplastic"))
+    df["label_5class"] = df["label_4class"].where(~non_tumour, OTHER)
+    binary = df["label_5class"].map(lambda l: 1.0 if l in MALIGNANT else (0.0 if l in ("benign", OTHER) else np.nan))
     # DDI: biopsy flag is the binary truth for every image.
     ddi = df["dataset"] == "ddi"
     df["label_binary"] = np.where(ddi, df["malignant_flag"], binary)
@@ -55,7 +62,7 @@ def exclusion_reason(row, root: Path) -> str | float:
             return "quality_insufficient"
         if row["label_4class"] == "exclude":
             return np.nan                      # kept for dermacon_other
-    if row["label_4class"] not in TRAINABLE and row["label_4class"] != "ak":
+    if row["label_5class"] not in TRAINABLE and row["label_4class"] != "ak":
         return f"label_{row['label_4class']}"
     return np.nan
 
@@ -74,7 +81,7 @@ def build(cfg: dict) -> pd.DataFrame:
     df["group_id"] = df["group_id"].fillna(df["patient_id"]).fillna(df["image_id"])
     df["split"] = ""
     cols = ["image_id", "group_id", "dataset", "path", "diagnosis", "label_4class",
-            "label_3class", "label_binary", "fst", "fst_bucket", "site", "is_acral",
+            "label_5class", "label_binary", "fst", "fst_bucket", "site", "is_acral",
             "patient_id", "exclude_reason", "split"]
     return df[cols]
 

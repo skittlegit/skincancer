@@ -1,7 +1,7 @@
 """Grad-CAM grid: N correct and N wrong predictions from one split, overlaid on the image.
 Look for attention on rulers, markings, borders or background.
 
-    python -m skincancer.analysis.gradcam --run runs/skinnet/s0 --split target_test --n 20
+    python -m skincancer.analysis.gradcam --run runs/skinnet/s0 --split test --n 20
 """
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from ..models import target_layer  # noqa: E402
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--run", required=True)
-    ap.add_argument("--split", default="target_test")
+    ap.add_argument("--split", default="test")
     ap.add_argument("--n", type=int, default=20)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out")

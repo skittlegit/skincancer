@@ -1,6 +1,6 @@
 # Skin cancer classification with a CNN trained from scratch
 
-SkinNet is a small residual CNN of our own, trained from random weights to sort clinical photos of skin tumours into four classes: basal cell carcinoma, squamous cell carcinoma, melanoma and benign. It is trained on lighter skin (Fitzpatrick types I–III) and tested on darker skin and on Indian images.
+SkinNet is a small residual CNN of our own, trained from random weights to sort clinical skin photos into five classes: basal cell carcinoma, squamous cell carcinoma, melanoma, benign tumour, and other (a skin condition that is not a tumour). It trains on about 10,500 images of all skin types and is tested by skin type and on four outside datasets, one of them Indian.
 
 No pretrained weights are used in the classifier and no layer is frozen.
 
@@ -41,7 +41,7 @@ python -m skincancer.data.build_label_map   # data/label_map.csv
 python -m skincancer.data.build_manifest    # data/manifest.csv
 python -m skincancer.data.dedup             # data/groups.csv (near-duplicates + patients)
 python -m skincancer.data.make_splits       # split column + data/splits/*.csv
-python -m skincancer.data.count_check       # class × skin-type table
+python -m skincancer.data.count_check       # split × class × skin-type tables
 ```
 
 ## Train and evaluate
@@ -50,7 +50,7 @@ python -m skincancer.data.count_check       # class × skin-type table
 python -m skincancer.train --config configs/skinnet.yaml --seed 0     # one seed
 python -m skincancer.predict --run runs/skinnet/s0 --splits ddi_test dermacon_test dermacon_other pad_dark_test midas_test --final
 python -m skincancer.evaluate --exp skinnet                           # results/skinnet/metrics.csv
-python -m skincancer.analysis.gradcam --run runs/skinnet/s0 --split target_test
+python -m skincancer.analysis.gradcam --run runs/skinnet/s0 --split test
 ```
 
 Or all three seeds, the test-only sets and the metrics in one go:
@@ -76,11 +76,11 @@ runs/final_ledger.csv        one row per (run, test-only set) ever scored
 results/<name>/metrics.csv   long format, one row per set × subgroup × metric
 ```
 
-Two files connect everything. `data/manifest.csv` has one row per image (label, skin type, dataset, group, split). `runs/<name>/s<seed>/preds/<split>.csv` has the predicted class probabilities. Evaluation reads only those two.
+Two files connect everything. `data/manifest.csv` has one row per image (label, skin type, dataset, group, split); [data/splits/SUMMARY.md](data/splits/SUMMARY.md) counts them. `runs/<name>/s<seed>/preds/<split>.csv` has the predicted class probabilities. Evaluation reads only those two.
 
 ## Rules the code enforces
 
-- `source_val` picks the checkpoint. Test splits never choose anything.
+- `val` picks the checkpoint. Test splits never choose anything.
 - DDI, DermaCon-IN, MIDAS and `pad_dark_test` are never scored during training. `predict --final` scores them and refuses to score the same run on the same set twice.
 - A near-duplicate group never spans two splits.
 - Seeds 0, 1, 2. Results are the seed mean with a group-bootstrap 95% confidence interval.

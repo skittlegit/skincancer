@@ -19,10 +19,8 @@ from .labels import CLASSES
 
 # eval set -> (task, subgroup columns). DDI / DermaCon-IN are scored cancer vs not only.
 EVAL_SETS = {
-    "source_val": ("multiclass", []),
-    "source_test": ("multiclass", ["fst_bucket", "dataset", "is_acral"]),
-    "target_val": ("multiclass", []),
-    "target_test": ("multiclass", ["fst_bucket", "is_acral"]),
+    "val": ("multiclass", ["fst_bucket"]),
+    "test": ("multiclass", ["fst_bucket", "dataset", "is_acral"]),
     "pad_dark_test": ("multiclass", []),
     "ddi_test": ("binary", ["fst_bucket"]),
     "midas_test": ("multiclass", ["fst_bucket", "is_acral"]),     # biopsy-proven, Stanford, light skin
@@ -32,7 +30,7 @@ EVAL_SETS = {
 }
 MIN_SUBGROUP = 10
 OP_SENSITIVITY = 0.90   # operating point: threshold fixed on OP_SPLIT, applied to every set
-OP_SPLIT = "source_val"
+OP_SPLIT = "val"
 
 
 def load_preds(exp_dir: Path, split: str) -> tuple[list[int], list[pd.DataFrame]]:
@@ -103,7 +101,7 @@ def evaluate(exp: str, runs_dir="runs", results_dir="results", manifest_path=Non
              n_boot: int = 1000, splits=None) -> pd.DataFrame:
     exp_dir = Path(runs_dir) / exp
     cfg = run_config(exp_dir)
-    label_col = cfg.get("data", {}).get("label_col", "label_4class")
+    label_col = cfg["data"]["label_col"]
     classes = CLASSES[label_col]
     cols = [f"p_{c}" for c in classes]
     manifest = pd.read_csv(manifest_path or cfg.get("manifest", "data/manifest.csv"))

@@ -8,9 +8,9 @@ runs_dir: runs
 results_dir: results
 
 data:
-  label_col: label_4class      # bcc / scc / mel / benign
-  train_splits: [source_train] # manifest splits to train on
-  val_splits: [source_val]     # picks the checkpoint and stops training; never a test split
+  label_col: label_5class      # bcc / scc / mel / benign / other (not a tumour)
+  train_splits: [train]        # manifest splits to train on
+  val_splits: [val]            # picks the checkpoint and stops training; never a test split
   img_size: 224
   resize_short: 256            # evaluation: shorter side to 256, centre crop 224
 
@@ -20,9 +20,9 @@ model:
   drop: 0.3                    # dropout before the final linear layer
 
 train:
-  epochs: 150
-  warmup_epochs: 5             # linear warm-up, then cosine decay to zero
-  patience: 30                 # stop after this many epochs without a better val AUC (0 = never)
+  epochs: 60
+  warmup_epochs: 3             # linear warm-up, then cosine decay to zero
+  patience: 15                 # stop after this many epochs without a better val AUC (0 = never)
   lr: 1.0e-3                   # AdamW, every layer
   weight_decay: 0.05
   label_smoothing: 0.1
@@ -34,5 +34,5 @@ train:
 eval:
   # Predicted automatically after training. Test-only sets (ddi_test, dermacon_test,
   # dermacon_other, pad_dark_test, midas_test) are never here: they go through `predict --final`.
-  splits: [source_val, source_test, target_val, target_test, ak_side]
+  splits: [val, test, ak_side]
   tta: false                   # average over the four flips when predicting
