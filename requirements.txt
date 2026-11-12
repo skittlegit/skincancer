@@ -1,7 +1,10 @@
 # The packages the code imports, pinned to the versions in use. All were the newest releases on
-# 2026-11-12 (Python 3.12). CPU-only machine:
-#   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu && pip install -e . --no-deps
-# With a GPU, or on Kaggle / Colab, install the torch and torchvision builds for that machine first.
+# 2026-11-12 (Python 3.12). Pick the PyTorch build for the machine with the extra index:
+#   NVIDIA GPU (CUDA 13.2):  pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu132
+#   no GPU:                  pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+# then: pip install -e . --no-deps
+# If pip keeps a CPU build that is already installed, force the GPU one:
+#   pip install --force-reinstall --no-deps torch==2.15.0+cu132 torchvision==0.29.2+cu132 --index-url https://download.pytorch.org/whl/cu132
 torch==2.15.0
 torchvision==0.29.2
 albumentations==2.0.8

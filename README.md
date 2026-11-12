@@ -10,6 +10,8 @@ This is a research prototype, not a diagnostic tool.
 
 The project was restarted on 12 Nov 2026. The earlier experiments (fine-tuned pretrained backbones and everything built on them) are in git under the tag `pre-fresh-start`.
 
+What data to add after the baseline is planned in [docs/DATA_PLAN.md](docs/DATA_PLAN.md).
+
 ## Setup
 
 ```bash
