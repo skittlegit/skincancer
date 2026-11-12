@@ -207,3 +207,31 @@ Written before the split was made and before idea J was trained.
 3. It becomes checkpoint 3 if the gain is supported on `midas_test` or DDI and nothing is lower by a supported amount on `test` or DDI. Where the gain is will be stated with it.
 
 If it fails step 1, it is discarded and nothing new is scored on the test sets.
+
+**Outcome of idea J (13 Nov 2026): failed step 1, not scored on any test set.** Paired comparison with checkpoint 2, both after test-time flips and the seed average:
+
+| Set | Score | Checkpoint 2 | Idea J | Difference [95% interval] | Supported |
+| --- | --- | --- | --- | --- | --- |
+| `midas_val` | AUC | 0.689 | 0.782 | +0.093 [+0.062, +0.121] | yes |
+| `val` | AUC | 0.901 | 0.893 | −0.008 [−0.014, −0.001] | yes |
+| `val` | Within-source AUC | 0.888 | 0.876 | −0.012 [−0.024, −0.001] | yes |
+
+The gain on `midas_val` is large and supported, but the within-source AUC on our own `val` is lower by a supported amount, which the rule does not allow. The rule is applied as written.
+
+What the training logs show (validation only): seeds 0 and 1 ran all 60 epochs and reached 0.867 and 0.866 within-source AUC on `val`, against 0.869, 0.872 and 0.865 for checkpoint 1's seeds. Seed 2 was stopped by the patience rule at epoch 40 with its best at epoch 25 (0.846), while the learning rate was still high; no other seed in the project has stopped before epoch 46. Most of the loss at home is that one run.
+
+## 12. Idea O: idea J with early stopping off (13 Nov 2026)
+
+Written before idea O was trained.
+
+**Why.** Idea J did what it was meant to do on the outside validation photos, and lost at home mainly because one seed was cut short. Early stopping saves time; it is not part of what makes the model good, and the best weights are kept whichever epoch they come from. Turning it off removes that source of chance.
+
+**Idea O** (`configs/skinnet_midas_full.yaml`): idea J with `patience: 0`, so every seed trains for all 60 epochs. Seeds 0 and 1 of idea J already ran all 60 epochs, so with early stopping off they would be the same runs; they are reused, and only seed 2 is trained again. Then test-time flips and the seed average, as before.
+
+**How it is judged:** exactly as idea J (section 11), by paired comparison with checkpoint 2. Step 1 on `midas_val` and `val`; only if it passes, scored once on `test`, `midas_test`, DDI and DermaCon-IN; checkpoint 3 if the gain is supported on `midas_test` or DDI and nothing is lower by a supported amount on `test` or DDI.
+
+**Cautions recorded now.**
+
+- This idea was thought of after seeing idea J's validation result. That is what validation sets are for, and no test set has been looked at for J or O. But `val` and `midas_val` have now been used twice for this choice, so step 3 on the test sets is the real check.
+- If idea O also fails step 1, the trade is real and not chance: MIDAS training photos help on MIDAS and cost a little at home. Whether that trade is worth taking is then a decision for the team, not something to settle by trying more variants.
+- As for J: O has seen MIDAS's hospital. Only a gain on DDI shows it travels.

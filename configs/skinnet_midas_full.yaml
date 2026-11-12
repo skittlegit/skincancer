@@ -1,0 +1,5 @@
+# Idea O (DECISIONS.md, section 12): idea J with early stopping off, so every seed runs all 60 epochs.
+extends: skinnet_midas.yaml
+name: skinnet_midas_full
+train:
+  patience: 0
