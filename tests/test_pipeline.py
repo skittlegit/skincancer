@@ -155,6 +155,22 @@ def test_pipeline(workdir, monkeypatch):
     assert set(out.loc[out["eval_set"] == "ak_side", "metric"]) == {"pred_malignant_rate", "pred_malignant_rate_op90"}
     assert Path("results/tiny/metrics.csv").exists()
 
+    assert "source_auc" in set(out.loc[out["eval_set"] == "test", "metric"])
+    hard = out[(out["eval_set"] == "test") & (out["subgroup"] == "cancer_vs_lookalike")]
+    assert len(hard) and hard["n"].iloc[0] < auc["n"]
+
+    # a variant: balanced sampling, quality augmentation, checkpoint picked on the within-source AUC
+    train.main(["--config", "configs/tiny.yaml", "--seed", "0", "--set", "name=tiny_bal", "--set",
+                "train.sampling=source_class_type", "--set", "train.class_weighting=none", "--set",
+                "train.select_metric=source_auc", "--set", "data.quality_augment=true"])
+    assert yaml.safe_load(Path("runs/tiny_bal/s0/summary.json").read_text())["select_metric"] == "source_auc"
+    val_only = evaluate.evaluate("tiny_bal", n_boot=20, splits=["val"])
+    assert set(val_only["eval_set"]) == {"val"} and Path("results/tiny_bal/metrics_val.csv").exists()
+    assert not Path("results/tiny_bal/metrics.csv").exists()            # the full table is untouched
+    with pytest.raises(ValueError):
+        train.main(["--config", "configs/tiny.yaml", "--seed", "0", "--set", "name=bad", "--set",
+                    "train.sampling=source_class"])                     # sampling + weighted loss: refused
+
     # training on two splits at once
     train.main(["--config", "configs/tiny.yaml", "--seed", "0", "--set", "name=tiny_both", "--set",
                 "data.train_splits=[train, val]", "--set", "train.epochs=1"])

@@ -1,0 +1,8 @@
+# Variant A: cancer and not cancer drawn equally often inside each dataset.
+# Chosen against the other variants on the validation split only (DECISIONS.md, section 8).
+extends: skinnet.yaml
+name: skinnet_src
+train:
+  class_weighting: none        # the sampling below already balances the classes
+  sampling: source_class
+  select_metric: source_auc

@@ -1,0 +1,8 @@
+# Variant B: as A, and small, hard lesion types drawn more often.
+# Chosen against the other variants on the validation split only (DECISIONS.md, section 8).
+extends: skinnet.yaml
+name: skinnet_srctype
+train:
+  class_weighting: none        # the sampling below already balances the classes
+  sampling: source_class_type
+  select_metric: source_auc

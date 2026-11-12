@@ -104,3 +104,31 @@ Fixed on 12 Nov 2026, before any SkinNet run was scored on a test set. The confi
 - **Per type of lesion** on `test`, MIDAS and DermaCon-IN: the missed-cancer rate for each cancer type, and the false-alarm rate for each kind of non-cancer.
 - On `ak_side` and `dermacon_other`, the share of images called cancer.
 - Every number is the mean of the three seeds, with a 95% confidence interval from 1,000 bootstrap resamples of groups (not single images). Subgroups under 10 images are not reported.
+
+## 8. Second round: training that the shortcut cannot exploit (12 Nov 2026)
+
+Written after the baseline results ([docs/RESULTS.md](docs/RESULTS.md)) and before any of these models was trained. No new data is used.
+
+**What the baseline showed.** It learned that a smartphone photo usually means cancer (89% false alarms on PAD-UFES-20 non-cancers), and it could not tell a cancer from a benign tumour that resembles it (81% false alarms on those).
+
+**Three variants**, each changing only how training images are drawn and augmented. The network, optimiser, schedule and data are the baseline's.
+
+| Variant | Config | Change |
+| --- | --- | --- |
+| A | `skinnet_src` | Inside each dataset, cancer and not cancer are drawn equally often, so the kind of photo no longer predicts the class |
+| B | `skinnet_srctype` | As A, and inside each dataset × class a lesion type's share of the draws is proportional to the square root of its image count. Benign lookalikes go from 6% to 11% of the images drawn, rare cancers from 7% to 9% |
+| C | `skinnet_srctype_q` | As B, plus random loss of resolution and JPEG quality during training, so image quality says less about the source |
+
+- Balanced drawing replaces the class-weighted loss (the loss is unweighted for A, B and C). An epoch still draws 12,562 images, now with replacement.
+- **A new selection score: within-source AUC.** The AUC is computed inside each dataset and the two are averaged. Telling the datasets apart cannot raise it. A, B and C pick their checkpoint on it. The baseline picked on plain AUC, so its within-source AUC on `val` is reported next to theirs for reference.
+
+**How one is chosen.**
+1. Train seed 0 of A, B and C.
+2. Compare them on `val` only: within-source AUC first; the AUC on cancers against benign lookalikes (`hard` subset) breaks a tie of less than 0.005.
+3. Train seeds 1 and 2 of the winner only, and score that one model on `test` and the outside sets, once.
+
+The other two variants are never scored on `test` or the outside sets. Training writes their `test` predictions to disk like every run, but those files are not evaluated.
+
+**What would count as helping:** on the outside sets, a higher AUC on MIDAS and DDI than the baseline's 0.60 and 0.65; on our own `test` split, fewer false alarms on PAD-UFES-20 non-cancers and on benign lookalikes at the same share of cancers caught. Plain AUC on `test` may fall, since part of the baseline's 0.887 came from the shortcut.
+
+**If none helps,** the next steps are in [docs/DATA_PLAN.md](docs/DATA_PLAN.md) (Derm7pt first) and then larger images.

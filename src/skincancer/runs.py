@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import torch
 import yaml
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 
 from .data.dataset import ImageLoader, SkinDataset, eval_transform, train_transform
 from .labels import CLASSES
@@ -69,10 +69,13 @@ def image_loader(cfg: dict) -> ImageLoader:
 
 
 def make_loader(df: pd.DataFrame, cfg: dict, train: bool, seed: int = 0, drop_last: bool = False,
-                persistent: bool = True) -> DataLoader:
-    """persistent=False for one-shot inference, so worker processes exit when it is done."""
+                persistent: bool = True, sample_weights=None) -> DataLoader:
+    """persistent=False for one-shot inference, so worker processes exit when it is done.
+    sample_weights: draw each epoch's images at random in proportion to these weights (with
+    replacement), instead of one pass over every image."""
     d = cfg["data"]
-    tf = train_transform(d["img_size"]) if train else eval_transform(d["img_size"], d["resize_short"])
+    tf = (train_transform(d["img_size"], d.get("quality_augment", False)) if train
+          else eval_transform(d["img_size"], d["resize_short"]))
     ds = SkinDataset(df, image_loader(cfg), tf, classes_of(cfg), d["label_col"])
     g = torch.Generator().manual_seed(seed)
     nw = cfg["train"]["num_workers"]
@@ -83,8 +86,12 @@ def make_loader(df: pd.DataFrame, cfg: dict, train: bool, seed: int = 0, drop_la
         n = torch.get_num_threads()
         os.environ.update(OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
         torch.set_num_threads(n)
-    return DataLoader(ds, batch_size=cfg["train"]["batch_size"], shuffle=train, drop_last=drop_last,
-                      num_workers=nw, generator=g, pin_memory=torch.cuda.is_available(),
+    sampler = None
+    if sample_weights is not None:
+        sampler = WeightedRandomSampler(torch.as_tensor(sample_weights, dtype=torch.double), len(ds),
+                                        replacement=True, generator=g)
+    return DataLoader(ds, batch_size=cfg["train"]["batch_size"], shuffle=train and sampler is None,
+                      sampler=sampler, drop_last=drop_last, num_workers=nw, generator=g, pin_memory=torch.cuda.is_available(),
                       worker_init_fn=partial(_seed_worker, base=seed), persistent_workers=persistent and nw > 0)
 
 

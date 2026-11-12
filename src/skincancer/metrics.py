@@ -21,6 +21,14 @@ def auc(y: np.ndarray, score: np.ndarray) -> float:
     return float((r[y].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg))
 
 
+def source_auc(y_bin: np.ndarray, score: np.ndarray, source: np.ndarray) -> float:
+    """Mean of the AUCs computed inside each source (dataset) that holds both classes. A model
+    cannot raise it by telling the sources apart, only by telling cancer from not cancer."""
+    vals = [auc(y_bin[source == s] == 1, score[source == s]) for s in np.unique(source)]
+    vals = [v for v in vals if not np.isnan(v)]
+    return float(np.mean(vals)) if vals else np.nan
+
+
 def p_malignant(P: np.ndarray, classes: list[str]) -> np.ndarray:
     cols = [i for i, c in enumerate(classes) if c in MALIGNANT]
     return P[:, cols].sum(1)

@@ -20,7 +20,7 @@ from .labels import CLASSES
 # eval set -> (task, subgroup columns). Subgroups by type of lesion show which cancers are
 # missed and which harmless conditions raise false alarms.
 EVAL_SETS = {
-    "val": ("binary", []),
+    "val": ("binary", ["dataset", "label_fine"]),
     "test": ("binary", ["dataset", "label_fine"]),
     "ddi_test": ("binary", []),                   # biopsy-proven, Stanford
     "midas_test": ("binary", ["label_fine"]),     # biopsy-proven clinical photos, Stanford
@@ -28,6 +28,8 @@ EVAL_SETS = {
     "ak_side": ("rates", []),                     # precancerous: neither class
     "dermacon_other": ("rates", []),              # Indian clinic images that are not cancer
 }
+# Cancers and the benign tumours that resemble them: the hard part of the task.
+HARD_TYPES = {"bcc", "scc", "mel", "rare_cancer", "benign"}
 MIN_SUBGROUP = 10
 OP_SENSITIVITY = 0.90   # operating point: threshold fixed on OP_SPLIT, applied to every set
 OP_SPLIT = "val"
@@ -70,11 +72,19 @@ def score_set(split: str, frames: list[pd.DataFrame], manifest: pd.DataFrame, cl
         fns = {"pred_malignant_rate": lambda y_, yb, P: float(M.pred_malignant(P, classes).mean())}
     else:
         fns = M.metric_fns(classes)
+        if meta["dataset"].nunique() > 1:
+            # Mean of the AUCs inside each dataset: immune to the photo-type shortcut. The
+            # bootstrap hands every function a resampled `y`; here that slot carries the dataset.
+            y = pd.factorize(meta["dataset"])[0]
+            fns["source_auc"] = lambda src, yb, P: M.source_auc(
+                yb[~np.isnan(yb)], M.p_malignant(P, classes)[~np.isnan(yb)], src[~np.isnan(yb)])
 
     subsets = [("all", "all", np.ones(len(meta), bool))]
     for col in sub_cols:
         for val in sorted(meta[col].dropna().unique(), key=str):
             subsets.append((col, str(val), (meta[col] == val).to_numpy()))
+    if task != "rates" and split in ("val", "test"):
+        subsets.append(("hard", "cancer_vs_lookalike", meta["label_fine"].isin(HARD_TYPES).to_numpy()))
     op = None
     if thresholds is not None and not np.any(np.isnan(thresholds)):
         op = [(M.p_malignant(P, classes) - t)[:, None] for P, t in zip(Ps, thresholds)]
@@ -122,7 +132,8 @@ def evaluate(exp: str, runs_dir="runs", results_dir="results", manifest_path=Non
     out.insert(0, "exp", exp)
     odir = Path(results_dir) / exp
     odir.mkdir(parents=True, exist_ok=True)
-    out.to_csv(odir / "metrics.csv", index=False)
+    # a partial evaluation (chosen splits only) never overwrites the full table
+    out.to_csv(odir / ("metrics.csv" if splits is None else f"metrics_{'_'.join(splits)}.csv"), index=False)
     return out
 
 
@@ -132,11 +143,12 @@ def main(argv=None):
     ap.add_argument("--n-boot", type=int, default=1000)
     ap.add_argument("--runs-dir", default="runs")
     ap.add_argument("--results-dir", default="results")
+    ap.add_argument("--splits", nargs="+", help="score only these (e.g. val, when choosing between models)")
     args = ap.parse_args(argv)
     for exp in args.exp:
-        out = evaluate(exp, args.runs_dir, args.results_dir, n_boot=args.n_boot)
+        out = evaluate(exp, args.runs_dir, args.results_dir, n_boot=args.n_boot, splits=args.splits)
         head = out[(out["subgroup"] == "all")
-                   & out["metric"].isin(["binary_auc", "missed_cancer_rate_op90", "false_alarm_rate_op90"])]
+                   & out["metric"].isin(["binary_auc", "source_auc", "missed_cancer_rate_op90", "false_alarm_rate_op90"])]
         print(head[["exp", "eval_set", "metric", "mean", "ci_lo", "ci_hi", "n", "n_malignant", "n_seeds"]].to_string(index=False))
 
 

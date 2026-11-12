@@ -138,6 +138,46 @@ def test_warmup_schedule_class_weights_and_augmentation():
     assert eval_transform(64, 72)(image=img)["image"].shape == (3, 64, 64)
 
 
+def test_sampling_weights_balance_classes_inside_each_dataset():
+    import pandas as pd
+    from skincancer.train import sample_weights
+    df = pd.DataFrame({"dataset": ["atlas"] * 100 + ["phone"] * 20,
+                       "label_cancer": ["cancer"] * 10 + ["not_cancer"] * 90 + ["cancer"] * 15 + ["not_cancer"] * 5,
+                       "label_fine": ["mel"] * 10 + ["non_tumour"] * 81 + ["benign"] * 9 + ["bcc"] * 15 + ["benign"] * 5})
+    assert sample_weights(df, "none", "label_cancer") is None
+    for mode in ("source_class", "source_class_type"):
+        df["w"] = sample_weights(df, mode, "label_cancer")
+        assert df["w"].mean() == pytest.approx(1)
+        cells = df.groupby(["dataset", "label_cancer"])["w"].sum()
+        assert cells["atlas"].tolist() == pytest.approx([50, 50]) and cells["phone"].tolist() == pytest.approx([10, 10])
+    types = df[df["dataset"] == "atlas"].groupby("label_fine")["w"].sum()   # sqrt(81) : sqrt(9) = 3 : 1
+    assert types["non_tumour"] / types["benign"] == pytest.approx(3)
+    with pytest.raises(ValueError):
+        sample_weights(df, "nope", "label_cancer")
+
+
+def test_source_auc_ignores_differences_between_datasets():
+    from skincancer.metrics import auc, source_auc
+    from skincancer.train import selection_score
+    rng = np.random.default_rng(0)
+    source = np.array(["atlas"] * 200 + ["phone"] * 200)
+    y = np.r_[rng.random(200) < 0.1, rng.random(200) < 0.8].astype(float)
+    shortcut = (source == "phone") + 0.01 * rng.random(400)     # knows the dataset, nothing about the lesion
+    assert auc(y == 1, shortcut) > 0.8                           # looks good overall ...
+    assert source_auc(y, shortcut, source) == pytest.approx(0.5, abs=0.1)   # ... and is chance inside each dataset
+    assert source_auc(y, y + 0.0, source) == 1.0
+    assert selection_score(y.astype(int), shortcut, source, "source_auc") == source_auc(y, shortcut, source)
+    assert selection_score(y.astype(int), shortcut, source, "auc") == auc(y == 1, shortcut)
+    out = train_transform_quality()
+    assert out.shape == (3, 64, 64)
+
+
+def train_transform_quality():
+    from skincancer.data.dataset import train_transform
+    img = np.random.default_rng(0).integers(0, 255, (120, 160, 3), dtype=np.uint8)
+    return train_transform(64, quality=True)(image=img)["image"]
+
+
 def test_leakage_check_allows_external_tests_only():
     import pandas as pd
     from skincancer.data.make_splits import check_no_leakage
