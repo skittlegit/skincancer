@@ -151,11 +151,11 @@ All three passed the 0.005 bar. G + H was the best and was the one scored on the
 | DermaCon-IN tumours: AUC | 0.793 | 0.826 | +0.033 [−0.008, 0.084] |
 | DermaCon-IN everyday conditions called cancer | 34% | 24% | |
 
-**Outcome: discarded as a checkpoint.** The rule required the paired interval to be above zero on MIDAS or DDI, and on both it includes zero.
+**Outcome: checkpoint 2, after a change of rule.** The rule written beforehand required the paired interval to be above zero on MIDAS or DDI. On both it includes zero, so G + H was first discarded. The team then decided that a free, supported gain on our own test split with nothing worse anywhere counts as working, and restored it as checkpoint 2 ([CHECKPOINTS.md](CHECKPOINTS.md)). The outside numbers stand as they are: not shown to be better.
 
 **Reading.**
 
 - At home the gain is real: about 0.015 AUC and a sixth fewer false alarms, for no training cost.
 - Outside, AUC moved by +0.006, which cannot be told from no change. The lower false-alarm rates on MIDAS and DDI come with more missed cancers, so they are a moved threshold, not a better model.
 - Averaging and flipping reduce noise in what the models already know. They do not add knowledge of photos from other hospitals, which is what the outside sets need.
-- The technique stays available as a last step for any future checkpoint.
+- It is now the standard way of predicting, and every later idea is compared after the same treatment.

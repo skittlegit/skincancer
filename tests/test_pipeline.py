@@ -179,6 +179,28 @@ def test_pipeline(workdir, monkeypatch):
     same = compare.main(["--a", "tiny", "--b", "tiny", "--splits", "val", "--n-boot", "50"])
     assert (same["diff"] == 0).all() and (same["supported"] == "no").all()
 
+    # derived models (how checkpoint 2 is built): test-time flips, then the seed average
+    from skincancer import derive
+    derive.main(["tta", "--exp", "tiny", "--name", "tiny_tta"])
+    assert yaml.safe_load(Path("runs/tiny_tta/s1/config.yaml").read_text())["eval"]["tta"] is True
+    for seed in (0, 1):
+        predict.main(["--run", f"runs/tiny_tta/s{seed}", "--splits", "val"])
+    derive.main(["ensemble", "--exp", "tiny", "--name", "tiny_ens", "--splits", "val", "test"])
+    ens = pd.read_csv("runs/tiny_ens/s0/preds/val.csv").set_index("image_id")
+    parts = [pd.read_csv(f"runs/tiny/s{k}/preds/val.csv").set_index("image_id").loc[ens.index] for k in (0, 1)]
+    assert np.allclose(ens["p_cancer"], (parts[0]["p_cancer"] + parts[1]["p_cancer"]) / 2)
+    with pytest.raises(SystemExit):
+        derive.main(["ensemble", "--exp", "tiny", "--name", "tiny_ens", "--splits", "ddi_test"])   # needs --final
+    derive.main(["ensemble", "--exp", "tiny", "--name", "tiny_ens", "--splits", "ddi_test", "--final"])
+    with pytest.raises(SystemExit):
+        derive.main(["ensemble", "--exp", "tiny", "--name", "tiny_ens", "--splits", "ddi_test", "--final"])   # once
+    n_rows = len(pd.read_csv("runs/final_ledger.csv"))
+    derive.main(["ensemble", "--exp", "tiny", "--name", "tiny_ens", "--splits", "ddi_test", "--final", "--force"])
+    predict.main(["--run", "runs/tiny/s0", "--splits", "ddi_test", "--final", "--force"])
+    assert len(pd.read_csv("runs/final_ledger.csv")) == n_rows            # reproductions add no ledger rows
+    assert "runs/tiny_ens/s0" in set(pd.read_csv("runs/final_ledger.csv")["run"])
+    assert set(compare.main(["--a", "tiny", "--b", "tiny_ens", "--splits", "val", "--n-boot", "50"])["b"]) == {"tiny_ens"}
+
     # training on two splits at once
     train.main(["--config", "configs/tiny.yaml", "--seed", "0", "--set", "name=tiny_both", "--set",
                 "data.train_splits=[train, val]", "--set", "train.epochs=1"])

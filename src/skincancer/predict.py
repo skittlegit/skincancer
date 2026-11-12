@@ -47,7 +47,8 @@ def main(argv=None):
     ap.add_argument("--run", required=True)
     ap.add_argument("--splits", nargs="+", required=True)
     ap.add_argument("--final", action="store_true", help="required for test-only sets")
-    ap.add_argument("--force", action="store_true")
+    ap.add_argument("--force", action="store_true",
+                    help="rebuild predictions on a test-only set already in the ledger (no new entry)")
     args = ap.parse_args(argv)
     rdir = Path(args.run)
     test_only = [s for s in args.splits if s in TEST_ONLY]
@@ -74,7 +75,7 @@ def main(argv=None):
         runs.prediction_frame(df, P, classes, cfg).to_csv(rdir / "preds" / f"{split}.csv", index=False)
         scored.append(split)
         print(f"{split}: {len(df)} images")
-    if args.final:
+    if args.final and not args.force:   # --force reproduces a look the ledger already lists
         append_ledger(str(rdir.as_posix()), [s for s in scored if s in TEST_ONLY])
 
 

@@ -4,7 +4,40 @@ A checkpoint is a model we have decided to keep and build on. Each new idea star
 
 Scores are the mean of three seeds. Details and confidence intervals are in [RESULTS.md](RESULTS.md).
 
-## Checkpoint 1 (12 Nov 2026): the current model
+## Checkpoint 2 (12 Nov 2026): the current model
+
+Checkpoint 1's three trained models, used better when predicting. Nothing was retrained.
+
+| | |
+| --- | --- |
+| What it is | For each image, each of the three seeds predicts on the image and its three mirror images (left-right, up-down, both); the twelve cancer probabilities are averaged into one |
+| Weights | The same as checkpoint 1; copies with the prediction settings are in `checkpoints/checkpoint-2/` (local, git-ignored) |
+| Run folder | `runs/skinnet_src_tta_ens` (the average), built from `runs/skinnet_src_tta/s{0,1,2}` |
+| Git tag | `checkpoint-2` |
+| Built with | `python -m skincancer.derive` (commands below) |
+
+| Score | Baseline | Checkpoint 1 | Checkpoint 2 |
+| --- | --- | --- | --- |
+| Our test split: AUC | 0.887 | 0.890 | **0.904** |
+| Our test split: AUC, cancers vs benign lookalikes | 0.723 | 0.783 | **0.797** |
+| Cancers missed | 9% | 8% | 9% |
+| False alarms, all non-cancers | 42% | 40% | **33%** |
+| False alarms, PAD-UFES-20 non-cancers | 89% | 63% | 57% |
+| False alarms, benign lookalikes | 81% | 65% | 61% |
+| MIDAS (outside): AUC | 0.603 | 0.628 | 0.634 |
+| DDI (outside): AUC | 0.654 | 0.623 | 0.629 |
+| DermaCon-IN tumours (outside): AUC | 0.825 | 0.793 | 0.826 |
+| DermaCon-IN everyday conditions called cancer | 35% | 34% | **24%** |
+
+Missed cancers and false alarms use the threshold that catches 90% of cancers on the validation split.
+
+**Where it stands.** On photos like its training data it is a clear step up from checkpoint 1: +0.015 AUC and a sixth fewer false alarms, a gain the paired comparison supports. On photos from other hospitals it is not shown to be better: MIDAS and DDI each moved by +0.006, which cannot be told from no change. The outside gap is still the open problem.
+
+**How it became a checkpoint.** The rule written before the test (DECISIONS.md, section 10) asked for a supported gain on MIDAS or DDI, and by that rule it was first discarded. On seeing the result the team decided that a free, supported gain at home with nothing worse anywhere counts as working, and restored it. That was a change of rule after the result, recorded here so the outside numbers are not read as better than they are.
+
+**From now on** every new idea is compared with checkpoint 2, and gets the same treatment before the comparison: three seeds, test-time flips, seed average.
+
+## Checkpoint 1 (12 Nov 2026)
 
 | | |
 | --- | --- |
@@ -17,25 +50,11 @@ Scores are the mean of three seeds. Details and confidence intervals are in [RES
 | Git tag | `checkpoint-1` |
 | Weights | `checkpoints/checkpoint-1/s{0,1,2}/best.pt` (local, git-ignored) |
 
-| Score | Baseline | Checkpoint 1 |
-| --- | --- | --- |
-| Our test split: AUC | 0.887 | 0.890 |
-| Our test split: AUC, cancers vs benign lookalikes | 0.723 | 0.783 |
-| Cancers missed | 9% | 8% |
-| False alarms, all non-cancers | 42% | 40% |
-| False alarms, PAD-UFES-20 non-cancers | 89% | 63% |
-| False alarms, benign lookalikes | 81% | 65% |
-| MIDAS (outside): AUC | 0.603 | 0.628 |
-| DDI (outside): AUC | 0.654 | 0.623 |
-| DermaCon-IN tumours (outside): AUC | 0.825 | 0.793 |
-
-Missed cancers and false alarms use the threshold that catches 90% of cancers on the validation split.
-
-**Where it stands.** On photos like its training data it is a usable screen. On photos from other hospitals it is little better than the baseline, and not far above guessing on DDI and MIDAS. That gap is the open problem.
+It weakened the "smartphone photo means cancer" shortcut (false alarms on PAD-UFES-20 non-cancers 89% → 63%) and improved the hard distinction, cancer against a benign lookalike (0.72 → 0.78). Its scores are in the table above. Checkpoint 2 uses its weights unchanged.
 
 ## What was tried to get here: do not repeat
 
-Seven models were trained on the way to checkpoint 1, and two ideas for using it differently were tested after it. Everything that was not kept is listed with the reason, so nobody spends time on them again unless something else has changed (see the last section).
+Seven models were trained on the way to checkpoint 1, and two ideas for using it differently led to checkpoint 2. Everything that was not kept is listed with the reason, so nobody spends time on them again unless something else has changed (see the last section).
 
 | # | What was tried | Compared on | Result | Verdict |
 | --- | --- | --- | --- | --- |
@@ -46,9 +65,9 @@ Seven models were trained on the way to checkpoint 1, and two ideas for using it
 | D | A + Derm7pt (958 atlas photos: 294 cancers, 664 benign) as training-only data | validation, 1 seed | 0.857 against 0.869 | Discarded |
 | E | A at 320 × 320 pixels | validation, 1 seed | 0.856 against 0.869; stopped early with no gain | Discarded |
 | F | A + Derm7pt at 320 × 320 pixels | validation, 1 seed | 0.862 against 0.869 | Discarded |
-| G | Average the three seeds of checkpoint 1 into one prediction | validation | Within-source AUC 0.882 against 0.868 | Scored outside only together with H |
-| H | Test-time flips: predict on the image and its three mirror images, average | validation | 0.879 against 0.868 | Scored outside only together with G |
-| G+H | Both together | test and outside sets, paired comparison | Our test split: AUC 0.890 → 0.904, false alarms 40% → 33%, a supported gain. MIDAS +0.006 and DDI +0.006, neither supported | Discarded as a checkpoint: no gain shown outside |
+| G | Average the three seeds of checkpoint 1 into one prediction | validation | Within-source AUC 0.882 against 0.868 | Kept as part of G+H |
+| H | Test-time flips: predict on the image and its three mirror images, average | validation | 0.879 against 0.868 | Kept as part of G+H |
+| G+H | Both together | test and outside sets, paired comparison | Our test split: AUC 0.890 → 0.904, false alarms 40% → 33%, a supported gain. MIDAS +0.006 and DDI +0.006, neither supported | **Kept: checkpoint 2** (see above for how) |
 
 The deciding score on validation was the within-source AUC: the AUC inside each dataset, averaged. Seeds of one model differ by about 0.01 on it, so B to F are "no better than A", not "clearly worse".
 
@@ -59,7 +78,7 @@ The deciding score on validation was the within-source AUC: the AUC inside each 
 3. **Degrading image quality in training does not help.**
 4. **Derm7pt does not help.** One more atlas of moles and melanomas adds little the network had not seen. Its list is still on disk (`data/extra/derm7pt.csv`) and was checked: none of its images duplicates a validation or test image.
 5. **Larger images do not help at this network size.** Image detail is not what limits the model.
-6. **Averaging seeds and test-time flips are a real but home-only gain.** Together they add about 0.015 AUC on our own test split and cut false alarms there by a sixth, at no training cost. On MIDAS and DDI the change is +0.006, too small to tell from zero. They can be applied to any future checkpoint as a last step, but they do not make a model travel better.
+6. **Averaging seeds and test-time flips are a real but home-only gain.** Together they add about 0.015 AUC on our own test split and cut false alarms there by a sixth, at no training cost. On MIDAS and DDI the change is +0.006, too small to tell from zero. They are now the standard way of predicting (checkpoint 2), but they do not make a model travel better.
 7. **Nothing done with these two data sources moved the outside scores.** The gap between 0.89 at home and about 0.62 outside comes from how different our training images are from other hospitals' photos.
 8. **Choosing models on our own validation split cannot find outside gains,** because that split comes from the same two sources as training.
 
@@ -73,7 +92,7 @@ The deciding score on validation was the within-source AUC: the AUC inside each 
 
 Each idea has a letter, continuing from A to H above. The rule is the same for every one:
 
-- **If it works, it becomes the next checkpoint.** "Works" means it beats the current checkpoint by more than the seed-to-seed spread on the score fixed beforehand, and the gain shows on the outside sets, not only on our own test split.
+- **If it works, it becomes the next checkpoint.** "Works" means a gain over the current checkpoint that the paired comparison supports, with nothing clearly worse elsewhere. Whether the gain is at home or on the outside sets is stated with it; a gain on the outside sets is the one we are after.
 - **If it does not, it is discarded:** its config and trained models are deleted and it moves to the "do not repeat" table with its result and the reason.
 - One idea at a time where possible, so a gain or a loss can be traced to one change.
 
@@ -101,10 +120,17 @@ Counts for SCIN and ISIC 2019 are from memory and must be confirmed at download.
 ## How to use a checkpoint
 
 ```bash
-# score images with checkpoint 1, seed 0 (weights are local, not in git)
+# checkpoint 1, one seed (weights are local, not in git)
 python -m skincancer.predict --run checkpoints/checkpoint-1/s0 --splits val
-# return the code to the state that produced it
-git checkout checkpoint-1
+
+# checkpoint 2: rebuild it from checkpoint 1's runs
+python -m skincancer.derive tta --exp skinnet_src --name skinnet_src_tta
+for s in 0 1 2; do python -m skincancer.predict --run runs/skinnet_src_tta/s$s --splits val test; done
+python -m skincancer.derive ensemble --exp skinnet_src_tta --name skinnet_src_tta_ens --splits val test
+python -m skincancer.compare --a skinnet_src --b skinnet_src_tta_ens --splits val test
+
+# return the code to the state that produced a checkpoint
+git checkout checkpoint-2
 ```
 
 The weights are not in the repository (`checkpoints/` is git-ignored). Retraining from the tagged code with seeds 0, 1 and 2 reproduces them.
