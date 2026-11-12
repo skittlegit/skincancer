@@ -160,3 +160,17 @@ Written after the second-round results and before any of these models was traine
 **What would count as helping:** a higher AUC on MIDAS and DDI than variant A's 0.63 and 0.62. An improvement on our own test split alone would repeat the second round's outcome.
 
 **Outcome (12 Nov 2026):** none of D, E and F beat checkpoint 1 on `val` (0.857, 0.856 and 0.862 against 0.869), so checkpoint 1 stays the current model and nothing new was scored on `test` or the outside sets. A full list of what has been tried, so it is not repeated, is in [docs/CHECKPOINTS.md](docs/CHECKPOINTS.md). The three variant configs and their trained models were removed. The code for training-only extra data (`data/extra.py`, `data.extra_train`) is kept for the next data steps; no config uses it now.
+
+## 10. Ideas G and H: averaging seeds and test-time flips (12 Nov 2026)
+
+Written before either was computed. Both change only how checkpoint 1's three trained models are used to predict; nothing is retrained.
+
+- **G, seed average** (`skinnet_src_ens`): the three seeds' cancer probabilities are averaged into one prediction per image.
+- **H, test-time flips** (`skinnet_src_tta`): each seed predicts on the image and its three mirror images (left-right, up-down, both) and averages the four.
+- **G + H** (`skinnet_src_tta_ens`): the seed average of H's predictions.
+
+**Step 1, validation only.** Within-source AUC on `val` for all three, against checkpoint 1's 0.868 (mean of its seeds). A candidate passes with a gain of 0.005 or more. If none passes, G and H are discarded and nothing is scored outside.
+
+**Step 2, one candidate.** The passing candidate with the highest validation score is scored once on `test` and the outside sets. Averaging existing outside predictions is still a new look at those sets, so it is recorded in the ledger like any other.
+
+**Step 3, does it become a checkpoint?** Differences this small cannot be read from two separate confidence intervals, so the comparison is paired: the same resampled images are scored by both models and the difference in AUC gets its own 95% interval (`python -m skincancer.compare`). The candidate becomes checkpoint 2 if that interval is above zero on MIDAS or on DDI and is not below zero on the other. Otherwise it is discarded, even if it gained on our own test split.
