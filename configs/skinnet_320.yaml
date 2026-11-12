@@ -1,7 +1,0 @@
-# Variant E: variant A at 320 x 320 pixels instead of 224.
-# Chosen against the other third-round variants on the validation split only (DECISIONS.md, section 9).
-extends: skinnet_src.yaml
-name: skinnet_320
-data:
-  img_size: 320
-  resize_short: 366            # same crop ratio as 224 / 256

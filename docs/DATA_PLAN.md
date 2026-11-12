@@ -1,6 +1,6 @@
 # Data plan: what to add after the baseline
 
-Status: **not started.** Nothing here is in the training data yet. We decide after the baseline results are in (12 Nov 2026).
+Status (12 Nov 2026): Derm7pt was tried as training-only data in the third round and did not help ([RESULTS.md](RESULTS.md)); it is not in the training data. Nothing else here has been started.
 
 ## Why more data
 

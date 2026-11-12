@@ -98,3 +98,25 @@ A was chosen. B and C halve the false alarms on benign lookalikes but raise them
 - **So the shortcut was not what held the outside scores down.** The gap between 0.89 at home and 0.62 outside is mostly the difference between our training images and biopsy-confirmed hospital photos, which no reweighting of the same data can close.
 
 Variant A's training setup is kept for the next rounds. Next: add Derm7pt to training, then larger images.
+
+## Third round: more hard cases and larger images (12 Nov 2026)
+
+Three variants built on checkpoint 1, compared with it on the validation split, one seed each (DECISIONS.md, section 9). None was scored on the test split or the outside sets.
+
+| | Checkpoint 1 | D: + Derm7pt | E: 320-pixel images | F: both |
+| --- | --- | --- | --- | --- |
+| Within-source AUC (the deciding score) | **0.869** | 0.857 | 0.856 | 0.862 |
+| AUC, cancers vs benign lookalikes | 0.777 | 0.757 | 0.745 | 0.770 |
+| False alarms on benign lookalikes | 64% | 62% | 62% | 60% |
+| False alarms on PAD-UFES-20 non-cancers | 58% | 51% | 56% | 53% |
+| False alarms overall | 39% | 41% | 42% | 40% |
+| Training images | 12,562 | 13,520 | 12,562 | 13,520 |
+
+**No variant beat checkpoint 1,** so it carries forward unchanged as checkpoint 2.
+
+**Reading.**
+
+- Adding 958 Derm7pt photos (294 cancers, 664 benign tumours) did not help. They come from one more atlas and are almost all moles and melanomas, so they add little the network had not seen.
+- Larger images did not help either. The variant at 320 pixels stopped early at epoch 56 with no gain; whatever limits the model, it is not image detail at this network size.
+- The differences from checkpoint 1 (0.007 to 0.013) are about the size of the seed-to-seed spread (0.01), so "no better" is the supported conclusion, not "worse".
+- Three rounds now point the same way: changes to how we use these two sources move the score on these two sources at most. The outside gap needs training images from other kinds of source, and a way to measure outside performance while choosing models. Both are in [DATA_PLAN.md](DATA_PLAN.md).
