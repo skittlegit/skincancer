@@ -37,5 +37,5 @@ train:
 eval:
   # Predicted automatically after training. Test-only sets (ddi_test, dermacon_test,
   # dermacon_other, midas_test) are never here: they go through `predict --final`.
-  splits: [val, test, ak_side]
+  splits: [val, test, ak_side, midas_val]
   tta: false                   # average over the four flips when predicting

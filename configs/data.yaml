@@ -37,6 +37,7 @@ datasets:
 splits:
   seed: 2026                   # split seed; independent of training seeds
   fractions: [0.70, 0.15, 0.15]   # train / val / test, by group, stratified by type of lesion x dataset
+  midas: [0.40, 0.30, 0.30]       # midas_train / midas_val / midas_test, by patient, stratified by type of lesion
 
 dedup:                         # calibrated by eye on real pairs
   phash_max_distance: 2        # Hamming distance on 64-bit pHash; >=4 collides on unrelated lesions

@@ -4,7 +4,9 @@
 
 Pools: main = every Fitzpatrick17k and PAD-UFES-20 image labelled cancer or not cancer,
 split into train / val / test; ak_side = actinic keratoses; ddi_test / dermacon_test /
-dermacon_other / midas_test = test-only datasets. A near-duplicate group that touches a
+dermacon_other = test-only datasets; MIDAS is split by patient into midas_train (may be
+added to training), midas_val (never trained on; used to choose between models) and
+midas_test. A near-duplicate group that touches a
 test-only set loses its trainable members.
 """
 from __future__ import annotations
@@ -102,6 +104,10 @@ def make(manifest: pd.DataFrame, cfg: dict, groups: pd.DataFrame | None = None):
     if main.any():
         strata = df.loc[main, "label_fine"] + " " + df.loc[main, "dataset"]
         df.loc[main, "split"] = grouped_split(df[main], ["train", "val", "test"], sp["fractions"], sp["seed"], strata)
+    midas = df["pool"] == "midas_test"
+    if midas.any() and sp.get("midas"):   # by patient, after the duplicate rules above treated all of it as a test set
+        df.loc[midas, "split"] = grouped_split(df[midas], ["midas_train", "midas_val", "midas_test"], sp["midas"],
+                                               sp["seed"], df.loc[midas, "label_fine"])
     return df.drop(columns="pool")
 
 

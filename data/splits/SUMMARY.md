@@ -8,7 +8,9 @@ ddi_test           171         0         485    656
 dermacon_other       0         0        5379   5379
 dermacon_test       19         0          46     65
 excluded             5       922          19    946
-midas_test         802         0         578   1380
+midas_test         241         0         173    414
+midas_train        321         0         231    552
+midas_val          240         0         174    414
 test               478         0        2217   2695
 train             2220         0       10342  12562
 val                478         0        2217   2695
@@ -25,7 +27,9 @@ ddi_test           4    49     255   21           0                    0        
 dermacon_other     0     0       0    0           0                    0            0     0        5379   5379
 dermacon_test      0    10      46    2           0                    0            0     7           0     65
 excluded         329     0       2    0          13                    2            4     1         595    946
-midas_test         0   402     578  155           0                    0            0   245           0   1380
+midas_test         0   121     173   47           0                    0            0    73           0    414
+midas_train        0   161     231   62           0                    0            0    98           0    552
+midas_val          0   120     174   46           0                    0            0    74           0    414
 test               0   217     158   94        1810                  249           51   116           0   2695
 train              0  1007     733  437        8447                 1162          236   540           0  12562
 val                0   217     158   94        1810                  249           51   116           0   2695

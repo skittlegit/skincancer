@@ -189,6 +189,29 @@ def test_derm7pt_extra_rows_and_loading(tmp_path):
     assert loaded["image_id"].tolist() == ["derm7pt_1", "derm7pt_2", "derm7pt_3"] and set(loaded["dataset"]) == {"derm7pt"}
 
 
+def test_midas_is_split_three_ways_by_patient():
+    import pandas as pd
+    from skincancer.data.make_splits import check_no_leakage, make
+    rng = np.random.default_rng(0)
+    rows = []
+    for p in range(120):                                   # 120 patients, 1-4 photos each, one lesion type per patient
+        fine = ["bcc", "scc", "mel", "benign"][p % 4]
+        for k in range(int(rng.integers(1, 5))):
+            rows.append({"image_id": f"midas_{p}_{k}", "group_id": f"g{p}", "dataset": "midas", "label_4class": fine,
+                         "label_fine": fine, "label_binary": float(fine != "benign"), "exclude_reason": np.nan,
+                         "patient_id": f"p{p}", "fst": np.nan, "split": ""})
+    df = make(pd.DataFrame(rows), {"splits": {"seed": 1, "fractions": [0.7, 0.15, 0.15], "midas": [0.4, 0.3, 0.3]}})
+    assert set(df["split"]) == {"midas_train", "midas_val", "midas_test"}
+    assert (df.groupby("group_id")["split"].nunique() == 1).all()          # a patient is never in two parts
+    check_no_leakage(df)
+    share = df["split"].value_counts(normalize=True)
+    assert abs(share["midas_train"] - 0.4) < 0.06 and abs(share["midas_val"] - 0.3) < 0.06
+    for part in ("midas_train", "midas_val", "midas_test"):                # every part holds every type
+        assert set(df.loc[df["split"] == part, "label_fine"]) == {"bcc", "scc", "mel", "benign"}
+    whole = make(pd.DataFrame(rows), {"splits": {"seed": 1, "fractions": [0.7, 0.15, 0.15]}})
+    assert set(whole["split"]) == {"midas_test"}                           # without the setting MIDAS stays one test set
+
+
 def test_leakage_check_allows_external_tests_only():
     import pandas as pd
     from skincancer.data.make_splits import check_no_leakage
