@@ -141,7 +141,7 @@ Written after the second-round results and before any of these models was traine
 
 **What the second round showed.** Balanced drawing (variant A) weakened the shortcut and improved the hard distinction on our own test split, but the outside sets did not move (MIDAS 0.63, DDI 0.62). Variant A's training setup is the starting point for everything below.
 
-**Derm7pt as training-only data.** 954 clinical photos from an Italian atlas with a usable label: 290 cancers (248 melanomas, 42 BCCs) and 664 benign tumours, mostly nevi. It has no SCC and records no skin type.
+**Derm7pt as training-only data.** 958 clinical photos from an Italian atlas with a usable label: 294 cancers (252 melanomas, 4 of them skin metastases, and 42 BCCs) and 664 benign tumours, mostly nevi. The duplicate search found none of them among the 13,573 validation and test images. It has no SCC and records no skin type.
 - It is kept outside the manifest (`data/extra/derm7pt.csv`, built by `python -m skincancer.data.extra derm7pt`) and joins `train` only. `val`, `test` and the outside sets are untouched, so models with and without it are scored on exactly the same images.
 - Any Derm7pt image that near-duplicates a validation or test image is dropped, with the same thresholds as the main duplicate search.
 - In the balanced drawing it counts as a third dataset: cancer and not cancer are drawn equally often inside it.
