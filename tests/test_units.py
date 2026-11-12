@@ -68,20 +68,19 @@ def test_config_extends_overrides_and_templates():
     assert cfg["name"] == "skinnet_w48" and cfg["seed"] == 2
     assert cfg["manifest"] == "data/manifest.csv"  # from data.yaml
     assert cfg["data"]["train_splits"] == ["train"] and cfg["data"]["val_splits"] == ["val"]
-    assert cfg["data"]["label_col"] == "label_5class"
-    assert not set(cfg["eval"]["splits"]) & {"ddi_test", "dermacon_test", "dermacon_other", "pad_dark_test",
-                                              "midas_test"}   # test-only sets are never scored automatically
+    assert cfg["data"]["label_col"] == "label_cancer"
+    assert not set(cfg["eval"]["splits"]) & {"ddi_test", "dermacon_test", "dermacon_other", "midas_test"}   # test-only sets are never scored automatically
 
 
 def test_skinnet():
-    m = Classifier(5)
+    m = Classifier(2)
     assert isinstance(m.backbone, SkinNet) and m.dim == 256
     n_params = sum(p.numel() for p in m.parameters())
     assert 2.5e6 < n_params < 3.2e6
     assert all(p.requires_grad for p in m.parameters())          # every layer is trained
     assert sum(isinstance(x, torch.nn.Conv2d) and x.kernel_size == (3, 3) for x in m.modules()) == 19
     logits, f = m(torch.randn(2, 3, 96, 96), return_features=True)
-    assert logits.shape == (2, 5) and f.shape == (2, 256)
+    assert logits.shape == (2, 2) and f.shape == (2, 256)
     assert m.backbone.stages[-1](m.backbone.stages[2](m.backbone.stages[1](m.backbone.stages[0](
         m.backbone.stem(torch.randn(1, 3, 224, 224)))))).shape == (1, 256, 7, 7)
     assert target_layer(m) is m.backbone.stages[-1][-1]
@@ -196,6 +195,6 @@ def test_make_loader_limits_worker_thread_pools(monkeypatch):
     cfg = load_config("configs/skinnet.yaml")
     cfg["train"]["num_workers"] = 2
     n = torch.get_num_threads()
-    df = pd.DataFrame({"image_id": ["a"], "path": ["x.jpg"], cfg["data"]["label_col"]: ["bcc"]})
+    df = pd.DataFrame({"image_id": ["a"], "path": ["x.jpg"], cfg["data"]["label_col"]: ["cancer"]})
     runs.make_loader(df, cfg, train=False, persistent=False)
     assert os.environ["OMP_NUM_THREADS"] == "1" and torch.get_num_threads() == n

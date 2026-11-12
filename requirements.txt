@@ -1,18 +1,24 @@
-# Kaggle/Colab already ship torch + torchvision; install the rest with
-#   pip install -r requirements.txt && pip install -e . --no-deps
-torch>=2.2
-torchvision>=0.17
-timm>=1.0                      # data/dedup.py only (image similarity); not used by the classifier
-albumentations>=2.0,<3
-opencv-python-headless>=4.8
-scikit-learn>=1.4
-numpy>=1.26
-pandas>=2.1
-pyyaml>=6.0
-pillow>=10.0
-imagehash>=4.3
-grad-cam>=1.5
-matplotlib>=3.8
-tqdm>=4.66
-requests>=2.31
-pytest>=8.0
+# The packages the code imports, pinned to the versions in use. All were the newest releases on
+# 2026-11-12 (Python 3.12). CPU-only machine:
+#   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu && pip install -e . --no-deps
+# With a GPU, or on Kaggle / Colab, install the torch and torchvision builds for that machine first.
+torch==2.15.0
+torchvision==0.29.2
+albumentations==2.0.8
+opencv-python-headless==5.0.0.93
+numpy==2.5.4
+pandas==3.1.1
+scipy==1.18.1
+pyyaml==6.0.3
+matplotlib==3.11.2
+grad-cam==1.5.7                # Grad-CAM heat maps (analysis/gradcam.py)
+pytest==9.2.0
+scikit-learn==1.9.1            # tests only: reference AUC values
+
+# Data preparation only (downloads, near-duplicate search); not needed to train or evaluate.
+timm==1.0.31                   # image similarity for the duplicate search (data/dedup.py)
+imagehash==4.3.2
+pillow==13.0.0
+tqdm==4.70.1
+requests==2.34.2
+# redivis                      # only for data/download_midas.py; install it when needed

@@ -1,8 +1,8 @@
 # Skin cancer classification with a CNN trained from scratch
 
-SkinNet is a small residual CNN of our own, trained from random weights to sort clinical skin photos into five classes: basal cell carcinoma, squamous cell carcinoma, melanoma, benign tumour, and other (a skin condition that is not a tumour). It trains on about 10,500 images of all skin types and is tested by skin type and on four outside datasets, one of them Indian.
+SkinNet is a small residual CNN of our own, trained from random weights to answer one question about a clinical skin photo: is it a skin cancer or not? It trains on about 12,500 images and is tested on held-back images and on three outside datasets, one of them Indian.
 
-No pretrained weights are used in the classifier and no layer is frozen.
+No pretrained weights are used in the classifier and no layer is frozen. This is stage one. Telling cancer types apart, and whether darker skin needs its own model, come later.
 
 This is a research prototype, not a diagnostic tool.
 
@@ -14,11 +14,11 @@ The project was restarted on 12 Nov 2026. The earlier experiments (fine-tuned pr
 
 ```bash
 python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
-pip install -r requirements.txt && pip install -e .
+pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu && pip install -e . --no-deps
 pytest                                                 # under a minute on CPU, synthetic data
 ```
 
-`requirements-current.txt` pins the exact versions in use on the development machine.
+`requirements.txt` pins the exact versions in use. The extra index gives the CPU build of PyTorch; with a GPU, install the matching torch and torchvision builds first.
 
 ## Data
 
@@ -41,14 +41,14 @@ python -m skincancer.data.build_label_map   # data/label_map.csv
 python -m skincancer.data.build_manifest    # data/manifest.csv
 python -m skincancer.data.dedup             # data/groups.csv (near-duplicates + patients)
 python -m skincancer.data.make_splits       # split column + data/splits/*.csv
-python -m skincancer.data.count_check       # split × class × skin-type tables
+python -m skincancer.data.count_check       # split × class and split × type-of-lesion tables
 ```
 
 ## Train and evaluate
 
 ```bash
 python -m skincancer.train --config configs/skinnet.yaml --seed 0     # one seed
-python -m skincancer.predict --run runs/skinnet/s0 --splits ddi_test dermacon_test dermacon_other pad_dark_test midas_test --final
+python -m skincancer.predict --run runs/skinnet/s0 --splits ddi_test dermacon_test dermacon_other midas_test --final
 python -m skincancer.evaluate --exp skinnet                           # results/skinnet/metrics.csv
 python -m skincancer.analysis.gradcam --run runs/skinnet/s0 --split test
 ```
@@ -76,11 +76,11 @@ runs/final_ledger.csv        one row per (run, test-only set) ever scored
 results/<name>/metrics.csv   long format, one row per set × subgroup × metric
 ```
 
-Two files connect everything. `data/manifest.csv` has one row per image (label, skin type, dataset, group, split); [data/splits/SUMMARY.md](data/splits/SUMMARY.md) counts them. `runs/<name>/s<seed>/preds/<split>.csv` has the predicted class probabilities. Evaluation reads only those two.
+Two files connect everything. `data/manifest.csv` has one row per image (cancer or not, type of lesion, dataset, group, split); [data/splits/SUMMARY.md](data/splits/SUMMARY.md) counts them. `runs/<name>/s<seed>/preds/<split>.csv` has the predicted class probabilities. Evaluation reads only those two.
 
 ## Rules the code enforces
 
 - `val` picks the checkpoint. Test splits never choose anything.
-- DDI, DermaCon-IN, MIDAS and `pad_dark_test` are never scored during training. `predict --final` scores them and refuses to score the same run on the same set twice.
+- DDI, DermaCon-IN and MIDAS are never scored during training. `predict --final` scores them and refuses to score the same run on the same set twice.
 - A near-duplicate group never spans two splits.
 - Seeds 0, 1, 2. Results are the seed mean with a group-bootstrap 95% confidence interval.

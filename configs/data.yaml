@@ -36,8 +36,7 @@ datasets:
 
 splits:
   seed: 2026                   # split seed; independent of training seeds
-  fractions: [0.70, 0.15, 0.15]   # train / val / test, by group, stratified by class x skin type
-  min_pad_dark: 20             # pad_dark_test needs at least this many images
+  fractions: [0.70, 0.15, 0.15]   # train / val / test, by group, stratified by type of lesion x dataset
 
 dedup:                         # calibrated by eye on real pairs
   phash_max_distance: 2        # Hamming distance on 64-bit pHash; >=4 collides on unrelated lesions

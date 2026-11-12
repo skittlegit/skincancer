@@ -1,7 +1,7 @@
 """Metrics and the group bootstrap over seeds.
 
-Everything here works on arrays: y (class index, -1 = not in the class set), y_bin
-(1 malignant / 0 benign / nan), P (n x K probabilities), and the class list.
+Everything here works on arrays: y (class index, -1 = no label), y_bin (1 cancer /
+0 not cancer / nan), P (n x 2 probabilities), and the class list.
 """
 from __future__ import annotations
 
@@ -21,21 +21,14 @@ def auc(y: np.ndarray, score: np.ndarray) -> float:
     return float((r[y].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg))
 
 
-def macro_auc(y: np.ndarray, P: np.ndarray) -> float:
-    """Macro one-vs-rest AUC over classes present in y. Rows with y = -1 are dropped."""
-    keep = y >= 0
-    y, P = y[keep], P[keep]
-    vals = [auc(y == k, P[:, k]) for k in range(P.shape[1]) if 0 < (y == k).sum() < len(y)]
-    return float(np.mean(vals)) if len(vals) >= 2 else np.nan
-
-
 def p_malignant(P: np.ndarray, classes: list[str]) -> np.ndarray:
     cols = [i for i, c in enumerate(classes) if c in MALIGNANT]
     return P[:, cols].sum(1)
 
 
 def pred_malignant(P: np.ndarray, classes: list[str]) -> np.ndarray:
-    return P.argmax(1) != classes.index("benign")
+    """True where the most probable class is a cancer class."""
+    return np.isin(P.argmax(1), [i for i, c in enumerate(classes) if c in MALIGNANT])
 
 
 def missed_cancer_rate(y_bin, P, classes) -> float:
@@ -71,36 +64,13 @@ def operating_point_fns() -> dict:
     return {"missed_cancer_rate_op90": missed, "false_alarm_rate_op90": alarm}
 
 
-def recall(y, P, k) -> float:
-    m = y == k
-    return float((P[m].argmax(1) == k).mean()) if m.any() else np.nan
-
-
-def precision(y, P, k) -> float:
-    m = (P.argmax(1) == k) & (y >= 0)
-    return float((y[m] == k).mean()) if m.any() else np.nan
-
-
-def balanced_accuracy(y, P) -> float:
-    keep = y >= 0
-    present = np.unique(y[keep])
-    return float(np.mean([recall(y, P, k) for k in present])) if len(present) else np.nan
-
-
-def metric_fns(classes: list[str], task: str) -> dict:
-    """name -> f(y, y_bin, P). task: 'multiclass' or 'binary'."""
-    fns = {
+def metric_fns(classes: list[str]) -> dict:
+    """name -> f(y, y_bin, P). Rates use the argmax decision (P(cancer) >= 0.5)."""
+    return {
         "binary_auc": lambda y, yb, P: auc(yb[~np.isnan(yb)] == 1, p_malignant(P, classes)[~np.isnan(yb)]),
         "missed_cancer_rate": lambda y, yb, P: missed_cancer_rate(yb, P, classes),
         "false_alarm_rate": lambda y, yb, P: false_alarm_rate(yb, P, classes),
     }
-    if task == "multiclass":
-        fns["macro_auc"] = lambda y, yb, P: macro_auc(y, P)
-        fns["balanced_acc"] = lambda y, yb, P: balanced_accuracy(y, P)
-        for k, c in enumerate(classes):
-            fns[f"recall_{c}"] = lambda y, yb, P, k=k: recall(y, P, k)
-            fns[f"precision_{c}"] = lambda y, yb, P, k=k: precision(y, P, k)
-    return fns
 
 
 def bootstrap(fns: dict, y, y_bin, Ps: list[np.ndarray], groups, n_boot: int = 1000, seed: int = 0) -> dict:
@@ -128,11 +98,3 @@ def bootstrap(fns: dict, y, y_bin, Ps: list[np.ndarray], groups, n_boot: int = 1
             "n_boot_valid": int(len(bs)),
         }
     return out
-
-
-def confusion(y, P, k: int) -> np.ndarray:
-    keep = y >= 0
-    pred = P[keep].argmax(1)
-    cm = np.zeros((k, k), dtype=int)
-    np.add.at(cm, (y[keep], pred), 1)
-    return cm

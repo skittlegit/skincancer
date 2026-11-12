@@ -1,4 +1,4 @@
-"""Count check: images per split x class, per skin-type bucket, and why images were excluded.
+"""Count check: images per split x class and x type of lesion, and why images were excluded.
 
     python -m skincancer.data.count_check
 """
@@ -14,15 +14,13 @@ from ..config import load_data_config
 def report(m: pd.DataFrame) -> str:
     used = m[m["split"].fillna("excluded") != "excluded"]
     main = used[used["split"].isin(["train", "val", "test"])]
-    lines = ["## Images per split x class",
-             pd.crosstab(used["split"], used["label_5class"], margins=True).to_string(),
-             "\n## train / val / test: split x skin-type bucket x class",
-             pd.crosstab([main["split"], main["fst_bucket"]], main["label_5class"], margins=True).to_string(),
+    lines = ["## Images per split: cancer / not cancer",
+             pd.crosstab(used["split"], used["label_cancer"].fillna("no label"), margins=True).to_string(),
+             "\n## Images per split x type of lesion",
+             pd.crosstab(used["split"], used["label_fine"], margins=True).to_string(),
              "\n## train / val / test: dataset x class",
-             pd.crosstab(main["dataset"], main["label_5class"], margins=True).to_string(),
+             pd.crosstab([main["split"], main["dataset"]], main["label_cancer"], margins=True).to_string(),
              "\n## Exclusions", m["exclude_reason"].value_counts().to_string()]
-    acral = used[(used["is_acral"] == True) & (used["label_4class"] == "mel")]  # noqa: E712
-    lines.append(f"\nAcral melanoma images (approximate): {len(acral)}")
     return "\n".join(lines)
 
 

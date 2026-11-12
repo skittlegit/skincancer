@@ -8,7 +8,7 @@ runs_dir: runs
 results_dir: results
 
 data:
-  label_col: label_5class      # bcc / scc / mel / benign / other (not a tumour)
+  label_col: label_cancer      # not_cancer / cancer
   train_splits: [train]        # manifest splits to train on
   val_splits: [val]            # picks the checkpoint and stops training; never a test split
   img_size: 224
@@ -33,6 +33,6 @@ train:
 
 eval:
   # Predicted automatically after training. Test-only sets (ddi_test, dermacon_test,
-  # dermacon_other, pad_dark_test, midas_test) are never here: they go through `predict --final`.
+  # dermacon_other, midas_test) are never here: they go through `predict --final`.
   splits: [val, test, ak_side]
   tta: false                   # average over the four flips when predicting

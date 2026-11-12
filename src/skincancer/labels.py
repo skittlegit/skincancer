@@ -4,14 +4,12 @@ from __future__ import annotations
 import math
 import re
 
-# label_5class is what the model predicts. label_4class is the tumour type alone; the label
-# map and the tumour-only test sets use it.
-CLASSES = {
-    "label_5class": ["bcc", "scc", "mel", "benign", "other"],
-    "label_4class": ["bcc", "scc", "mel", "benign"],
-}
-MALIGNANT = {"bcc", "scc", "mel"}
-OTHER = "other"   # a skin condition that is not a tumour (psoriasis, eczema, acne, ...)
+# label_cancer is what the model predicts. label_4class is the label map's tumour type and
+# label_fine a finer description; both are only used to describe results, never to train.
+CLASSES = {"label_cancer": ["not_cancer", "cancer"]}
+MALIGNANT = {"cancer"}
+TUMOUR = {"bcc", "scc", "mel", "benign"}          # label_4class values that name a tumour type
+CANCER_TYPES = {"bcc", "scc", "mel", "exclude_rare_cancer"}
 
 # Ordered (pattern, label, needs_review). First match wins, so specific rules sit
 # above general ones ("lentigo maligna" before "lentigo", subtyped nevi before "nevus").
@@ -40,8 +38,6 @@ RULES: list[tuple[str, str, bool]] = [
     (r"pyogenic granuloma|granuloma pyogenic", "benign", True),
 ]
 
-TUMOUR = set(CLASSES["label_4class"])
-TRAINABLE = set(CLASSES["label_5class"])
 
 
 def normalize(diagnosis) -> str:
@@ -60,7 +56,7 @@ def map_diagnosis(diagnosis) -> tuple[str, bool, str]:
 
 
 def is_malignant(label) -> bool:
-    return label in MALIGNANT
+    return label in CANCER_TYPES
 
 
 # ---- skin type -------------------------------------------------------------------

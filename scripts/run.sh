@@ -8,7 +8,7 @@ PY=${PY:-python}
 CFG=${1:-configs/skinnet.yaml}
 EXP=${2:-skinnet}
 SEEDS=${SEEDS:-"0 1 2"}
-FINAL="ddi_test dermacon_test dermacon_other pad_dark_test midas_test"
+FINAL="ddi_test dermacon_test dermacon_other midas_test"
 LOGS=runs/logs
 mkdir -p "$LOGS"
 export PYTHONUNBUFFERED=1

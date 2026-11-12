@@ -100,21 +100,22 @@ def test_pipeline(workdir, monkeypatch):
     m = pd.read_csv("data/manifest.csv")
     reasons = m.set_index("image_id")["exclude_reason"]
     by_id = m.set_index("image_id")
-    assert by_id.loc["f17k_h0300", "label_5class"] == "other" and by_id.loc["f17k_h0300", "label_binary"] == 0   # ... but the fifth class
-    assert by_id.loc["f17k_h0300", "split"] in {"train", "val", "test"}
-    assert reasons["f17k_cyst"] == "label_exclude" and by_id.loc["f17k_cyst", "split"] == "excluded"
+    fine = by_id["label_fine"]
+    assert fine["f17k_h0300"] == "non_tumour" and by_id.loc["f17k_h0300", "label_cancer"] == "not_cancer"
+    assert fine["f17k_cyst"] == "other_benign_tumour" and by_id.loc["f17k_cyst", "label_cancer"] == "not_cancer"
+    assert fine["f17k_h0000"] == "bcc" and by_id.loc["f17k_h0000", "label_cancer"] == "cancer"
+    assert fine["f17k_h0255"] == "ak" and pd.isna(by_id.loc["f17k_h0255", "label_cancer"])   # precancerous: neither
+    assert pd.isna(reasons["f17k_nofst"]) and by_id.loc["f17k_nofst", "split"] in {"train", "val", "test"}
     main = m[m["split"].isin(["train", "val", "test"])]
-    assert set(main["label_5class"]) == {"bcc", "scc", "mel", "benign", "other"}
-    assert set(main["fst_bucket"]) == {"I-III", "IV", "V-VI"}          # every skin type trains and tests
+    assert set(main["label_cancer"]) == {"cancer", "not_cancer"} and set(main["dataset"]) == {"fitzpatrick17k", "pad_ufes_20"}
+    assert main["fst"].isna().any() and (main["fst"] >= 4).any()        # skin type plays no part in the split
     assert 0.6 < (main["split"] == "train").mean() < 0.8
-    assert reasons["f17k_nofst"] == "unknown_fst"
     assert by_id.loc["f17k_dup1", "split"] == by_id.loc["f17k_h0001", "split"]   # duplicates stay together
     assert set(m.loc[m["dataset"] == "ddi", "split"]) == {"ddi_test"}
     assert set(m.loc[m["label_4class"] == "ak", "split"]) <= {"ak_side", "excluded"}
-    assert (m["split"] == "pad_dark_test").sum() > 0
     make_splits.check_no_leakage(m)
     assert {p.stem for p in Path("data/splits").glob("*.csv")} == set(m["split"]) - {"excluded"}
-    assert "skin-type bucket" in count_check.report(m)
+    assert "type of lesion" in count_check.report(m)
     make_splits.main([])                                               # re-running changes nothing
     assert pd.read_csv("data/manifest.csv")["split"].equals(m["split"])
 
@@ -125,7 +126,8 @@ def test_pipeline(workdir, monkeypatch):
     summary = yaml.safe_load(Path("runs/tiny/s0/summary.json").read_text())
     assert summary["n_train"] == (m["split"] == "train").sum() and summary["n_params"] > 0
     preds = pd.read_csv("runs/tiny/s0/preds/test.csv")
-    assert [c for c in preds if c.startswith("p_")] == ["p_bcc", "p_scc", "p_mel", "p_benign", "p_other"]
+    assert [c for c in preds if c.startswith("p_")] == ["p_not_cancer", "p_cancer"]
+    assert np.allclose(preds[["p_not_cancer", "p_cancer"]].sum(1), 1, atol=1e-5)
     assert not Path("runs/tiny/s0/preds/ddi_test.csv").exists()  # test-only never automatic
     train.main(["--config", "configs/tiny.yaml", "--seed", "0"])   # finished: skipped, not retrained
     assert len(pd.read_csv("runs/tiny/s0/history.csv")) == len(hist)
@@ -133,7 +135,7 @@ def test_pipeline(workdir, monkeypatch):
     with pytest.raises(SystemExit):
         predict.main(["--run", "runs/tiny/s0", "--splits", "ddi_test"])  # needs --final
     for seed in (0, 1):
-        predict.main(["--run", f"runs/tiny/s{seed}", "--splits", "ddi_test", "pad_dark_test", "--final"])
+        predict.main(["--run", f"runs/tiny/s{seed}", "--splits", "ddi_test", "--final"])
     with pytest.raises(SystemExit):
         predict.main(["--run", "runs/tiny/s0", "--splits", "ddi_test", "--final"])  # only once
     ledger = pd.read_csv("runs/final_ledger.csv")
@@ -141,15 +143,17 @@ def test_pipeline(workdir, monkeypatch):
 
     out = evaluate.evaluate("tiny", n_boot=50)
     assert set(out["eval_set"]) >= {"val", "test", "ddi_test", "ak_side"}
-    assert "pad_dark_test" not in set(out["eval_set"])  # 6 images < MIN_SUBGROUP: skipped, not reported
-    auc = out[(out["eval_set"] == "test") & (out["metric"] == "macro_auc") & (out["subgroup"] == "all")].iloc[0]
-    assert auc["n_seeds"] == 2 and auc["ci_lo"] <= auc["mean"] <= auc["ci_hi"]
     assert set(out.loc[out["eval_set"] == "ddi_test", "metric"]) == {"binary_auc", "missed_cancer_rate", "false_alarm_rate",
                                                                      "missed_cancer_rate_op90", "false_alarm_rate_op90"}
+    test = out[out["eval_set"] == "test"]
+    auc = test[(test["metric"] == "binary_auc") & (test["subgroup"] == "all")].iloc[0]
+    assert auc["n_seeds"] == 2 and auc["ci_lo"] <= auc["mean"] <= auc["ci_hi"]
+    by_type = test[test["subgroup_col"] == "label_fine"]
+    assert {"bcc", "non_tumour"} <= set(by_type["subgroup"])              # which cancers are missed, what alarms
+    missed = by_type[(by_type["subgroup"] == "bcc") & (by_type["metric"] == "missed_cancer_rate")].iloc[0]
+    assert 0 <= missed["mean"] <= 1
+    assert set(out.loc[out["eval_set"] == "ak_side", "metric"]) == {"pred_malignant_rate", "pred_malignant_rate_op90"}
     assert Path("results/tiny/metrics.csv").exists()
-    test_rows = out[(out["eval_set"] == "test") & (out["metric"] == "macro_auc")]
-    assert {"I-III", "IV", "V-VI"} & set(test_rows["subgroup"])           # reported by skin type
-    assert "recall_other" in set(out.loc[out["eval_set"] == "test", "metric"])
 
     # training on two splits at once
     train.main(["--config", "configs/tiny.yaml", "--seed", "0", "--set", "name=tiny_both", "--set",

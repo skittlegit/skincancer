@@ -65,7 +65,7 @@ def main(argv=None):
         img = (x.permute(1, 2, 0).numpy() * np.array(STD) + np.array(MEAN)).clip(0, 1).astype(np.float32)
         ax.imshow(show_cam_on_image(img, heat, use_rgb=True))
         mark = "ok" if sel.loc[k, "correct"] else "WRONG"
-        ax.set_title(f"{mark} {sel.loc[k, 'true']}→{sel.loc[k, 'pred']}\n{df.loc[k, 'fst_bucket']}", fontsize=6)
+        ax.set_title(f"{mark} {sel.loc[k, 'true']}→{sel.loc[k, 'pred']}\n{df.loc[k, 'label_fine']}", fontsize=6)
     fig.suptitle(f"Grad-CAM, {cfg['name']} s{cfg['seed']} on {args.split}: correct first, then wrong", fontsize=9)
     fig.tight_layout()
     out = Path(args.out or f"reports/figures/gradcam_{cfg['name']}_s{cfg['seed']}_{args.split}.png")

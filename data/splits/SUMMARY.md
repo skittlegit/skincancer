@@ -1,34 +1,47 @@
 # Split summary
 
 ```
-label_5class      ak   bcc  benign  exclude  exclude_rare_cancer  mel  other   scc    All
-split                                                                                    
-ak_side          311     0       0        0                    0    0      0     0    311
-ddi_test           4    49     255      234                   40   21      0    53    656
-dermacon_other     0     0       0     5379                    0    0      0     0   5379
-dermacon_test      0    10      46        0                    0    2      0     7     65
-excluded         721    13     368     2257                  342   27    401    46   4175
-midas_test         0   402     578        0                    0  155      0   245   1380
-pad_dark_test      0    25      26        0                    0    4      0     5     60
-test               0   211     100        0                    0   89   1752   109   2261
-train              0   981     458        0                    0  416   8175   503  10533
-val                0   211      99        0                    0   89   1752   110   2261
-All             1036  1902    1930     7870                  382  803  12080  1078  27081
+label_cancer    cancer  no label  not_cancer    All
+split                                              
+ak_side              0       703           0    703
+ddi_test           171         0         485    656
+dermacon_other       0         0        5379   5379
+dermacon_test       19         0          46     65
+excluded             5       922          19    946
+midas_test         802         0         578   1380
+test               478         0        2217   2695
+train             2220         0       10342  12562
+val                478         0        2217   2695
+All               4173      1625       21283  27081
 ```
 
-## train / val / test by skin type
+## By type of lesion
 
 ```
-label_5class       bcc  benign  mel  other  scc    All
-split fst_bucket                                      
-test  I-III        194      83   73   1172   89   1611
-      IV            12      10    9    317   11    359
-      V-VI           5       7    7    263    9    291
-train I-III        904     386  341   5469  411   7511
-      IV            54      43   42   1479   49   1667
-      V-VI          23      29   33   1227   43   1355
-val   I-III        194      83   73   1172   89   1611
-      IV            12       9    9    317   11    358
-      V-VI           5       7    7    263   10    292
-All               1403     657  594  11679  722  15055
+label_fine        ak   bcc  benign  mel  non_tumour  other_benign_tumour  rare_cancer   scc  unlabelled    All
+split                                                                                                         
+ak_side          703     0       0    0           0                    0            0     0           0    703
+ddi_test           4    49     255   21           0                    0           40    53         234    656
+dermacon_other     0     0       0    0           0                    0            0     0        5379   5379
+dermacon_test      0    10      46    2           0                    0            0     7           0     65
+excluded         329     0       2    0          13                    2            4     1         595    946
+midas_test         0   402     578  155           0                    0            0   245           0   1380
+test               0   217     158   94        1810                  249           51   116           0   2695
+train              0  1007     733  437        8447                 1162          236   540           0  12562
+val                0   217     158   94        1810                  249           51   116           0   2695
+All             1036  1902    1930  803       12080                 1662          382  1078        6208  27081
+```
+
+## train / val / test by dataset
+
+```
+label_cancer          cancer  not_cancer    All
+split dataset                                  
+test  fitzpatrick17k     314        2145   2459
+      pad_ufes_20        164          72    236
+train fitzpatrick17k    1459       10007  11466
+      pad_ufes_20        761         335   1096
+val   fitzpatrick17k     314        2145   2459
+      pad_ufes_20        164          72    236
+All                     3176       14776  17952
 ```

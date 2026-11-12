@@ -17,16 +17,16 @@ import yaml
 from . import metrics as M
 from .labels import CLASSES
 
-# eval set -> (task, subgroup columns). DDI / DermaCon-IN are scored cancer vs not only.
+# eval set -> (task, subgroup columns). Subgroups by type of lesion show which cancers are
+# missed and which harmless conditions raise false alarms.
 EVAL_SETS = {
-    "val": ("multiclass", ["fst_bucket"]),
-    "test": ("multiclass", ["fst_bucket", "dataset", "is_acral"]),
-    "pad_dark_test": ("multiclass", []),
-    "ddi_test": ("binary", ["fst_bucket"]),
-    "midas_test": ("multiclass", ["fst_bucket", "is_acral"]),     # biopsy-proven, Stanford, light skin
-    "dermacon_test": ("binary", ["fst_bucket"]),
-    "ak_side": ("rates", []),
-    "dermacon_other": ("rates", ["fst_bucket"]),   # non-cancer Indian clinic images
+    "val": ("binary", []),
+    "test": ("binary", ["dataset", "label_fine"]),
+    "ddi_test": ("binary", []),                   # biopsy-proven, Stanford
+    "midas_test": ("binary", ["label_fine"]),     # biopsy-proven clinical photos, Stanford
+    "dermacon_test": ("binary", ["label_fine"]),  # Indian tumours
+    "ak_side": ("rates", []),                     # precancerous: neither class
+    "dermacon_other": ("rates", []),              # Indian clinic images that are not cancer
 }
 MIN_SUBGROUP = 10
 OP_SENSITIVITY = 0.90   # operating point: threshold fixed on OP_SPLIT, applied to every set
@@ -68,10 +68,8 @@ def score_set(split: str, frames: list[pd.DataFrame], manifest: pd.DataFrame, cl
     if task == "rates":
         # Share of images called malignant, and called each class (these sets hold no cancers).
         fns = {"pred_malignant_rate": lambda y_, yb, P: float(M.pred_malignant(P, classes).mean())}
-        for k, c in enumerate(classes):
-            fns[f"pred_{c}_rate"] = lambda y_, yb, P, k=k: float((P.argmax(1) == k).mean())
     else:
-        fns = M.metric_fns(classes, task)
+        fns = M.metric_fns(classes)
 
     subsets = [("all", "all", np.ones(len(meta), bool))]
     for col in sub_cols:
@@ -138,8 +136,8 @@ def main(argv=None):
     for exp in args.exp:
         out = evaluate(exp, args.runs_dir, args.results_dir, n_boot=args.n_boot)
         head = out[(out["subgroup"] == "all")
-                   & out["metric"].isin(["macro_auc", "binary_auc", "missed_cancer_rate_op90"])]
-        print(head[["exp", "eval_set", "metric", "mean", "ci_lo", "ci_hi", "n", "n_seeds"]].to_string(index=False))
+                   & out["metric"].isin(["binary_auc", "missed_cancer_rate_op90", "false_alarm_rate_op90"])]
+        print(head[["exp", "eval_set", "metric", "mean", "ci_lo", "ci_hi", "n", "n_malignant", "n_seeds"]].to_string(index=False))
 
 
 if __name__ == "__main__":

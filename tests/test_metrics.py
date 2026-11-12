@@ -4,16 +4,15 @@ from sklearn.metrics import roc_auc_score
 
 from skincancer import metrics as M
 
-CLASSES = ["bcc", "scc", "mel", "benign"]
+CLASSES = ["not_cancer", "cancer"]
 
 
 def _data(n=400, seed=0):
     rng = np.random.default_rng(seed)
-    y = rng.integers(0, 4, n)
-    logits = rng.normal(size=(n, 4)) + 1.5 * np.eye(4)[y]
+    y = rng.integers(0, 2, n)
+    logits = rng.normal(size=(n, 2)) + 1.5 * np.eye(2)[y]
     P = np.exp(logits) / np.exp(logits).sum(1, keepdims=True)
-    y_bin = (y != 3).astype(float)
-    return y, y_bin, P
+    return y, y.astype(float), P
 
 
 def test_auc_matches_sklearn_with_ties():
@@ -24,16 +23,9 @@ def test_auc_matches_sklearn_with_ties():
     assert np.isnan(M.auc(np.ones(5), np.arange(5)))
 
 
-def test_macro_auc_matches_sklearn_and_skips_absent_class():
-    y, _, P = _data()
-    assert M.macro_auc(y, P) == pytest.approx(roc_auc_score(y, P, multi_class="ovr", average="macro"))
-    m = y != 2  # drop all melanoma
-    expected = np.mean([roc_auc_score(y[m] == k, P[m][:, k]) for k in (0, 1, 3)])
-    assert M.macro_auc(y[m], P[m]) == pytest.approx(expected)
-
-
-def test_confusion_rates():
-    P = np.array([[0.1, 0.1, 0.1, 0.7], [0.7, 0.1, 0.1, 0.1], [0.6, 0.2, 0.1, 0.1], [0.1, 0.1, 0.1, 0.7]])
+def test_cancer_probability_and_rates():
+    P = np.array([[0.7, 0.3], [0.2, 0.8], [0.4, 0.6], [0.9, 0.1]])
+    assert np.allclose(M.p_malignant(P, CLASSES), [0.3, 0.8, 0.6, 0.1])
     y_bin = np.array([1, 1, 0, 0.0])
     assert M.missed_cancer_rate(y_bin, P, CLASSES) == 0.5
     assert M.false_alarm_rate(y_bin, P, CLASSES) == 0.5
@@ -43,12 +35,13 @@ def test_bootstrap_ci_brackets_point_and_seeds_averaged():
     y, y_bin, P = _data()
     _, _, P2 = _data(seed=5)
     groups = np.arange(len(y)) // 2
-    fns = M.metric_fns(CLASSES, "multiclass")
-    out = M.bootstrap(fns, y, y_bin, [P, P2], groups, n_boot=200)
-    r = out["macro_auc"]
+    out = M.bootstrap(M.metric_fns(CLASSES), y, y_bin, [P, P2], groups, n_boot=200)
+    r = out["binary_auc"]
     assert r["ci_lo"] <= r["mean"] <= r["ci_hi"]
-    assert r["mean"] == pytest.approx((M.macro_auc(y, P) + M.macro_auc(y, P2)) / 2)
+    assert r["mean"] == pytest.approx((roc_auc_score(y, P[:, 1]) + roc_auc_score(y, P2[:, 1])) / 2)
     assert r["std"] > 0
+    y_bin[:5] = np.nan                                  # images with no label are left out
+    assert M.metric_fns(CLASSES)["binary_auc"](y, y_bin, P) == pytest.approx(roc_auc_score(y[5:], P[5:, 1]))
 
 
 def test_sensitivity_threshold_and_operating_point():

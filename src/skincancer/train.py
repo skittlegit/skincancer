@@ -19,7 +19,7 @@ import torch.nn as nn
 
 from . import runs
 from .config import load_config
-from .metrics import macro_auc
+from .metrics import auc
 
 
 def class_weights(counts: np.ndarray, weighting: str) -> np.ndarray:
@@ -88,7 +88,7 @@ def train(cfg: dict) -> dict:
         lr = opt.param_groups[0]["lr"]
         sched.step()
         model.eval()
-        val_auc = macro_auc(val_loader.dataset.labels, runs.infer(model, val_loader))
+        val_auc = auc(val_loader.dataset.labels == 1, runs.infer(model, val_loader)[:, 1])
         rec = {"epoch": ep, "lr": lr, "loss": tot / max(n, 1), "val_auc": val_auc,
                "secs": round(time.time() - t0, 1)}
         history.append(rec)

@@ -1,7 +1,7 @@
 """Score a finished run on more splits.
 
     # test-only sets: once per finished run, recorded in runs/final_ledger.csv
-    python -m skincancer.predict --run runs/skinnet/s0 --splits ddi_test dermacon_test pad_dark_test --final
+    python -m skincancer.predict --run runs/skinnet/s0 --splits ddi_test dermacon_test midas_test --final
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import pandas as pd
 
 from . import runs
 
-TEST_ONLY = {"ddi_test", "dermacon_test", "dermacon_other", "pad_dark_test", "midas_test"}
+TEST_ONLY = {"ddi_test", "dermacon_test", "dermacon_other", "midas_test"}
 LEDGER = Path("runs/final_ledger.csv")
 
 
