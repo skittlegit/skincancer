@@ -1,7 +1,7 @@
 """Paired comparison of two models on the same images.
 
-    python -m skincancer.compare --a skinnet_src --b skinnet_src_ens --splits val
-    python -m skincancer.compare --a skinnet_src --b skinnet_src_ens --splits test ddi_test midas_test
+    python -m skincancer.compare --a skinnet-c1 --b skinnet-c1_ens --splits val
+    python -m skincancer.compare --a skinnet-c1 --b skinnet-c1_ens --splits test ddi_test midas_test
 
 Two separate confidence intervals overlap long before a difference stops being real, because
 most of their width is which images happened to be in the test set, and both models share

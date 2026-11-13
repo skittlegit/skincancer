@@ -53,7 +53,7 @@ python -m skincancer.train --config configs/skinnet.yaml --seed 0     # one seed
 python -m skincancer.predict --run runs/skinnet/s0 --splits ddi_test dermacon_test dermacon_other midas_test --final
 python -m skincancer.evaluate --exp skinnet                           # results/skinnet/metrics.csv
 python -m skincancer.analysis.gradcam --run runs/skinnet/s0 --split test
-python -m skincancer.compare --a skinnet_src --b skinnet_src_tta_ens --splits val test   # is b better than a?
+python -m skincancer.compare --a skinnet-c1 --b skinnet-c2 --splits val test   # is b better than a?
 ```
 
 Or all three seeds, the test-only sets and the metrics in one go:

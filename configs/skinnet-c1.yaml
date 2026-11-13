@@ -1,7 +1,7 @@
 # Checkpoint 1 (docs/CHECKPOINTS.md): cancer and not cancer drawn equally often inside each
 # dataset, so the kind of photo no longer predicts the class (DECISIONS.md, section 8).
 extends: skinnet.yaml
-name: skinnet_src
+name: skinnet-c1
 train:
   class_weighting: none        # the sampling below already balances the classes
   sampling: source_class

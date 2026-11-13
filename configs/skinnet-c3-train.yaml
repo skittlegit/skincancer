@@ -1,7 +1,7 @@
 # Checkpoint 3 (idea O; DECISIONS.md, sections 11 and 12): checkpoint 1's recipe with the MIDAS
 # training share added and early stopping off, so every seed runs all 60 epochs.
-extends: skinnet_src.yaml
-name: skinnet_midas_full
+extends: skinnet-c1.yaml
+name: skinnet-c3-train
 data:
   train_splits: [train, midas_train]
 train:

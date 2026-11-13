@@ -2,9 +2,9 @@
 from checkpoint 1's weights (docs/CHECKPOINTS.md).
 
     # test-time flips: the same weights, predicting on the image and its mirror images
-    python -m skincancer.derive tta --exp skinnet_src --name skinnet_src_tta
+    python -m skincancer.derive tta --exp skinnet-c1 --name skinnet-c2-tta
     # seed average: one prediction per image, the mean of the seeds' probabilities
-    python -m skincancer.derive ensemble --exp skinnet_src_tta --name skinnet_src_tta_ens --splits val test
+    python -m skincancer.derive ensemble --exp skinnet-c2-tta --name skinnet-c2 --splits val test
 
 `tta` writes runs/<name>/s<seed>/ with the weights and a config that has eval.tta on; score it
 with `predict` as usual. `ensemble` writes runs/<name>/s0/preds/<split>.csv from the source

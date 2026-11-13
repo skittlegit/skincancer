@@ -115,9 +115,9 @@ Written after the baseline results ([docs/RESULTS.md](docs/RESULTS.md)) and befo
 
 | Variant | Config | Change |
 | --- | --- | --- |
-| A | `skinnet_src` | Inside each dataset, cancer and not cancer are drawn equally often, so the kind of photo no longer predicts the class |
-| B | `skinnet_srctype` | As A, and inside each dataset × class a lesion type's share of the draws is proportional to the square root of its image count. Benign lookalikes go from 6% to 11% of the images drawn, rare cancers from 7% to 9% |
-| C | `skinnet_srctype_q` | As B, plus random loss of resolution and JPEG quality during training, so image quality says less about the source |
+| A | `skinnet-c1` | Inside each dataset, cancer and not cancer are drawn equally often, so the kind of photo no longer predicts the class |
+| B | `skinnet-c1type` | As A, and inside each dataset × class a lesion type's share of the draws is proportional to the square root of its image count. Benign lookalikes go from 6% to 11% of the images drawn, rare cancers from 7% to 9% |
+| C | `skinnet-c1type_q` | As B, plus random loss of resolution and JPEG quality during training, so image quality says less about the source |
 
 - Balanced drawing replaces the class-weighted loss (the loss is unweighted for A, B and C). An epoch still draws 12,562 images, now with replacement.
 - **A new selection score: within-source AUC.** The AUC is computed inside each dataset and the two are averaged. Telling the datasets apart cannot raise it. A, B and C pick their checkpoint on it. The baseline picked on plain AUC, so its within-source AUC on `val` is reported next to theirs for reference.
@@ -165,9 +165,9 @@ Written after the second-round results and before any of these models was traine
 
 Written before either was computed. Both change only how checkpoint 1's three trained models are used to predict; nothing is retrained.
 
-- **G, seed average** (`skinnet_src_ens`): the three seeds' cancer probabilities are averaged into one prediction per image.
-- **H, test-time flips** (`skinnet_src_tta`): each seed predicts on the image and its three mirror images (left-right, up-down, both) and averages the four.
-- **G + H** (`skinnet_src_tta_ens`): the seed average of H's predictions.
+- **G, seed average** (`skinnet-c1_ens`): the three seeds' cancer probabilities are averaged into one prediction per image.
+- **H, test-time flips** (`skinnet-c2-tta`): each seed predicts on the image and its three mirror images (left-right, up-down, both) and averages the four.
+- **G + H** (`skinnet-c2`): the seed average of H's predictions.
 
 **Step 1, validation only.** Within-source AUC on `val` for all three, against checkpoint 1's 0.868 (mean of its seeds). A candidate passes with a gain of 0.005 or more. If none passes, G and H are discarded and nothing is scored outside.
 
@@ -226,7 +226,7 @@ Written before idea O was trained.
 
 **Why.** Idea J did what it was meant to do on the outside validation photos, and lost at home mainly because one seed was cut short. Early stopping saves time; it is not part of what makes the model good, and the best weights are kept whichever epoch they come from. Turning it off removes that source of chance.
 
-**Idea O** (`configs/skinnet_midas_full.yaml`): idea J with `patience: 0`, so every seed trains for all 60 epochs. Seeds 0 and 1 of idea J already ran all 60 epochs, so with early stopping off they would be the same runs; they are reused, and only seed 2 is trained again. Then test-time flips and the seed average, as before.
+**Idea O** (`configs/skinnet-c3-train.yaml`): idea J with `patience: 0`, so every seed trains for all 60 epochs. Seeds 0 and 1 of idea J already ran all 60 epochs, so with early stopping off they would be the same runs; they are reused, and only seed 2 is trained again. Then test-time flips and the seed average, as before.
 
 **How it is judged:** exactly as idea J (section 11), by paired comparison with checkpoint 2. Step 1 on `midas_val` and `val`; only if it passes, scored once on `test`, `midas_test`, DDI and DermaCon-IN; checkpoint 3 if the gain is supported on `midas_test` or DDI and nothing is lower by a supported amount on `test` or DDI.
 
@@ -309,3 +309,5 @@ Each gets three seeds, test-time flips and the seed average, and is judged on it
 An idea that fails step 1 is discarded and not scored on the test sets. If one meets the gain condition and narrowly misses the no-loss one, it is reported and the team decides.
 
 **Expectation recorded now.** Idea E (larger images) suggested detail is not the limit, and 13,000 images is little for an 11-million-parameter network trained from scratch, so M may overfit and do no better. N is the more likely of the two to help, since two of checkpoint 3's three seeds had their best epoch after epoch 45.
+
+**Renamed 13 Nov 2026.** The kept models are now named after their checkpoint: `skinnet` (baseline), `skinnet-c1`, `skinnet-c2`, `skinnet-c3`. Configs, run folders, result folders, the test-set ledger and every mention in the documents, including earlier sections of this file, use the new names. Only names changed: no model was retrained or re-scored. The old names were `skinnet_src` (now `skinnet-c1`), `skinnet_src_tta_ens` (`skinnet-c2`) and `skinnet_midas_full_tta_ens` (`skinnet-c3`); git history before this date uses them.
