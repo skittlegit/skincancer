@@ -17,7 +17,7 @@ Counts marked "about" are from memory and must be confirmed at download.
 | --- | --- | --- | --- | --- |
 | Derm7pt, clinical photos | 248 melanomas, 42 BCCs, 664 benign nevi | Yes | None: it is not a test set. No SCC. | High |
 | MRA-MIDAS, 70% by patient | About 560 cancers and 400 benign tumours, all biopsy-confirmed | Yes | Shrinks our largest outside tumour test to 30%. Cannot be undone once a model has trained on it. | Fairly high |
-| SCIN (Google) | About 10,000 phone photos from the public, almost all not cancer | No | Adds no cancers. Labels come from dermatologists reading photos, not biopsies. | High, for weakness 2 |
+| SCIN (Google): **tried as idea I, 13 Nov 2026, discarded** (helped at home, hurt on MIDAS) | About 10,000 phone photos from the public, almost all not cancer | Yes (2,902 photos) | Adds no cancers. Labels come from dermatologists reading photos, not biopsies. | High, for weakness 2 |
 | ISIC 2019 | About 8,500 cancers and 12,900 nevi | No | Dermoscopy images (a magnifying scope pressed on the skin), which look nothing like ordinary photos. May not help on clinical photos. | Unsure |
 
 Not planned: Dermofit (paid licence, about 400 cancers) and MED-NODE (170 images).

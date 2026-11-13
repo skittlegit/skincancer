@@ -100,6 +100,7 @@ Seven models were trained on the way to checkpoint 1, and two ideas for using it
 | H | Test-time flips: predict on the image and its three mirror images, average | validation | 0.879 against 0.868 | Kept as part of G+H |
 | J | Checkpoint 1's recipe with 552 MIDAS training photos added | validation only (ours and the MIDAS validation part) | MIDAS validation AUC 0.689 → 0.782, but within-source AUC on our validation split 0.888 → 0.876, a supported loss, mostly one seed stopped early at epoch 25 | Discarded at the first step; not scored on test sets. Replaced by O |
 | O | J with early stopping off (all seeds run 60 epochs) | test and outside sets, paired comparison with checkpoint 2 | MIDAS test 0.645 → 0.698 and DDI 0.629 → 0.657, both supported. Our test split 0.904 → 0.898, a small supported loss | **Kept: checkpoint 3** (see above for how) |
+| I | Checkpoint 3's recipe with 2,907 SCIN phone photos of everyday conditions added as not cancer | validation only (ours and the MIDAS validation part), paired comparison with checkpoint 3 | Our validation split: within-source AUC 0.882 → 0.902, supported. MIDAS validation part: AUC 0.793 → 0.729, a supported loss | Discarded at the first step; not scored on test sets |
 | G+H | Both together | test and outside sets, paired comparison | Our test split: AUC 0.890 → 0.904, false alarms 40% → 33%, a supported gain. MIDAS +0.006 and DDI +0.006, neither supported | **Kept: checkpoint 2** (see above for how) |
 
 The deciding score on validation was the within-source AUC: the AUC inside each dataset, averaged. Seeds of one model differ by about 0.01 on it, so B to F are "no better than A", not "clearly worse".
@@ -116,6 +117,7 @@ The deciding score on validation was the within-source AUC: the AUC inside each 
 8. **Choosing models on our own validation split cannot find outside gains,** because that split comes from the same two sources as training.
 9. **Photos from another hospital in training are the first thing that moved an outside score.** Adding 552 MIDAS photos raised AUC on DDI, a source never seen, by 0.028, and on the MIDAS test part by 0.053, at a cost of 0.007 at home. More sources of training photos is the direction that works.
 10. **Early stopping can cut a good run short.** With the learning rate still high the validation score is noisy; one seed stopped at epoch 25 would have improved by 0.03 if left to finish. Train all 60 epochs and keep the best weights.
+11. **Easy not-cancer photos help at home and hurt on tumours.** SCIN's everyday rashes raised our own validation score by 0.02 and lowered the MIDAS validation score by 0.06. New data has to contain the hard distinction, cancer against a benign growth, to help outside. SCIN at a much smaller share of the draws is untested.
 
 **Also settled along the way** (reasons are in [DECISIONS.md](../DECISIONS.md))
 
@@ -135,7 +137,6 @@ Each idea has a letter, continuing from A to H above. The rule is the same for e
 
 | # | Idea | What it targets | Cost | Expected effect |
 | --- | --- | --- | --- | --- |
-| I | **Add SCIN to training:** about 10,000 phone photos from the public, almost all not cancer | False alarms on everyday photos; a third kind of source | Download, label mapping, duplicate check, one training round | Fewer false alarms outside; no new cancers |
 | K | **Add ISIC 2019 to training:** about 8,500 cancers, 12,900 nevi | Far more cancers | Large download; dermoscopy, a different kind of image | Uncertain: may not carry over to ordinary photos |
 | L | **Self-supervised pretraining on our own images:** learn general skin features from all our photos without labels, then train cancer / not cancer. No outside weights | Getting more from the images we have | New training code; a few GPU hours | A real gain is plausible; the standard remedy for a small labelled set |
 | M | **A larger network** (about four times the parameters) | Capacity | One training round, longer epochs | Modest at home, little outside |
@@ -143,7 +144,7 @@ Each idea has a letter, continuing from A to H above. The rule is the same for e
 
 Counts for SCIN and ISIC 2019 are from memory and must be confirmed at download. Data details are in [DATA_PLAN.md](DATA_PLAN.md).
 
-**Suggested order:** I, then L, then M and N. K last, as a with-and-without experiment.
+**Suggested order:** L, then M and N. K last, as a with-and-without experiment.
 
 **Later stages, not ideas for this one:** which type of cancer it is, and whether darker skin needs its own model or one combined model.
 

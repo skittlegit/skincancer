@@ -198,3 +198,22 @@ DermaCon-IN everyday conditions called cancer: 24% → 28%.
 - At home it costs a little: test AUC −0.007, cancers against benign lookalikes 0.797 → 0.775.
 
 **Outcome: checkpoint 3, by a decision of the team.** The rule written beforehand required a supported gain on MIDAS test or DDI, which idea O has on both, and no supported loss on our own test split, which it misses by a small margin. The team decided the trade is worth taking, since new hospitals are the open problem. See [CHECKPOINTS.md](CHECKPOINTS.md) and ([DECISIONS.md](../DECISIONS.md), section 12).
+
+## Idea I: SCIN photos in training (13 Nov 2026)
+
+SCIN is a public set of phone photos of everyday skin conditions (eczema, contact dermatitis, hives, insect bites). 2,907 of them, one per case, were added to checkpoint 3's training images as not cancer. Cases with a cancer or pre-cancer anywhere in the dermatologists' list were left out.
+
+| Set | Score | Checkpoint 3 | Idea I | Difference [95% interval] | Supported |
+| --- | --- | --- | --- | --- | --- |
+| `midas_val` (outside validation) | AUC | 0.793 | 0.729 | −0.064 [−0.096, −0.032] | yes |
+| `val` | AUC | 0.898 | 0.913 | +0.015 [+0.008, +0.023] | yes |
+| `val` | Within-source AUC | 0.882 | 0.902 | +0.020 [+0.006, +0.037] | yes |
+
+**Outcome: discarded at the first step.** It was not scored on any test set.
+
+**Reading.**
+
+- At home it is the largest gain since checkpoint 1. Our validation split holds many everyday conditions from Fitzpatrick17k, and more examples of those make them easier to tell from cancer.
+- On the MIDAS validation part it gives back most of what checkpoint 3 gained (0.793 → 0.729; checkpoint 2 was 0.689). MIDAS is all tumours: the question there is cancer against a benign growth, and SCIN has no growths at all.
+- The likely cause is dilution. In the balanced drawing SCIN took about 18% of every epoch, all of it easy "rash, so not cancer" examples, and the share of draws going to the hard tumour-against-tumour cases fell.
+- So more photos from a new source is not enough on its own. What helped in checkpoint 3 was photos of the hard distinction from a new source.

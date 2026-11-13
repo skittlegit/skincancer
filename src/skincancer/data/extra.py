@@ -101,7 +101,9 @@ def scin_rows(root: Path) -> pd.DataFrame:
 def scin_download(root: Path, workers: int = 16) -> None:
     """Fetch the two tables, then the first photo of every usable case (about 1.2 MB each)."""
     from concurrent.futures import ThreadPoolExecutor
+    import socket
     from urllib.request import urlretrieve
+    socket.setdefaulttimeout(60)   # a stalled connection fails and is fetched by the next run
     d = root / "scin"
     (d / "images").mkdir(parents=True, exist_ok=True)
     for f in ("scin_cases.csv", "scin_labels.csv"):

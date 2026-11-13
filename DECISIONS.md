@@ -280,3 +280,13 @@ Written before the photos were downloaded and before idea I was trained.
 3. It becomes checkpoint 4 if at least one of these holds: a supported gain in AUC on DDI; a supported gain in AUC on `midas_test`; or the share of DermaCon-IN everyday conditions called cancer falls by at least 5 points with its interval clear of checkpoint 3's. And none of the AUCs on `test`, `midas_test` or DDI is lower by a supported amount.
 
 If it fails step 1 it is discarded and not scored on the test sets. If it meets the gain condition but narrowly misses the no-loss one, the result is reported and the team decides, as with checkpoint 3.
+
+**Outcome of idea I (13 Nov 2026): failed step 1, discarded, not scored on any test set.** 2,907 SCIN photos were used (2 dropped as near-duplicates of evaluation images); the training set was 16,021 images. Paired comparison with checkpoint 3, both after test-time flips and the seed average:
+
+| Set | Score | Checkpoint 3 | Idea I | Difference [95% interval] | Supported |
+| --- | --- | --- | --- | --- | --- |
+| `midas_val` (outside validation) | AUC | 0.793 | 0.729 | −0.064 [−0.096, −0.032] | yes |
+| `val` | AUC | 0.898 | 0.913 | +0.015 [+0.008, +0.023] | yes |
+| `val` | Within-source AUC | 0.882 | 0.902 | +0.020 [+0.006, +0.037] | yes |
+
+The AUC on `midas_val` is lower by a supported amount, which the rule does not allow. The gain on our own `val` is real but is the kind of gain the project has learned not to trust on its own: `val` is full of everyday conditions like SCIN's, and MIDAS is all tumours. Its config and runs are deleted. The SCIN photos stay on disk and the code that lists them stays in `data/extra.py`.
