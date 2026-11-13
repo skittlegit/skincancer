@@ -1,0 +1,6 @@
+# Idea I (DECISIONS.md, section 13): checkpoint 3's recipe with SCIN's everyday-condition phone photos
+# added to training as not cancer.
+extends: skinnet_midas_full.yaml
+name: skinnet_scin
+data:
+  extra_train: [scin]

@@ -255,3 +255,28 @@ Written before idea O was trained.
 - The rule is not changed here. Keeping idea O would be a change of rule after the result, as with checkpoint 2, and is for the team to decide. Until then checkpoint 2 stays the current model and idea O's runs are kept.
 
 **Decided 13 Nov 2026: idea O is checkpoint 3.** The team accepted a loss of 0.007 AUC on our own test split for supported gains on DDI (+0.028) and the MIDAS test part (+0.053). This is a decision taken after seeing the result, not idea O passing the rule as written. Idea J's runs and config are deleted. New ideas are compared with checkpoint 3, train for all 60 epochs (`patience: 0`), and are chosen on `midas_val` together with our own `val`.
+
+## 13. Idea I: SCIN photos in training (13 Nov 2026)
+
+Written before the photos were downloaded and before idea I was trained.
+
+**Why.** Checkpoint 3 showed that photos from a new kind of source are what moves the outside scores. Its remaining weakness outside is false alarms: at the fixed threshold it calls 67% of DDI's non-cancers and 28% of DermaCon-IN's everyday conditions cancer. SCIN is about 5,000 cases of everyday skin conditions photographed by the public on their phones, the kind of photo a real user would send.
+
+**What is used.**
+
+- Only cases the dermatologists could grade, and only as not cancer. SCIN has no biopsies, so its few suspected cancers are not trusted as cancers.
+- A case is left out if a cancer, a pre-cancer or an uncertain growth appears anywhere in its list of possible diagnoses, however low its weight.
+- One photo per case (the first), so SCIN does not swamp the other sources. About 3,000 photos.
+- Training only. SCIN is kept outside the manifest like Derm7pt was, so every validation and test image stays exactly the same. Photos that near-duplicate a validation or test image are dropped.
+
+**Idea I** (`configs/skinnet_scin.yaml`): checkpoint 3's recipe with these photos added. Three seeds, 60 epochs, test-time flips, seed average.
+
+**A risk named now.** SCIN adds phone photos that are all not cancer. The first baseline learned "phone photo means cancer" from PAD-UFES-20; this could teach the opposite shortcut. It would show as more missed cancers and a lower within-source AUC on PAD-UFES-20.
+
+**How it is judged,** by paired comparison with checkpoint 3:
+
+1. On validation (`val` and `midas_val`). SCIN's benefit is on everyday photos, which no validation set outside our own has, so this step only checks for harm: it passes if neither the within-source AUC on `val` nor the AUC on `midas_val` is lower by a supported amount.
+2. If it passes, it is scored once on `test`, `midas_test`, DDI and DermaCon-IN.
+3. It becomes checkpoint 4 if at least one of these holds: a supported gain in AUC on DDI; a supported gain in AUC on `midas_test`; or the share of DermaCon-IN everyday conditions called cancer falls by at least 5 points with its interval clear of checkpoint 3's. And none of the AUCs on `test`, `midas_test` or DDI is lower by a supported amount.
+
+If it fails step 1 it is discarded and not scored on the test sets. If it meets the gain condition but narrowly misses the no-loss one, the result is reported and the team decides, as with checkpoint 3.
