@@ -1,5 +1,7 @@
 # Checkpoints
 
+The full list of ideas by letter, kept and discarded, is in [IDEAS.md](IDEAS.md).
+
 A checkpoint is a model we have decided to keep and build on. Each new idea starts from the latest checkpoint and has to beat it to become the next one. A checkpoint also records everything that was tried on the way to it, so the same experiments are not run twice.
 
 Scores are the mean of three seeds. Details and confidence intervals are in [RESULTS.md](RESULTS.md).
