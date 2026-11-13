@@ -290,3 +290,22 @@ If it fails step 1 it is discarded and not scored on the test sets. If it meets 
 | `val` | Within-source AUC | 0.882 | 0.902 | +0.020 [+0.006, +0.037] | yes |
 
 The AUC on `midas_val` is lower by a supported amount, which the rule does not allow. The gain on our own `val` is real but is the kind of gain the project has learned not to trust on its own: `val` is full of everyday conditions like SCIN's, and MIDAS is all tumours. Its config and runs are deleted. The SCIN photos stay on disk and the code that lists them stays in `data/extra.py`.
+
+## 14. Ideas M and N: a larger network, a longer schedule (13 Nov 2026)
+
+Written before either was trained.
+
+**Why.** Both ask whether checkpoint 3 is held back by the model and its training and not only by the data. Neither needs new data, and both can now be chosen on the MIDAS validation part.
+
+- **Idea M** (`configs/skinnet_wide.yaml`): the same network at twice the width (64 channels in the first stage, not 32), which is about four times the parameters (about 11 million against 2.8 million). Everything else as checkpoint 3.
+- **Idea N** (`configs/skinnet_long.yaml`): the same network trained for 120 epochs, not 60, with the same warm-up and the cosine schedule stretched to match. Everything else as checkpoint 3.
+
+Each gets three seeds, test-time flips and the seed average, and is judged on its own by paired comparison with checkpoint 3:
+
+1. On validation. It passes if the gain is supported on the AUC of `midas_val` or on the within-source AUC of `val`, and neither of those two is lower by a supported amount.
+2. An idea that passes is scored once on `test`, `midas_test`, DDI and DermaCon-IN. If both pass, only the one with the higher AUC on `midas_val` is scored; the other is kept as a later idea to try on top of the new checkpoint.
+3. It becomes checkpoint 4 if the gain is supported on at least one of `test`, `midas_test` or DDI and none of those three is lower by a supported amount. Where the gain is will be stated with it.
+
+An idea that fails step 1 is discarded and not scored on the test sets. If one meets the gain condition and narrowly misses the no-loss one, it is reported and the team decides.
+
+**Expectation recorded now.** Idea E (larger images) suggested detail is not the limit, and 13,000 images is little for an 11-million-parameter network trained from scratch, so M may overfit and do no better. N is the more likely of the two to help, since two of checkpoint 3's three seeds had their best epoch after epoch 45.
