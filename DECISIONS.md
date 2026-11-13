@@ -326,3 +326,4 @@ One name per model, used for its config, its run folder and its result folder.
 - An idea that is kept is renamed to the next checkpoint name everywhere (config, runs, results, ledger, documents). An idea that is discarded is deleted.
 - Git tags stay `checkpoint-<number>`.
 - No model was retrained or re-scored for this change. `evaluate` and `compare` read `avg` when it exists, and the seeds otherwise. The pause on 13 Nov stopped ideas N and M before any seed finished; both start again from seed 0.
+- Logs sit inside the model's run folder (`runs/<name>/logs/s0.log`, `final.log`, `evaluate.log`). `runs/` holds only model folders and the test-set ledger; `results/` holds only one folder per kept model.
