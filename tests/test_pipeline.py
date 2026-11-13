@@ -186,7 +186,7 @@ def test_pipeline(workdir, monkeypatch):
     for seed in (0, 1):
         predict.main(["--run", f"runs/tiny_tta/s{seed}", "--splits", "val"])
     derive.main(["ensemble", "--exp", "tiny", "--name", "tiny_ens", "--splits", "val", "test"])
-    ens = pd.read_csv("runs/tiny_ens/s0/preds/val.csv").set_index("image_id")
+    ens = pd.read_csv("runs/tiny_ens/avg/preds/val.csv").set_index("image_id")
     parts = [pd.read_csv(f"runs/tiny/s{k}/preds/val.csv").set_index("image_id").loc[ens.index] for k in (0, 1)]
     assert np.allclose(ens["p_cancer"], (parts[0]["p_cancer"] + parts[1]["p_cancer"]) / 2)
     with pytest.raises(SystemExit):
@@ -198,7 +198,7 @@ def test_pipeline(workdir, monkeypatch):
     derive.main(["ensemble", "--exp", "tiny", "--name", "tiny_ens", "--splits", "ddi_test", "--final", "--force"])
     predict.main(["--run", "runs/tiny/s0", "--splits", "ddi_test", "--final", "--force"])
     assert len(pd.read_csv("runs/final_ledger.csv")) == n_rows            # reproductions add no ledger rows
-    assert "runs/tiny_ens/s0" in set(pd.read_csv("runs/final_ledger.csv")["run"])
+    assert "runs/tiny_ens/avg" in set(pd.read_csv("runs/final_ledger.csv")["run"])
     assert set(compare.main(["--a", "tiny", "--b", "tiny_ens", "--splits", "val", "--n-boot", "50"])["b"]) == {"tiny_ens"}
 
     # training on two splits at once

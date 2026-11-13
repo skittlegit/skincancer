@@ -10,10 +10,10 @@ Scores are the mean of three seeds. Details and confidence intervals are in [RES
 | --- | --- | --- |
 | Baseline | `skinnet` | `configs/skinnet.yaml` |
 | Checkpoint 1 | `skinnet-c1` | `configs/skinnet-c1.yaml` |
-| Checkpoint 2 | `skinnet-c2` | `skinnet-c1`'s three seeds with test-time flips (`skinnet-c2-tta`), averaged |
-| Checkpoint 3 | `skinnet-c3` | `configs/skinnet-c3-train.yaml` trains the three seeds (`skinnet-c3-train`); with flips they are `skinnet-c3-tta`; `skinnet-c3` is their average |
+| Checkpoint 2 | `skinnet-c2` | `skinnet-c1`'s three seeds, predicting with test-time flips, and their average |
+| Checkpoint 3 | `skinnet-c3` | `configs/skinnet-c3.yaml` |
 
-Each `results/<name>/metrics.csv` is that model's full score table. The next checkpoint will be `skinnet-c4`. Ideas still being tested keep a working name until they are kept or discarded.
+One name per model, the same for its config, run folder and result folder. A run folder `runs/<name>/` holds the seeds (`s0`, `s1`, `s2`) and their average (`avg`); `results/<name>/metrics.csv` is the model's full score table. An idea being tested is `skinnet-idea-<letter>`; if kept it is renamed to the next checkpoint, `skinnet-c4`, and if discarded it is deleted. The rule is in [DECISIONS.md](../DECISIONS.md), section 15.
 
 ## Checkpoint 3 (13 Nov 2026): the current model
 
@@ -23,8 +23,8 @@ Checkpoint 1's recipe trained again with photos from a second kind of source: 55
 | --- | --- |
 | Training data | 13,114 images: the 12,562 of checkpoint 1 plus 552 from MIDAS (`midas_train`) |
 | Training | 60 epochs, early stopping off, about 20 minutes per seed |
-| Config | `configs/skinnet-c3-train.yaml` |
-| Run folder | `runs/skinnet-c3` (the average), built from `runs/skinnet-c3-tta/s{0,1,2}` |
+| Config | `configs/skinnet-c3.yaml` |
+| Run folder | `runs/skinnet-c3`: seeds in `s0`, `s1`, `s2`, their average in `avg` |
 | Weights | `checkpoints/checkpoint-3/` (local, git-ignored) |
 | Git tag | `checkpoint-3` |
 
@@ -54,7 +54,7 @@ Checkpoint 1's three trained models, used better when predicting. Nothing was re
 | --- | --- |
 | What it is | For each image, each of the three seeds predicts on the image and its three mirror images (left-right, up-down, both); the twelve cancer probabilities are averaged into one |
 | Weights | The same as checkpoint 1; copies with the prediction settings are in `checkpoints/checkpoint-2/` (local, git-ignored) |
-| Run folder | `runs/skinnet-c2` (the average), built from `runs/skinnet-c2-tta/s{0,1,2}` |
+| Run folder | `runs/skinnet-c2`: seeds in `s0`, `s1`, `s2`, their average in `avg` |
 | Git tag | `checkpoint-2` |
 | Built with | `python -m skincancer.derive` (commands below) |
 
@@ -170,16 +170,14 @@ Counts for SCIN and ISIC 2019 are from memory and must be confirmed at download.
 python -m skincancer.predict --run checkpoints/checkpoint-1/s0 --splits val
 
 # checkpoint 2: rebuild it from checkpoint 1's runs
-python -m skincancer.derive tta --exp skinnet-c1 --name skinnet-c2-tta
-for s in 0 1 2; do python -m skincancer.predict --run runs/skinnet-c2-tta/s$s --splits val test; done
-python -m skincancer.derive ensemble --exp skinnet-c2-tta --name skinnet-c2 --splits val test
+python -m skincancer.derive tta --exp skinnet-c1 --name skinnet-c2
+for s in 0 1 2; do python -m skincancer.predict --run runs/skinnet-c2/s$s --splits val test; done
+python -m skincancer.derive ensemble --exp skinnet-c2 --splits val test
 python -m skincancer.compare --a skinnet-c1 --b skinnet-c2 --splits val test
 
-# checkpoint 3: train it, then the same two steps
-for s in 0 1 2; do python -m skincancer.train --config configs/skinnet-c3-train.yaml --seed $s; done
-python -m skincancer.derive tta --exp skinnet-c3-train --name skinnet-c3-tta
-for s in 0 1 2; do python -m skincancer.predict --run runs/skinnet-c3-tta/s$s --splits val midas_val; done
-python -m skincancer.derive ensemble --exp skinnet-c3-tta --name skinnet-c3 --splits val midas_val
+# checkpoint 3: train it (flips are in its config), then average the seeds
+for s in 0 1 2; do python -m skincancer.train --config configs/skinnet-c3.yaml --seed $s; done
+python -m skincancer.derive ensemble --exp skinnet-c3 --splits val test midas_val
 
 # return the code to the state that produced a checkpoint
 git checkout checkpoint-3

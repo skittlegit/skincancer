@@ -166,7 +166,7 @@ Written after the second-round results and before any of these models was traine
 Written before either was computed. Both change only how checkpoint 1's three trained models are used to predict; nothing is retrained.
 
 - **G, seed average** (`skinnet-c1_ens`): the three seeds' cancer probabilities are averaged into one prediction per image.
-- **H, test-time flips** (`skinnet-c2-tta`): each seed predicts on the image and its three mirror images (left-right, up-down, both) and averages the four.
+- **H, test-time flips** (the seeds in `runs/skinnet-c2`): each seed predicts on the image and its three mirror images (left-right, up-down, both) and averages the four.
 - **G + H** (`skinnet-c2`): the seed average of H's predictions.
 
 **Step 1, validation only.** Within-source AUC on `val` for all three, against checkpoint 1's 0.868 (mean of its seeds). A candidate passes with a gain of 0.005 or more. If none passes, G and H are discarded and nothing is scored outside.
@@ -226,7 +226,7 @@ Written before idea O was trained.
 
 **Why.** Idea J did what it was meant to do on the outside validation photos, and lost at home mainly because one seed was cut short. Early stopping saves time; it is not part of what makes the model good, and the best weights are kept whichever epoch they come from. Turning it off removes that source of chance.
 
-**Idea O** (`configs/skinnet-c3-train.yaml`): idea J with `patience: 0`, so every seed trains for all 60 epochs. Seeds 0 and 1 of idea J already ran all 60 epochs, so with early stopping off they would be the same runs; they are reused, and only seed 2 is trained again. Then test-time flips and the seed average, as before.
+**Idea O** (`configs/skinnet-c3.yaml`): idea J with `patience: 0`, so every seed trains for all 60 epochs. Seeds 0 and 1 of idea J already ran all 60 epochs, so with early stopping off they would be the same runs; they are reused, and only seed 2 is trained again. Then test-time flips and the seed average, as before.
 
 **How it is judged:** exactly as idea J (section 11), by paired comparison with checkpoint 2. Step 1 on `midas_val` and `val`; only if it passes, scored once on `test`, `midas_test`, DDI and DermaCon-IN; checkpoint 3 if the gain is supported on `midas_test` or DDI and nothing is lower by a supported amount on `test` or DDI.
 
@@ -297,8 +297,8 @@ Written before either was trained.
 
 **Why.** Both ask whether checkpoint 3 is held back by the model and its training and not only by the data. Neither needs new data, and both can now be chosen on the MIDAS validation part.
 
-- **Idea M** (`configs/skinnet_wide.yaml`): the same network at twice the width (64 channels in the first stage, not 32), which is about four times the parameters (about 11 million against 2.8 million). Everything else as checkpoint 3.
-- **Idea N** (`configs/skinnet_long.yaml`): the same network trained for 120 epochs, not 60, with the same warm-up and the cosine schedule stretched to match. Everything else as checkpoint 3.
+- **Idea M** (`configs/skinnet-idea-m.yaml`): the same network at twice the width (64 channels in the first stage, not 32), which is about four times the parameters (about 11 million against 2.8 million). Everything else as checkpoint 3.
+- **Idea N** (`configs/skinnet-idea-n.yaml`): the same network trained for 120 epochs, not 60, with the same warm-up and the cosine schedule stretched to match. Everything else as checkpoint 3.
 
 Each gets three seeds, test-time flips and the seed average, and is judged on its own by paired comparison with checkpoint 3:
 
@@ -311,3 +311,18 @@ An idea that fails step 1 is discarded and not scored on the test sets. If one m
 **Expectation recorded now.** Idea E (larger images) suggested detail is not the limit, and 13,000 images is little for an 11-million-parameter network trained from scratch, so M may overfit and do no better. N is the more likely of the two to help, since two of checkpoint 3's three seeds had their best epoch after epoch 45.
 
 **Renamed 13 Nov 2026.** The kept models are now named after their checkpoint: `skinnet` (baseline), `skinnet-c1`, `skinnet-c2`, `skinnet-c3`. Configs, run folders, result folders, the test-set ledger and every mention in the documents, including earlier sections of this file, use the new names. Only names changed: no model was retrained or re-scored. The old names were `skinnet_src` (now `skinnet-c1`), `skinnet_src_tta_ens` (`skinnet-c2`) and `skinnet_midas_full_tta_ens` (`skinnet-c3`); git history before this date uses them.
+
+## 15. Naming rule (13 Nov 2026)
+
+One name per model, used for its config, its run folder and its result folder.
+
+| What | Name | Example |
+| --- | --- | --- |
+| Baseline | `skinnet` | `configs/skinnet.yaml`, `runs/skinnet/`, `results/skinnet/` |
+| A checkpoint | `skinnet-c<number>` | `skinnet-c3` |
+| An idea being tested | `skinnet-idea-<letter>` | `skinnet-idea-n` |
+
+- A run folder holds the seeds (`s0`, `s1`, `s2`) and, once built, their average (`avg`). There are no separate folders for steps on the way to a model: no `-train`, `-tta` or `-ens` names.
+- An idea that is kept is renamed to the next checkpoint name everywhere (config, runs, results, ledger, documents). An idea that is discarded is deleted.
+- Git tags stay `checkpoint-<number>`.
+- No model was retrained or re-scored for this change. `evaluate` and `compare` read `avg` when it exists, and the seeds otherwise. The pause on 13 Nov stopped ideas N and M before any seed finished; both start again from seed 0.

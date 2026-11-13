@@ -2,7 +2,7 @@
 
     python -m skincancer.evaluate --exp skinnet
 
-Reads runs/<exp>/s*/preds/<split>.csv; writes results/<exp>/metrics.csv in long
+Reads runs/<exp>/avg/preds/<split>.csv if the seed average exists, else runs/<exp>/s*/preds/<split>.csv; writes results/<exp>/metrics.csv in long
 format: exp, eval_set, subgroup_col, subgroup, metric, mean, std, ci_lo, ci_hi, n, n_malignant, n_seeds.
 """
 from __future__ import annotations
@@ -36,19 +36,26 @@ OP_SENSITIVITY = 0.90   # operating point: threshold fixed on OP_SPLIT, applied 
 OP_SPLIT = "val"
 
 
+def scored_dirs(exp_dir: Path) -> list[Path]:
+    """The folders whose predictions stand for the model: the seed average (avg/) when it has
+    been built with `derive ensemble`, otherwise every seed (s0, s1, ...)."""
+    avg = exp_dir / "avg"
+    return [avg] if avg.exists() else sorted(exp_dir.glob("s[0-9]*"))
+
+
 def load_preds(exp_dir: Path, split: str) -> tuple[list[int], list[pd.DataFrame]]:
     seeds, frames = [], []
-    for sdir in sorted(exp_dir.glob("s*")):
+    for sdir in scored_dirs(exp_dir):
         f = sdir / "preds" / f"{split}.csv"
         if f.exists():
-            seeds.append(int(sdir.name[1:]))
+            seeds.append(int(sdir.name[1:]) if sdir.name != "avg" else 0)
             frames.append(pd.read_csv(f))
     return seeds, frames
 
 
 def run_config(exp_dir: Path) -> dict:
-    """Resolved config of the first seed."""
-    sdirs = sorted(exp_dir.glob("s*"))
+    """Resolved config of the average, or of the first seed."""
+    sdirs = scored_dirs(exp_dir)
     if not sdirs:
         raise FileNotFoundError(f"no runs under {exp_dir}")
     return yaml.safe_load((sdirs[0] / "config.yaml").read_text(encoding="utf-8"))

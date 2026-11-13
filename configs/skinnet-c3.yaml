@@ -1,0 +1,10 @@
+# Checkpoint 3 (DECISIONS.md, sections 11 and 12): checkpoint 1's recipe with the MIDAS training share
+# added, early stopping off (every seed runs all 60 epochs) and test-time flips when predicting.
+extends: skinnet-c1.yaml
+name: skinnet-c3
+data:
+  train_splits: [train, midas_train]
+train:
+  patience: 0
+eval:
+  tta: true

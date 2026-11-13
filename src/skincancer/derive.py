@@ -1,15 +1,17 @@
-"""Make a new model out of finished runs without retraining. This is how checkpoint 2 is built
-from checkpoint 1's weights (docs/CHECKPOINTS.md).
+"""Make a new model out of finished runs without retraining.
 
-    # test-time flips: the same weights, predicting on the image and its mirror images
-    python -m skincancer.derive tta --exp skinnet-c1 --name skinnet-c2-tta
-    # seed average: one prediction per image, the mean of the seeds' probabilities
-    python -m skincancer.derive ensemble --exp skinnet-c2-tta --name skinnet-c2 --splits val test
+    # seed average: one prediction per image, the mean of the seeds' probabilities.
+    # Written to runs/<exp>/avg/, next to the seeds; evaluate and compare then use it.
+    python -m skincancer.derive ensemble --exp skinnet-c3 --splits val midas_val
+    # test-time flips for a model trained without them: the same weights under a new name,
+    # predicting on the image and its mirror images (this is how checkpoint 2 was made)
+    python -m skincancer.derive tta --exp skinnet-c1 --name skinnet-c2
 
 `tta` writes runs/<name>/s<seed>/ with the weights and a config that has eval.tta on; score it
-with `predict` as usual. `ensemble` writes runs/<name>/s0/preds/<split>.csv from the source
-runs' prediction files. Averaging predictions on a test-only set is a new look at that set:
-it needs --final and is recorded in the ledger like any other.
+with `predict` as usual. A config with `eval.tta: true` needs no such step. `ensemble` writes
+runs/<name>/avg/preds/<split>.csv from the seeds' prediction files (--name defaults to --exp).
+Averaging predictions on a test-only set is a new look at that set: it needs --final and is
+recorded in the ledger like any other.
 """
 from __future__ import annotations
 
@@ -27,7 +29,7 @@ from .predict import LEDGER, TEST_ONLY, append_ledger, check_ledger
 
 def make_tta(exp: str, name: str, runs_dir: str = "runs") -> list[Path]:
     out = []
-    for sdir in sorted((Path(runs_dir) / exp).glob("s*")):
+    for sdir in sorted((Path(runs_dir) / exp).glob("s[0-9]*")):
         dst = Path(runs_dir) / name / sdir.name
         dst.mkdir(parents=True, exist_ok=True)
         cfg = yaml.safe_load((sdir / "config.yaml").read_text(encoding="utf-8"))
@@ -41,14 +43,15 @@ def make_tta(exp: str, name: str, runs_dir: str = "runs") -> list[Path]:
     return out
 
 
-def make_ensemble(exp: str, name: str, splits: list[str], runs_dir: str = "runs", final: bool = False,
+def make_ensemble(exp: str, name: str | None, splits: list[str], runs_dir: str = "runs", final: bool = False,
                   force: bool = False, ledger: Path = LEDGER) -> Path:
     """force: rebuild predictions on a test-only set that the ledger already lists for this
     model (a reproduction, not a new look); nothing is added to the ledger."""
-    src = sorted((Path(runs_dir) / exp).glob("s*"))
+    name = name or exp
+    src = sorted((Path(runs_dir) / exp).glob("s[0-9]*"))
     if not src:
         raise FileNotFoundError(f"no runs under {Path(runs_dir) / exp}")
-    dst = Path(runs_dir) / name / "s0"
+    dst = Path(runs_dir) / name / "avg"
     test_only = [s for s in splits if s in TEST_ONLY]
     if test_only and not final:
         raise SystemExit(f"{test_only} are test-only: pass --final (scored once per model)")
@@ -79,13 +82,15 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("what", choices=["tta", "ensemble"])
     ap.add_argument("--exp", required=True, help="finished experiment to derive from")
-    ap.add_argument("--name", required=True, help="name of the derived experiment")
+    ap.add_argument("--name", help="name of the derived experiment (ensemble: defaults to --exp)")
     ap.add_argument("--splits", nargs="+", default=["val"], help="ensemble only")
     ap.add_argument("--final", action="store_true", help="ensemble only: required for test-only sets")
     ap.add_argument("--force", action="store_true", help="ensemble only: rebuild sets the ledger already lists")
     ap.add_argument("--runs-dir", default="runs")
     args = ap.parse_args(argv)
     if args.what == "tta":
+        if not args.name:
+            ap.error("tta needs --name")
         for d in make_tta(args.exp, args.name, args.runs_dir):
             print(f"wrote {d}")
     else:
