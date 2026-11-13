@@ -4,7 +4,38 @@ A checkpoint is a model we have decided to keep and build on. Each new idea star
 
 Scores are the mean of three seeds. Details and confidence intervals are in [RESULTS.md](RESULTS.md).
 
-## Checkpoint 2 (12 Nov 2026): the current model
+## Checkpoint 3 (13 Nov 2026): the current model
+
+Checkpoint 1's recipe trained again with photos from a second kind of source: 552 biopsy-confirmed hospital photos from MIDAS. Predicts the same way as checkpoint 2 (test-time flips, three-seed average).
+
+| | |
+| --- | --- |
+| Training data | 13,114 images: the 12,562 of checkpoint 1 plus 552 from MIDAS (`midas_train`) |
+| Training | 60 epochs, early stopping off, about 20 minutes per seed |
+| Config | `configs/skinnet_midas_full.yaml` |
+| Run folder | `runs/skinnet_midas_full_tta_ens` (the average), built from `runs/skinnet_midas_full_tta/s{0,1,2}` |
+| Weights | `checkpoints/checkpoint-3/` (local, git-ignored) |
+| Git tag | `checkpoint-3` |
+
+| Score | Checkpoint 2 | Checkpoint 3 | Paired difference [95% interval] |
+| --- | --- | --- | --- |
+| DDI (outside, never seen): AUC | 0.629 | **0.657** | +0.028 [+0.007, +0.048] |
+| MIDAS test part (414 images): AUC | 0.645 | **0.698** | +0.053 [+0.020, +0.089] |
+| DermaCon-IN tumours (outside): AUC | 0.826 | 0.841 | +0.015 [−0.058, +0.090] |
+| Our test split: AUC | **0.904** | 0.898 | −0.007 [−0.012, −0.001] |
+| Our test split: AUC, cancers vs benign lookalikes | **0.797** | 0.775 | |
+| Our test split: cancers missed / false alarms | 9% / 33% | 10% / 34% | |
+| DDI: cancers missed / false alarms | 21% / 59% | 16% / 67% | |
+| MIDAS test: cancers missed / false alarms | 50% / 31% | 33% / 41% | |
+| DermaCon-IN everyday conditions called cancer | **24%** | 28% | |
+
+**Where it stands.** It is the first model here shown to do better on a source it has never seen: DDI. The MIDAS gain is larger, but the model has now seen that hospital's photos, so it says less. It costs a little at home. The threshold fixed on our own validation split still does not carry over: outside, fewer cancers are missed but there are more false alarms.
+
+**How it became a checkpoint.** The rule written beforehand (DECISIONS.md, sections 11 and 12) asked for a supported gain on MIDAS test or DDI, which it has on both, and no supported loss on our own test split, which it missed by a small margin (−0.007). The team decided the trade is worth taking, because performance on new hospitals is the open problem. That is a decision made after seeing the result, recorded here as such.
+
+**From now on** every new idea is compared with checkpoint 3 after the same treatment (three seeds, 60 epochs, test-time flips, seed average), and chosen on the MIDAS validation part as well as our own.
+
+## Checkpoint 2 (12 Nov 2026)
 
 Checkpoint 1's three trained models, used better when predicting. Nothing was retrained.
 
@@ -35,7 +66,7 @@ Missed cancers and false alarms use the threshold that catches 90% of cancers on
 
 **How it became a checkpoint.** The rule written before the test (DECISIONS.md, section 10) asked for a supported gain on MIDAS or DDI, and by that rule it was first discarded. On seeing the result the team decided that a free, supported gain at home with nothing worse anywhere counts as working, and restored it. That was a change of rule after the result, recorded here so the outside numbers are not read as better than they are.
 
-**From now on** every new idea is compared with checkpoint 2, and gets the same treatment before the comparison: three seeds, test-time flips, seed average.
+**Until checkpoint 3** every new idea was compared with checkpoint 2, and got the same treatment before the comparison: three seeds, test-time flips, seed average.
 
 ## Checkpoint 1 (12 Nov 2026)
 
@@ -68,7 +99,7 @@ Seven models were trained on the way to checkpoint 1, and two ideas for using it
 | G | Average the three seeds of checkpoint 1 into one prediction | validation | Within-source AUC 0.882 against 0.868 | Kept as part of G+H |
 | H | Test-time flips: predict on the image and its three mirror images, average | validation | 0.879 against 0.868 | Kept as part of G+H |
 | J | Checkpoint 1's recipe with 552 MIDAS training photos added | validation only (ours and the MIDAS validation part) | MIDAS validation AUC 0.689 → 0.782, but within-source AUC on our validation split 0.888 → 0.876, a supported loss, mostly one seed stopped early at epoch 25 | Discarded at the first step; not scored on test sets. Replaced by O |
-| O | J with early stopping off (all seeds run 60 epochs) | test and outside sets, paired comparison with checkpoint 2 | MIDAS test 0.645 → 0.698 and DDI 0.629 → 0.657, both supported. Our test split 0.904 → 0.898, a small supported loss | **Open: waiting for the team's decision.** Meets the gain conditions, misses the no-loss one |
+| O | J with early stopping off (all seeds run 60 epochs) | test and outside sets, paired comparison with checkpoint 2 | MIDAS test 0.645 → 0.698 and DDI 0.629 → 0.657, both supported. Our test split 0.904 → 0.898, a small supported loss | **Kept: checkpoint 3** (see above for how) |
 | G+H | Both together | test and outside sets, paired comparison | Our test split: AUC 0.890 → 0.904, false alarms 40% → 33%, a supported gain. MIDAS +0.006 and DDI +0.006, neither supported | **Kept: checkpoint 2** (see above for how) |
 
 The deciding score on validation was the within-source AUC: the AUC inside each dataset, averaged. Seeds of one model differ by about 0.01 on it, so B to F are "no better than A", not "clearly worse".
@@ -132,8 +163,14 @@ for s in 0 1 2; do python -m skincancer.predict --run runs/skinnet_src_tta/s$s -
 python -m skincancer.derive ensemble --exp skinnet_src_tta --name skinnet_src_tta_ens --splits val test
 python -m skincancer.compare --a skinnet_src --b skinnet_src_tta_ens --splits val test
 
+# checkpoint 3: train it, then the same two steps
+for s in 0 1 2; do python -m skincancer.train --config configs/skinnet_midas_full.yaml --seed $s; done
+python -m skincancer.derive tta --exp skinnet_midas_full --name skinnet_midas_full_tta
+for s in 0 1 2; do python -m skincancer.predict --run runs/skinnet_midas_full_tta/s$s --splits val midas_val; done
+python -m skincancer.derive ensemble --exp skinnet_midas_full_tta --name skinnet_midas_full_tta_ens --splits val midas_val
+
 # return the code to the state that produced a checkpoint
-git checkout checkpoint-2
+git checkout checkpoint-3
 ```
 
 The weights are not in the repository (`checkpoints/` is git-ignored). Retraining from the tagged code with seeds 0, 1 and 2 reproduces them.

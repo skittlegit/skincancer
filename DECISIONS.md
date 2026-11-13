@@ -198,7 +198,7 @@ Written before the split was made and before idea J was trained.
 - `train`, `val`, `test` and the other sets do not change. The rebuild is checked against the previous manifest.
 - A caution on reading results: a model trained on `midas_train` has seen that hospital's photos, so a gain on `midas_val` or `midas_test` shows it learned that source. Only a gain on DDI shows it travels to a source it has never seen.
 
-**Idea J** (`configs/skinnet_midas.yaml`): checkpoint 1's recipe with `midas_train` added to the training images. In the balanced drawing MIDAS counts as a third dataset. Three seeds, then test-time flips and the seed average, the same treatment as checkpoint 2.
+**Idea J** (its config was removed with it; idea O's config holds the same recipe): checkpoint 1's recipe with `midas_train` added to the training images. In the balanced drawing MIDAS counts as a third dataset. Three seeds, then test-time flips and the seed average, the same treatment as checkpoint 2.
 
 **How it is judged,** each time by paired comparison with checkpoint 2:
 
@@ -253,3 +253,5 @@ Written before idea O was trained.
 - Step 3, gain: supported on `midas_test` and on DDI. DDI is a source no model here has trained on or been chosen on, so this is the first gain in the project shown to travel.
 - Step 3, no loss: AUC on our own `test` is lower by 0.007, and the interval just excludes zero. The rule says nothing may be lower by a supported amount on `test`, so by the rule as written idea O is not a checkpoint.
 - The rule is not changed here. Keeping idea O would be a change of rule after the result, as with checkpoint 2, and is for the team to decide. Until then checkpoint 2 stays the current model and idea O's runs are kept.
+
+**Decided 13 Nov 2026: idea O is checkpoint 3.** The team accepted a loss of 0.007 AUC on our own test split for supported gains on DDI (+0.028) and the MIDAS test part (+0.053). This is a decision taken after seeing the result, not idea O passing the rule as written. Idea J's runs and config are deleted. New ideas are compared with checkpoint 3, train for all 60 epochs (`patience: 0`), and are chosen on `midas_val` together with our own `val`.

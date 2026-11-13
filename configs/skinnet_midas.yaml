@@ -1,5 +1,0 @@
-# Idea J (DECISIONS.md, section 11): checkpoint 1's recipe with the MIDAS training share added.
-extends: skinnet_src.yaml
-name: skinnet_midas
-data:
-  train_splits: [train, midas_train]
