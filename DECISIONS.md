@@ -327,3 +327,17 @@ One name per model, used for its config, its run folder and its result folder.
 - Git tags stay `checkpoint-<number>`.
 - No model was retrained or re-scored for this change. `evaluate` and `compare` read `avg` when it exists, and the seeds otherwise. The pause on 13 Nov stopped ideas N and M before any seed finished; both start again from seed 0.
 - Logs sit inside the model's run folder (`runs/<name>/logs/s0.log`, `final.log`, `evaluate.log`). `runs/` holds only model folders and the test-set ledger; `results/` holds only one folder per kept model.
+
+## 16. Ideas P and Q, and a wider idea L (14 Nov 2026)
+
+Written before any of them was started.
+
+**Why.** Our supervisor's comment: after 60 epochs the outside scores are still about 0.6, which is poor. Checkpoint 3's training logs say the cause is not too little training. On our own validation split the within-source AUC was still rising at epoch 50 (about 0.85 to 0.87) and flattens only as the cosine schedule takes the learning rate to zero. The training loss ends at about 0.48, against a floor of about 0.20 with label smoothing 0.1, so the network is not memorising its training set. At home it scores about 0.90; on photos from other hospitals 0.66 (DDI) and 0.70 (MIDAS test). The gap is how far our training photos are from other hospitals' photos. Ideas N and M test the training side; P, Q and the wider L aim at the gap itself.
+
+- **P. Pretrained weights.** Start from weights learned on ImageNet and train every layer. It is the largest known lever for performance on new hospitals. It breaks section 1 (from random weights, no pretrained weights anywhere in the classifier), which is the team's own rule, so it is listed and not run: the team and the supervisor decide whether the rule changes. If it does, P gets its own section with its rules before anything is trained.
+- **Q. More biopsy-confirmed tumour photos from new sources.** Clinical photos (not dermoscopy) of cancers and of the benign growths that resemble them, from hospitals not yet in training. Idea O is the only change so far that moved a score on a source never seen (DDI), and it did so with photos of exactly this kind; idea I showed that new photos without tumours do not help. First step: find public sets of this kind, check their licences and their overlap with our evaluation images. None is downloaded yet.
+- **L, widened.** Self-supervised pretraining on our own training photos (section 14's idea L) plus unlabelled photos already on disk that no evaluation set uses: SCIN and the Derm7pt clinical photos. Never on any image of `val`, `test`, `midas_val`, `midas_test`, DDI or DermaCon-IN, or on a near-duplicate of one. It keeps the from-scratch rule: no outside weights.
+
+**Order.** N and M first (section 14), then L, then Q. P only if the rule is changed.
+
+**Resumed 14 Nov 2026.** N and M were restarted from seed 0, N first, M after it. They run with `scripts/run_idea.sh`, new today: it trains the seeds, averages them and compares with checkpoint 3 on `val` and `midas_val` only, so no test set is scored before step 1 is passed. The existing `scripts/run.sh` scores the test-only sets and is for a model that has passed step 1.

@@ -62,6 +62,8 @@ Or all three seeds, the test-only sets and the metrics in one go:
 PY=.venv/Scripts/python bash scripts/run.sh        # Windows venv; PY=python elsewhere
 ```
 
+For an idea under test, `scripts/run_idea.sh <letter>` trains `configs/skinnet-idea-<letter>.yaml`, averages the seeds and compares with checkpoint 3 on the validation sets only; `scripts/run.sh` scores the test-only sets and is for an idea that has passed that step.
+
 `--set key=value` overrides any config field, for example `--set model.width=48 --set name=skinnet_w48`.
 
 ## Layout

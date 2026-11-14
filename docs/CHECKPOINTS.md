@@ -154,10 +154,12 @@ Each idea has a letter, continuing from A to H above. The rule is the same for e
 | L | **Self-supervised pretraining on our own images:** learn general skin features from all our photos without labels, then train cancer / not cancer. No outside weights | Getting more from the images we have | New training code; a few GPU hours | A real gain is plausible; the standard remedy for a small labelled set |
 | M | **A larger network** (about four times the parameters) | Capacity | One training round, longer epochs | Modest at home, little outside |
 | N | **A longer schedule** (more than 60 epochs) | Training was still improving slightly at epoch 60 | One longer training round | Small |
+| Q | **More biopsy-confirmed tumour photos from new sources** (clinical, not dermoscopy) | The outside gap: the only lever that has moved DDI | Finding and checking sources | The most likely to help outside, if sources exist |
+| P | **Pretrained (ImageNet) weights** | The outside gap | Breaks the from-scratch rule: a team decision first | Large, by everything published |
 
 Counts for SCIN and ISIC 2019 are from memory and must be confirmed at download. Data details are in [DATA_PLAN.md](DATA_PLAN.md).
 
-**Suggested order:** L, then M and N. K last, as a with-and-without experiment.
+**Order (14 Nov 2026):** N and M are running. Then L (widened to unlabelled photos already on disk), then Q. P only if the team and the supervisor change the from-scratch rule. K last, as a with-and-without experiment. Reasons are in [DECISIONS.md](../DECISIONS.md), section 16.
 
 **Later stages, not ideas for this one:** which type of cancer it is, and whether darker skin needs its own model or one combined model.
 

@@ -21,9 +21,11 @@ Rules for each idea are written in [DECISIONS.md](../DECISIONS.md) before it is 
 | J | MIDAS photos added to training | 13 Nov | Discarded; led to O |
 | O | J with early stopping off | 13 Nov | **Kept: checkpoint 3** (`skinnet-c3`) |
 | I | SCIN photos added as not cancer | 13 Nov | Discarded |
-| N | Longer schedule (120 epochs) | – | Specified, paused before any result |
-| M | Wider network (four times the parameters) | – | Specified, paused before any result |
-| L | Self-supervised pretraining on our own images | – | Not started |
+| N | Longer schedule (120 epochs) | 14 Nov | Running |
+| M | Wider network (four times the parameters) | 14 Nov | Queued after N |
+| L | Self-supervised pretraining on our own and other unlabelled photos | – | Not started |
+| Q | More biopsy-confirmed tumour photos from new sources | – | Not started: needs a source |
+| P | Pretrained (ImageNet) weights | – | Not started: breaks the from-scratch rule, needs a team decision |
 | K | ISIC 2019 dermoscopy images added | – | Not started |
 
 Letters were given when an idea was first listed, not when it was run, which is why I comes after O and K is last.
@@ -130,17 +132,27 @@ Letters were given when an idea was first listed, not when it was run, which is 
 ### N. Longer schedule
 
 - **What:** checkpoint 3's recipe trained for 120 epochs, not 60 (`configs/skinnet-idea-n.yaml`).
-- **Status:** specified in DECISIONS.md, section 14. Training was started and stopped on 13 Nov before any seed finished. No result yet.
+- **Status:** specified in DECISIONS.md, section 14. Stopped on 13 Nov before any seed finished; restarted from seed 0 on 14 Nov (`scripts/run_idea.sh n`).
 
 ### M. Wider network
 
 - **What:** checkpoint 3's recipe with the network at twice the width, 11.2 million parameters against 2.8 million (`configs/skinnet-idea-m.yaml`).
-- **Status:** specified in DECISIONS.md, section 14. Not yet trained.
+- **Status:** specified in DECISIONS.md, section 14. Queued to train after N (14 Nov).
 
-### L. Self-supervised pretraining on our own images
+### L. Self-supervised pretraining on our own and other unlabelled photos
 
-- **What:** learn general skin features from all our photos without labels, then train cancer / not cancer. No outside weights.
+- **What:** learn general skin features without labels, then train cancer / not cancer. Widened on 14 Nov (DECISIONS.md, section 16): besides our training photos, also the unlabelled photos on disk that no evaluation set uses (SCIN, Derm7pt clinical). Never any validation or test image. No outside weights.
 - **Status:** not started. Needs new training code and a few GPU hours.
+
+### Q. More biopsy-confirmed tumour photos from new sources
+
+- **What:** clinical photos (not dermoscopy) of cancers and benign lookalikes from hospitals not yet in training. Idea O is the only change that moved a score on a source never seen, and it did so with photos of this kind.
+- **Status:** not started (DECISIONS.md, section 16). First step is to find such sets and check licences and overlap with our evaluation images.
+
+### P. Pretrained weights
+
+- **What:** start from ImageNet weights and train every layer. The largest known lever for new hospitals.
+- **Status:** listed on 14 Nov after the supervisor called the outside scores poor (DECISIONS.md, section 16). Not run: it breaks the from-scratch rule (section 1), and changing that is for the team and the supervisor.
 
 ### K. ISIC 2019 in training
 
@@ -149,4 +161,4 @@ Letters were given when an idea was first listed, not when it was run, which is 
 
 ## Keeping this file up to date
 
-When an idea is specified, add it here with its status. When it finishes, fill in what it was compared on, the result and the outcome, and update the table at the top. New ideas take the next unused letter (the next is P).
+When an idea is specified, add it here with its status. When it finishes, fill in what it was compared on, the result and the outcome, and update the table at the top. New ideas take the next unused letter (the next is R).
