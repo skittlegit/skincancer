@@ -24,9 +24,9 @@ Rules for each idea are written in [DECISIONS.md](../DECISIONS.md) before it is 
 | N | Longer schedule (120 epochs) | 14 Nov | Discarded: big gain at home, loss on DDI |
 | M | Wider network (four times the parameters) | 14 Nov | Discarded |
 | Q | MILK10k's biopsied clinical photos added (five new centres) | 14 Nov | **Kept: checkpoint 4** (`skinnet-c4`) |
-| L | Self-supervised pretraining on our own and other unlabelled photos | 14 Nov | Queued after Q |
-| P | Pretrained (ImageNet) weights | 14 Nov | Queued after L, as a reference comparison only (never a checkpoint) |
-| K | ISIC 2019 dermoscopy images added (5,000-image subsample) | 14 Nov | Queued after P, on top of checkpoint 4 |
+| L | Self-supervised pretraining on our own and other unlabelled photos | 14 Nov | Discarded: largest SkinNet gain at home, loss on MIDAS |
+| P | Pretrained (ImageNet) weights | 14 Nov | Running, as a reference comparison only (never a checkpoint) |
+| K | ISIC 2019 dermoscopy images added (5,000-image subsample) | 14 Nov | Running, on top of checkpoint 4 |
 
 Letters were given when an idea was first listed, not when it was run, which is why I comes after O and K is last.
 
@@ -146,7 +146,10 @@ Letters were given when an idea was first listed, not when it was run, which is 
 ### L. Self-supervised pretraining on our own and other unlabelled photos
 
 - **What:** learn general skin features without labels, then train cancer / not cancer. Widened on 14 Nov (DECISIONS.md, section 16): besides our training photos, also the unlabelled photos on disk that no evaluation set uses (SCIN, Derm7pt clinical). Never any validation or test image. No outside weights.
-- **Status:** specified in DECISIONS.md, section 17: SimCLR for 200 epochs on about 17,000 photos (`src/skincancer/pretrain.py`), then checkpoint 3's recipe from those weights (`configs/skinnet-idea-l.yaml`). Queued to start after Q (14 Nov).
+- **What was trained:** DECISIONS.md, section 17: SimCLR for 200 epochs on about 17,000 photos without their labels (`src/skincancer/pretrain.py`), then checkpoint 3's recipe from those weights.
+- **Compared on:** validation only (ours and the MIDAS validation part), paired comparison with checkpoint 3, and with checkpoint 4 alongside.
+- **Result:** within-source AUC on our validation split 0.882 → 0.939, supported, the largest SkinNet gain at home; MIDAS validation 0.793 → 0.753, lower (−0.065 against checkpoint 4, a supported loss).
+- **Outcome:** discarded at the first step (14 Nov), not scored on test sets. Pretraining on mostly our own photos teaches the network our home datasets, not other hospitals: the same pattern as ideas I and N, and as the ImageNet ResNet-18 reference. The pretraining code stays for later use.
 
 ### Q. More biopsy-confirmed tumour photos from new sources
 

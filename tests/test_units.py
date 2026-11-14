@@ -286,11 +286,9 @@ def test_nt_xent_rewards_matching_views():
 
 def test_pretrain_refuses_evaluation_splits():
     import pytest
-    from skincancer.config import load_config
     from skincancer.pretrain import pretrain_rows
-    cfg = load_config("configs/skinnet-idea-l.yaml", ["pretrain.splits=[train,val]"])
     with pytest.raises(ValueError, match="evaluation splits"):
-        pretrain_rows(cfg)
+        pretrain_rows({"pretrain": {"splits": ["train", "val"]}})
 
 
 def test_pretrained_backbone_loads_into_the_classifier(tmp_path):

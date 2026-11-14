@@ -49,7 +49,7 @@ Checkpoint 3's recipe with 4,908 biopsy-confirmed clinical close-ups from MILK10
 
 **How it became a checkpoint.** The rule written before its test scores (DECISIONS.md, section 19) asked for a rise on every test set. It rose on our test split and MIDAS test, both supported, and was 0.007 lower on DDI, well inside the noise; nothing was lower by a supported amount. The team accepted it on 14 Nov, after seeing the result, as a narrow miss of the kind section 14 leaves to the team. Recorded here as such.
 
-**From now on** every new idea is compared with checkpoint 4. Idea L, specified against checkpoint 3 before checkpoint 4 existed, is still judged against checkpoint 3 as written.
+**From now on** every new idea is compared with checkpoint 4. Idea L, specified against checkpoint 3 before checkpoint 4 existed, was judged against checkpoint 3 as written, and failed (DECISIONS.md, section 17).
 
 ## Checkpoint 3 (13 Nov 2026)
 
@@ -150,6 +150,7 @@ Seven models were trained on the way to checkpoint 1, and two ideas for using it
 | I | Checkpoint 3's recipe with 2,907 SCIN phone photos of everyday conditions added as not cancer | validation only (ours and the MIDAS validation part), paired comparison with checkpoint 3 | Our validation split: within-source AUC 0.882 → 0.902, supported. MIDAS validation part: AUC 0.793 → 0.729, a supported loss | Discarded at the first step; not scored on test sets |
 | M | Checkpoint 3's recipe with the network at twice the width (11.2 million parameters against 2.8 million) | validation only, paired comparison with checkpoint 3 | Our validation split: within-source AUC 0.882 → 0.885, not supported. MIDAS validation part: AUC 0.793 → 0.773, a supported loss | Discarded at the first step (14 Nov); not scored on test sets |
 | N | Checkpoint 3's recipe trained for 120 epochs, not 60 | validation, then test and outside sets, paired comparison with checkpoint 3 | Our test split: AUC 0.898 → 0.930, supported. MIDAS test 0.698 → 0.733, not supported. DDI 0.657 → 0.592, a supported loss | Discarded (14 Nov): the extra training learns our home datasets, not other hospitals |
+| L | Self-supervised pretraining (SimCLR, 200 epochs on about 17,000 unlabelled photos), then checkpoint 3's recipe from those weights | validation only, paired comparison with checkpoint 3 | Our validation split: within-source AUC 0.882 → 0.939, supported. MIDAS validation part: AUC 0.793 → 0.753, not supported (against checkpoint 4, 0.818 → 0.753, a supported loss) | Discarded at the first step (14 Nov); not scored on test sets. Pretraining on our own photos learns our home datasets |
 | G+H | Both together | test and outside sets, paired comparison | Our test split: AUC 0.890 → 0.904, false alarms 40% → 33%, a supported gain. MIDAS +0.006 and DDI +0.006, neither supported | **Kept: checkpoint 2** (see above for how) |
 
 The deciding score on validation was the within-source AUC: the AUC inside each dataset, averaged. Seeds of one model differ by about 0.01 on it, so B to F are "no better than A", not "clearly worse".
@@ -187,13 +188,12 @@ Each idea has a letter, continuing from A to H above. The rule is the same for e
 | # | Idea | What it targets | Cost | Expected effect |
 | --- | --- | --- | --- | --- |
 | K | **Add ISIC 2019 to training:** about 8,500 cancers, 12,900 nevi | Far more cancers | Large download; dermoscopy, a different kind of image | Uncertain: may not carry over to ordinary photos |
-| L | **Self-supervised pretraining on our own images:** learn general skin features from all our photos without labels, then train cancer / not cancer. No outside weights | Getting more from the images we have | New training code; a few GPU hours | A real gain is plausible; the standard remedy for a small labelled set |
 | Q | **More biopsy-confirmed tumour photos from new sources** (clinical, not dermoscopy) | The outside gap: the only lever that has moved DDI | Finding and checking sources | The most likely to help outside, if sources exist |
 | P | **Pretrained (ImageNet) weights** | The outside gap | About 3.5 hours for two ResNet-18 models (ImageNet start and random start). Run as a reference comparison only, never a checkpoint (team decision, 14 Nov) | Large, by everything published |
 
 Counts for SCIN and ISIC 2019 are from memory and must be confirmed at download. Data details are in [DATA_PLAN.md](DATA_PLAN.md).
 
-**Order (14 Nov 2026):** N and M are done, both discarded (table above). Q is running (MILK10k, section 18), then L (widened to unlabelled photos already on disk), then P as a reference comparison only: ResNet-18 from ImageNet weights and from random weights, never a checkpoint. Q became checkpoint 4, so K (ISIC 2019, a 5,000-image subsample) runs after P, on top of checkpoint 4 (section 20). From Q on, step 1 needs a supported gain on the MIDAS validation part. Reasons are in [DECISIONS.md](../DECISIONS.md), sections 16 and 19.
+**Order (14 Nov 2026):** N, M and L are done, all discarded, and Q became checkpoint 4 (table above). Running now: P as a reference comparison only: ResNet-18 from ImageNet weights and from random weights, never a checkpoint; and K (ISIC 2019, a 5,000-image subsample) on top of checkpoint 4 (section 20). From Q on, an idea must be higher on every set (section 19). Reasons are in [DECISIONS.md](../DECISIONS.md), sections 16 and 19.
 
 **Later stages, not ideas for this one:** which type of cancer it is, and whether darker skin needs its own model or one combined model.
 

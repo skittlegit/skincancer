@@ -391,6 +391,19 @@ Written before the pretraining was run.
 
 **Expectation recorded now.** Self-supervised pretraining usually helps most when the unlabelled set is much larger than the labelled one. Here it is only about a third larger, so a small gain is the likely outcome. Its value for the outside sets is that it learns from SCIN's phone photos and Derm7pt without their labels steering it, which idea I showed can hurt.
 
+**Outcome of idea L, step 1 (14 Nov 2026): failed, discarded.** Pretraining ran its 200 epochs (final loss 2.34). The three trained seeds peaked at epochs 31, 39 and 45, with within-source AUC on `val` of 0.923, 0.922 and 0.929, the highest single SkinNet seeds in the project. Paired comparison with checkpoint 3, both after test-time flips and the seed average:
+
+| Set | Score | Checkpoint 3 | Idea L | Difference [95% interval] | Supported |
+| --- | --- | --- | --- | --- | --- |
+| `midas_val` (outside validation) | AUC | 0.793 | 0.753 | −0.040 [−0.093, +0.015] | no |
+| `val` | AUC | 0.898 | 0.936 | +0.038 [+0.027, +0.049] | yes |
+| `val` | Within-source AUC | 0.882 | 0.939 | +0.058 [+0.040, +0.077] | yes |
+
+- Against checkpoint 4, reported alongside: `midas_val` 0.818 → 0.753, −0.065 [−0.111, −0.018], a supported loss; within-source AUC on `val` 0.905 → 0.939, +0.034 [+0.021, +0.048], a supported gain.
+- Section 19's corrected step 1 needs a rise on both validation sets. `midas_val` is 0.040 lower against checkpoint 3, not narrowly, and lower by a supported amount against the current checkpoint. So this is not a case for the team: L is discarded and was not scored on any test set.
+- Its config and runs, the pretrained weights included, are deleted. The pretraining code (`src/skincancer/pretrain.py`) stays, so pretraining can be tried again without rewriting it.
+- The reading: pretraining on photos that are mostly our two home datasets taught the network those datasets better. It is the largest gain at home of any SkinNet, and, after ideas I and N, the third time a large gain at home has come with a loss at an outside hospital. The ImageNet ResNet-18 reference (section 19, decision 2) shows the same pattern (+0.040 on `val`, −0.063 on `midas_val` against checkpoint 4). The expectation above, a small gain, was wrong in both directions.
+
 ## 18. Idea Q: MILK10k's biopsied clinical photos in training (14 Nov 2026)
 
 Written after the photos were downloaded and before idea Q was trained. No model has been trained or scored with them.

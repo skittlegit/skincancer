@@ -248,6 +248,20 @@ M failed step 1 and was not scored on any test set. N passed and was scored once
 - Length is a limit at home only. N's seeds did best at epochs 80 to 107, long after checkpoint 3's schedule had ended, and our own test split rose from 0.898 to 0.930. On DDI, a hospital no model here has seen, it fell from 0.657 to 0.592. The extra epochs taught the network our two home datasets better, and part of what it learned does not hold anywhere else.
 - So the supervisor's point is right that 60 epochs was not the end of training, but more of it on the same photos widens the gap to other hospitals. The gap needs different photos or different starting weights (ideas Q, L and P), not more of the same training.
 
+## Idea L: self-supervised pretraining (14 Nov 2026)
+
+SkinNet first learned from about 17,000 photos without their labels (SimCLR, 200 epochs: our training photos, the MIDAS training part, Derm7pt and SCIN), then was trained with checkpoint 3's recipe from those weights. Three seeds, test-time flips and the seed average. Judged against checkpoint 3 as specified; checkpoint 4 alongside.
+
+| Set | Score | Checkpoint 3 | Checkpoint 4 | Idea L | L against checkpoint 3 | L against checkpoint 4 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `midas_val` (outside validation) | AUC | 0.793 | 0.818 | 0.753 | −0.040 [−0.093, +0.015] | −0.065 [−0.111, −0.018], supported |
+| `val` | AUC | 0.898 | 0.900 | 0.936 | +0.038 [+0.027, +0.049], supported | +0.036 [+0.024, +0.049], supported |
+| `val` | Within-source AUC | 0.882 | 0.905 | 0.939 | +0.058 [+0.040, +0.077], supported | +0.034 [+0.021, +0.048], supported |
+
+**Outcome: discarded at the first step**, not scored on any test set. The rule needs a rise on both validation sets; MIDAS validation fell.
+
+**Reading.** The largest gain at home of any SkinNet, and a loss at the outside hospital: the same shape as ideas I and N. About three in four of the pretraining photos come from our two home datasets, so the pretraining learned what those photos look like. Starting weights that help outside would have to come from photos unlike ours, which is what the ImageNet reference (idea P) tests.
+
 ## Idea Q: MILK10k photos in training, checkpoint 4 (14 Nov 2026)
 
 4,908 biopsy-confirmed clinical close-ups from MILK10k (five centres: Vienna, Ankara, Queensland, Memorial Sloan Kettering, Skopje) added to checkpoint 3's training images: 3,620 cancers (2,520 BCC, 652 SCC, 448 melanoma) and 1,288 benign growths. Three seeds, test-time flips, seed average, paired comparison with checkpoint 3.

@@ -1,6 +1,10 @@
-"""Idea L: self-supervised pretraining of SkinNet (SimCLR) on unlabelled photos, no outside weights.
+"""Self-supervised pretraining of SkinNet (SimCLR) on unlabelled photos, no outside weights.
 
-    python -m skincancer.pretrain --config configs/skinnet-idea-l.yaml
+Written for idea L (DECISIONS.md, section 17), discarded on 14 Nov 2026; kept so pretraining can
+be tried again. A config needs a `pretrain:` block and `model.init` pointing at the result (idea
+L's config is in git history, tag checkpoint-4: configs/skinnet-idea-l.yaml).
+
+    python -m skincancer.pretrain --config configs/<name>.yaml
 
 Two random views of each photo go through SkinNet and a small projection head; the loss
 (NT-Xent) pulls the two views of one photo together and pushes every other photo in the batch
