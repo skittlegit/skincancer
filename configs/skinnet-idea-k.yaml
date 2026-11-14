@@ -1,0 +1,6 @@
+# Idea K (DECISIONS.md, section 20): checkpoint 4's recipe with a fixed subsample of the ISIC 2019
+# challenge's dermoscopy images (2,500 cancers, 2,500 not cancer) added as training-only data.
+extends: skinnet-c4.yaml
+name: skinnet-idea-k
+data:
+  extra_train: [milk10k, isic2019]

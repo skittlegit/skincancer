@@ -466,3 +466,22 @@ Decided by the team on 14 Nov, after ideas M and N (section 14) and before idea 
 - Supported gains on MIDAS test (the largest outside gain since checkpoint 3) and on our own test split; nothing lower by a supported amount anywhere.
 - DDI is flat: 0.007 lower, well inside its interval. Under section 19's corrected step 3 (higher on every test set) that misses; under section 18's rule as first written (a supported gain on one, no supported loss) Q would be checkpoint 4.
 - **Team decision, 14 Nov: accepted. Idea Q is checkpoint 4 (`skinnet-c4`).** The miss on DDI is 0.007, well inside its interval, and nothing is lower by a supported amount anywhere; the team took it as the narrow miss section 14 leaves to the team. Config, runs, ledger rows and results were renamed to `skinnet-c4`; git tag `checkpoint-4`. New ideas are compared with checkpoint 4. Idea L, specified against checkpoint 3 before checkpoint 4 existed, is judged against checkpoint 3 as written in section 17, and its comparison with checkpoint 4 is reported alongside. By section 19, decision 3, idea K now goes ahead.
+
+## 20. Idea K: ISIC 2019 dermoscopy in training (14 Nov 2026)
+
+Written before the images were downloaded and before anything was trained. K goes ahead because idea Q became checkpoint 4 with a supported gain on `midas_test` (section 19, decision 3).
+
+**The source.** The ISIC 2019 challenge training set (ISIC archive collection 65, "Challenge 2019: Training"): 25,331 dermoscopic images from HAM10000 (Vienna, Queensland), BCN_20000 (Barcelona) and Memorial Sloan Kettering. Each image carries its own Creative Commons licence (CC-0, CC BY or CC BY-NC), recorded per image in `data/extra/isic2019.csv`. Some ISIC 2019 lesions may be the same people as MILK10k's (Vienna, Queensland and MSK are in both); both are training-only, so this cannot leak into a score. No ISIC centre is Stanford or in India.
+
+**What is used** (`python -m skincancer.data.extra isic2019`):
+
+- Labels as MILK10k (section 18): cancer when ISIC-DX says malignant and the most specific diagnosis maps to a cancer type (melanoma, BCC, SCC); not cancer when it says benign (nevi, benign keratoses, dermatofibromas, vascular lesions); actinic keratoses and indeterminate lesions left out. Unlike MILK10k a biopsy is not required: the challenge's benign ground truth also rests on follow-up and expert consensus, which is the standard reading of this set.
+- **A subsample, not the whole set.** One image per lesion, then 2,500 cancers and 2,500 not cancer drawn at random with seed 0. The balanced drawing (checkpoint 1) keeps each dataset's share of the draws, so all of ISIC 2019 would be about 57% of every epoch, all of it dermoscopy, a different kind of image from every evaluation set. Idea I showed how a large share of one new kind of photo can crowd out the hard cases. At 5,000 images ISIC 2019 is about 22% of the draws, close to MILK10k's share, and a seed takes about 40 minutes, not 70. If K helps, a larger share is a separate idea.
+- Stored resized to 512 pixels on the short side (some originals are 6,000 pixels wide); training crops to 224 either way.
+- Training only, outside the manifest; images that near-duplicate a validation or test image are dropped.
+
+**Idea K** (`configs/skinnet-idea-k.yaml`): checkpoint 4's recipe with ISIC 2019's subsample added. Three seeds, 60 epochs, test-time flips, seed average. Judged by section 19's rule against checkpoint 4: step 1 needs a rise on both `midas_val` and `val` (within-source) with neither lower by a supported amount; then scored once on the test sets; checkpoint 5 if higher on `test`, `midas_test` and DDI, at least one by a supported amount, and none lower by a supported amount (DermaCon-IN only must not be lower by a supported amount).
+
+**Expectation recorded now.** Dermoscopy is a close-up through a lens with polarised light: no skin texture around the lesion, no glare, a fixed distance. It is uncertain whether what the network learns there carries to phone and clinic photos. The most likely gain is on melanoma against nevi, where ISIC 2019 adds far more examples than all other sources together; the most likely harm is that it weakens what MILK10k taught.
+
+**Order.** K trains after the queue already running (idea L, then the two ResNet-18 references), around midnight.

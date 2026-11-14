@@ -193,7 +193,7 @@ Each idea has a letter, continuing from A to H above. The rule is the same for e
 
 Counts for SCIN and ISIC 2019 are from memory and must be confirmed at download. Data details are in [DATA_PLAN.md](DATA_PLAN.md).
 
-**Order (14 Nov 2026):** N and M are done, both discarded (table above). Q is running (MILK10k, section 18), then L (widened to unlabelled photos already on disk), then P as a reference comparison only: ResNet-18 from ImageNet weights and from random weights, never a checkpoint. K only if Q becomes a checkpoint with a gain outside. From Q on, step 1 needs a supported gain on the MIDAS validation part. Reasons are in [DECISIONS.md](../DECISIONS.md), sections 16 and 19.
+**Order (14 Nov 2026):** N and M are done, both discarded (table above). Q is running (MILK10k, section 18), then L (widened to unlabelled photos already on disk), then P as a reference comparison only: ResNet-18 from ImageNet weights and from random weights, never a checkpoint. Q became checkpoint 4, so K (ISIC 2019, a 5,000-image subsample) runs after P, on top of checkpoint 4 (section 20). From Q on, step 1 needs a supported gain on the MIDAS validation part. Reasons are in [DECISIONS.md](../DECISIONS.md), sections 16 and 19.
 
 **Later stages, not ideas for this one:** which type of cancer it is, and whether darker skin needs its own model or one combined model.
 

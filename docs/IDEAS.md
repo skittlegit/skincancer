@@ -26,7 +26,7 @@ Rules for each idea are written in [DECISIONS.md](../DECISIONS.md) before it is 
 | Q | MILK10k's biopsied clinical photos added (five new centres) | 14 Nov | **Kept: checkpoint 4** (`skinnet-c4`) |
 | L | Self-supervised pretraining on our own and other unlabelled photos | 14 Nov | Queued after Q |
 | P | Pretrained (ImageNet) weights | 14 Nov | Queued after L, as a reference comparison only (never a checkpoint) |
-| K | ISIC 2019 dermoscopy images added | – | Only if Q becomes a checkpoint with a gain outside |
+| K | ISIC 2019 dermoscopy images added (5,000-image subsample) | 14 Nov | Queued after P, on top of checkpoint 4 |
 
 Letters were given when an idea was first listed, not when it was run, which is why I comes after O and K is last.
 
@@ -165,7 +165,7 @@ Letters were given when an idea was first listed, not when it was run, which is 
 ### K. ISIC 2019 in training
 
 - **What:** add about 8,500 cancers and 12,900 nevi from ISIC 2019. These are dermoscopy images, a different kind of picture from ordinary photos.
-- **Status:** not started. Large download; uncertain whether it carries over to clinical photos. Team decision (14 Nov, DECISIONS.md section 19): tried only if Q becomes a checkpoint with a supported gain on MIDAS test or DDI; dropped otherwise.
+- **Status:** not started. Large download; uncertain whether it carries over to clinical photos. Team decision (14 Nov, DECISIONS.md section 19): tried only if Q becomes a checkpoint with a supported gain on MIDAS test or DDI; dropped otherwise. Q did, so K goes ahead (section 20): checkpoint 4's recipe plus a fixed subsample of 2,500 cancers and 2,500 not cancer, one image per lesion, so dermoscopy is about a fifth of the draws, not over half (`configs/skinnet-idea-k.yaml`, `data/extra/isic2019.csv`).
 
 ## Keeping this file up to date
 

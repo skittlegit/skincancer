@@ -343,3 +343,30 @@ def test_resnet18_reference_model_for_idea_p():
     cfg["model"]["weights"] = "something"
     with pytest.raises(ValueError):
         runs.build_model(cfg)
+
+
+def test_isic2019_labels_and_one_image_per_lesion(tmp_path, monkeypatch):
+    import json
+    from skincancer.data import extra
+
+    def rec(i, top, dx3, lesion):
+        return {"isic_id": f"ISIC_{i}", "copyright_license": "CC-0", "files": {"full": {"url": "x"}},
+                "metadata": {"acquisition": {"image_type": "dermoscopic"},
+                             "clinical": {"diagnosis_1": top, "diagnosis_3": dx3, "lesion_id": lesion,
+                                          "anatom_site_1": "Trunk"}}}
+    rows = [rec(1, "Malignant", "Melanoma Invasive", "IL_a"), rec(2, "Malignant", "Melanoma Invasive", "IL_a"),
+            rec(3, "Benign", "Nevus", "IL_b"), rec(4, "Benign", "Nevus", None),
+            rec(5, "Indeterminate", "Solar or actinic keratosis", "IL_c"), rec(6, "Malignant", "Basal cell carcinoma", "IL_d")]
+    (tmp_path / "isic2019").mkdir()
+    (tmp_path / "isic2019" / "metadata.json").write_text(json.dumps(rows), encoding="utf-8")
+    monkeypatch.setattr(extra, "ISIC2019_PER_CLASS", 10)
+    df = extra.isic2019_rows(tmp_path).set_index("image_id")
+    lab = df["label_cancer"]
+    assert lab["isic2019_ISIC_1"] == "cancer" and lab["isic2019_ISIC_6"] == "cancer"
+    assert lab["isic2019_ISIC_3"] == "not_cancer" and lab.isna()["isic2019_ISIC_5"]   # actinic keratosis: left out
+    assert df.loc["isic2019_ISIC_4", "group_id"] == "isic2019_ISIC_4"                     # no lesion id: its own group
+    picked = df.index[df["in_subsample"]]
+    assert sorted(picked) == ["isic2019_ISIC_1", "isic2019_ISIC_3", "isic2019_ISIC_4", "isic2019_ISIC_6"]   # one per lesion
+    monkeypatch.setattr(extra, "ISIC2019_PER_CLASS", 1)
+    again = extra.isic2019_rows(tmp_path)
+    assert again["in_subsample"].sum() == 2 and again.groupby("label_binary")["in_subsample"].sum().tolist() == [1, 1]
