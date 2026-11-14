@@ -326,3 +326,20 @@ def test_milk10k_labels_follow_biopsy_and_label_map(tmp_path):
     assert lab["milk10k_ISIC_1"] == "cancer" and lab["milk10k_ISIC_4"] == "cancer"
     assert lab["milk10k_ISIC_2"] == "not_cancer"
     assert lab[["milk10k_ISIC_3", "milk10k_ISIC_5"]].isna().all()   # actinic keratosis; not biopsied
+
+
+def test_resnet18_reference_model_for_idea_p():
+    from skincancer import runs
+    from skincancer.models import ResNet18
+    cfg = load_config("configs/skinnet.yaml")
+    assert runs.build_model(cfg).backbone.__class__ is SkinNet           # SkinNet stays the default
+    cfg["model"].update(arch="resnet18", weights="imagenet")
+    m = runs.build_model(cfg, init_weights=False)                       # loading a saved run: no download
+    assert isinstance(m.backbone, ResNet18) and m.dim == 512
+    assert m(torch.randn(2, 3, 64, 64)).shape == (2, 2)
+    assert target_layer(m) is m.backbone.net.layer4[-1]
+    with pytest.raises(ValueError):
+        Classifier(2, imagenet=True)                                    # SkinNet has no ImageNet weights
+    cfg["model"]["weights"] = "something"
+    with pytest.raises(ValueError):
+        runs.build_model(cfg)

@@ -1,0 +1,7 @@
+# Idea P, control (DECISIONS.md, section 19): the same ResNet-18 as resnet18-imagenet, from random
+# weights, so the only difference between the two is where the weights start.
+extends: skinnet-c3.yaml
+name: resnet18-scratch
+model:
+  arch: resnet18
+  weights: none

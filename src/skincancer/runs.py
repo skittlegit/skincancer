@@ -94,9 +94,14 @@ def make_loader(df: pd.DataFrame, cfg: dict, train: bool, seed: int = 0, drop_la
                       worker_init_fn=partial(_seed_worker, base=seed), persistent_workers=persistent and nw > 0)
 
 
-def build_model(cfg: dict) -> Classifier:
+def build_model(cfg: dict, init_weights: bool = True) -> Classifier:
+    """init_weights=False skips downloading outside weights when a saved best.pt is loaded next."""
     m = cfg["model"]
-    return Classifier(len(classes_of(cfg)), m["width"], m["depths"], m["drop"])
+    weights = m.get("weights", "none")
+    if weights not in ("none", "imagenet"):
+        raise ValueError(f"unknown model.weights {weights!r}")
+    return Classifier(len(classes_of(cfg)), m["width"], m["depths"], m["drop"],
+                      arch=m.get("arch", "skinnet"), imagenet=init_weights and weights == "imagenet")
 
 
 def save_config(cfg: dict, path: Path) -> None:
@@ -107,7 +112,7 @@ def load_run(rdir: str | Path):
     """-> (model on device, eval mode; resolved config)."""
     rdir = Path(rdir)
     cfg = yaml.safe_load((rdir / "config.yaml").read_text(encoding="utf-8"))
-    model = build_model(cfg)
+    model = build_model(cfg, init_weights=False)
     model.load_state_dict(torch.load(rdir / "best.pt", map_location="cpu"))
     return model.to(device()).eval(), cfg
 

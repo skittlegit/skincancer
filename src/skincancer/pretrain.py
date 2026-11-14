@@ -115,7 +115,9 @@ def pretrain(cfg: dict) -> Path:
     df = pretrain_rows(cfg)
     print(f"[{cfg['name']} pretrain] {len(df)} photos: {df['dataset'].value_counts().to_dict()} device={dev}", flush=True)
 
-    nw = cfg["train"]["num_workers"]
+    # two views of 256 photos is ~300 MB a batch; each worker queues two, so fewer workers than
+    # training keeps Windows' shared memory (paging file) from running out (error 1455)
+    nw = p.get("num_workers", cfg["train"]["num_workers"])
     if nw > 0:
         import os
         n = torch.get_num_threads()

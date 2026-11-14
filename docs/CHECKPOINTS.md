@@ -155,11 +155,11 @@ Each idea has a letter, continuing from A to H above. The rule is the same for e
 | K | **Add ISIC 2019 to training:** about 8,500 cancers, 12,900 nevi | Far more cancers | Large download; dermoscopy, a different kind of image | Uncertain: may not carry over to ordinary photos |
 | L | **Self-supervised pretraining on our own images:** learn general skin features from all our photos without labels, then train cancer / not cancer. No outside weights | Getting more from the images we have | New training code; a few GPU hours | A real gain is plausible; the standard remedy for a small labelled set |
 | Q | **More biopsy-confirmed tumour photos from new sources** (clinical, not dermoscopy) | The outside gap: the only lever that has moved DDI | Finding and checking sources | The most likely to help outside, if sources exist |
-| P | **Pretrained (ImageNet) weights** | The outside gap | Breaks the from-scratch rule: a team decision first | Large, by everything published |
+| P | **Pretrained (ImageNet) weights** | The outside gap | About 3.5 hours for two ResNet-18 models (ImageNet start and random start). Run as a reference comparison only, never a checkpoint (team decision, 14 Nov) | Large, by everything published |
 
 Counts for SCIN and ISIC 2019 are from memory and must be confirmed at download. Data details are in [DATA_PLAN.md](DATA_PLAN.md).
 
-**Order (14 Nov 2026):** N and M are done, both discarded (table above). Q is running (MILK10k, section 18), then L (widened to unlabelled photos already on disk). P only if the team and the supervisor change the from-scratch rule. K last, as a with-and-without experiment. Reasons are in [DECISIONS.md](../DECISIONS.md), section 16.
+**Order (14 Nov 2026):** N and M are done, both discarded (table above). Q is running (MILK10k, section 18), then L (widened to unlabelled photos already on disk), then P as a reference comparison only: ResNet-18 from ImageNet weights and from random weights, never a checkpoint. K only if Q becomes a checkpoint with a gain outside. From Q on, step 1 needs a supported gain on the MIDAS validation part. Reasons are in [DECISIONS.md](../DECISIONS.md), sections 16 and 19.
 
 **Later stages, not ideas for this one:** which type of cancer it is, and whether darker skin needs its own model or one combined model.
 

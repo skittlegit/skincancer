@@ -25,8 +25,8 @@ Rules for each idea are written in [DECISIONS.md](../DECISIONS.md) before it is 
 | M | Wider network (four times the parameters) | 14 Nov | Discarded |
 | Q | MILK10k's biopsied clinical photos added (five new centres) | 14 Nov | Running |
 | L | Self-supervised pretraining on our own and other unlabelled photos | 14 Nov | Queued after Q |
-| P | Pretrained (ImageNet) weights | – | Not started: breaks the from-scratch rule, needs a team decision |
-| K | ISIC 2019 dermoscopy images added | – | Not started |
+| P | Pretrained (ImageNet) weights | 14 Nov | Queued after L, as a reference comparison only (never a checkpoint) |
+| K | ISIC 2019 dermoscopy images added | – | Only if Q becomes a checkpoint with a gain outside |
 
 Letters were given when an idea was first listed, not when it was run, which is why I comes after O and K is last.
 
@@ -157,12 +157,12 @@ Letters were given when an idea was first listed, not when it was run, which is 
 ### P. Pretrained weights
 
 - **What:** start from ImageNet weights and train every layer. The largest known lever for new hospitals.
-- **Status:** listed on 14 Nov after the supervisor called the outside scores poor (DECISIONS.md, section 16). Not run: it breaks the from-scratch rule (section 1), and changing that is for the team and the supervisor.
+- **Status:** listed on 14 Nov after the supervisor called the outside scores poor (DECISIONS.md, section 16). The team decided the same day (section 19) to run it as a reference comparison only: the from-scratch rule stays for every checkpoint, and P measures what the rule costs. Two models on checkpoint 3's recipe: torchvision's ResNet-18 from ImageNet weights (`resnet18-imagenet`) and the same network from random weights (`resnet18-scratch`), so the gain can be put on the weights and not on the network. Both are scored once on every set. Queued after L.
 
 ### K. ISIC 2019 in training
 
 - **What:** add about 8,500 cancers and 12,900 nevi from ISIC 2019. These are dermoscopy images, a different kind of picture from ordinary photos.
-- **Status:** not started. Large download; uncertain whether it carries over to clinical photos.
+- **Status:** not started. Large download; uncertain whether it carries over to clinical photos. Team decision (14 Nov, DECISIONS.md section 19): tried only if Q becomes a checkpoint with a supported gain on MIDAS test or DDI; dropped otherwise.
 
 ## Keeping this file up to date
 

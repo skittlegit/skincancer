@@ -17,3 +17,4 @@ pretrain:
   weight_decay: 1.0e-4
   temperature: 0.2
   proj_dim: 128
+  num_workers: 6               # fewer than training: 8 ran out of Windows shared memory on 14 Nov

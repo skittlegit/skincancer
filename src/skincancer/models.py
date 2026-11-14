@@ -1,5 +1,9 @@
 """SkinNet: our own convolutional network, trained from random weights. No pretrained
-weights are used anywhere in the classifier."""
+weights are used anywhere in the SkinNet classifier.
+
+The one exception is the reference comparison of idea P (DECISIONS.md, section 19): a
+torchvision ResNet-18, from ImageNet weights and from random weights, chosen with
+`model.arch: resnet18` and `model.weights: imagenet`. It is never a checkpoint."""
 from __future__ import annotations
 
 import torch.nn as nn
@@ -60,12 +64,36 @@ class SkinNet(nn.Module):
         return x.mean((2, 3))
 
 
-class Classifier(nn.Module):
-    """SkinNet + dropout + one linear layer."""
+class ResNet18(nn.Module):
+    """torchvision ResNet-18 without its ImageNet classifier: 512-d embedding. Only for the
+    idea P reference comparison. imagenet=True loads torchvision's IMAGENET1K_V1 weights."""
 
-    def __init__(self, num_classes: int, width: int = 32, depths=(2, 2, 2, 2), drop: float = 0.3):
+    def __init__(self, imagenet: bool = False):
         super().__init__()
-        self.backbone = SkinNet(width, depths)
+        from torchvision.models import ResNet18_Weights, resnet18
+        net = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1 if imagenet else None)
+        net.fc = nn.Identity()
+        self.net = net
+        self.num_features = 512
+
+    def forward(self, x):
+        return self.net(x)
+
+
+class Classifier(nn.Module):
+    """Backbone (SkinNet unless arch says otherwise) + dropout + one linear layer."""
+
+    def __init__(self, num_classes: int, width: int = 32, depths=(2, 2, 2, 2), drop: float = 0.3,
+                 arch: str = "skinnet", imagenet: bool = False):
+        super().__init__()
+        if arch == "skinnet":
+            if imagenet:
+                raise ValueError("SkinNet has no ImageNet weights")
+            self.backbone = SkinNet(width, depths)
+        elif arch == "resnet18":
+            self.backbone = ResNet18(imagenet)
+        else:
+            raise ValueError(f"unknown model.arch {arch!r}")
         self.dim = self.backbone.num_features
         self.head = nn.Sequential(nn.Dropout(drop), nn.Linear(self.dim, num_classes))
 
@@ -77,4 +105,6 @@ class Classifier(nn.Module):
 
 def target_layer(model: Classifier) -> nn.Module:
     """Last residual block, for Grad-CAM."""
+    if isinstance(model.backbone, ResNet18):
+        return model.backbone.net.layer4[-1]
     return model.backbone.stages[-1][-1]

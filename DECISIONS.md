@@ -342,7 +342,7 @@ The gain on `val` is supported and `midas_val` is not lower, so by rule 1 N goes
 
 The gain condition is met on `test`; the no-loss condition fails on DDI by a wide margin, not narrowly, so this is not a case for the team and N is discarded. Its config and runs are deleted. The reading: the second half of the longer schedule taught the network more about our two home datasets (the largest gain at home in the project) and less that holds on a hospital it has never seen. DDI falls below checkpoint 2 (0.629) and the baseline (0.65). It also answers the question from section 16: more training on the same photos widens the gap to other hospitals, it does not close it.
 
-**A suggestion for the team, not adopted.** Twice now (ideas I and N) a gain on `val` alone has come with a loss outside: `val` is two datasets we train on, and it rewards learning them better. Step 1 could require a supported gain on `midas_val` and not only on `val`, which would have stopped N before it spent a look at the test sets. Changing the rule is the team's call, so ideas Q and L are still judged as written.
+**A suggestion for the team (adopted the same day, section 19).** Twice now (ideas I and N) a gain on `val` alone has come with a loss outside: `val` is two datasets we train on, and it rewards learning them better. Step 1 could require a supported gain on `midas_val` and not only on `val`, which would have stopped N before it spent a look at the test sets. Changing the rule is the team's call.
 
 **Renamed 13 Nov 2026.** The kept models are now named after their checkpoint: `skinnet` (baseline), `skinnet-c1`, `skinnet-c2`, `skinnet-c3`. Configs, run folders, result folders, the test-set ledger and every mention in the documents, including earlier sections of this file, use the new names. Only names changed: no model was retrained or re-scored. The old names were `skinnet_src` (now `skinnet-c1`), `skinnet_src_tta_ens` (`skinnet-c2`) and `skinnet_midas_full_tta_ens` (`skinnet-c3`); git history before this date uses them.
 
@@ -387,7 +387,7 @@ Written before the pretraining was run.
 - **Training:** `configs/skinnet-idea-l.yaml`, checkpoint 3's recipe with `model.init` pointing at the pretrained backbone. Same learning rate, schedule, epochs, sampling and test-time flips, so a difference can be traced to the starting weights.
 - Weights and logs stay in the model's run folder: `runs/skinnet-idea-l/pretrain/` holds the pretraining, `s0`–`s2` and `avg` the trained model, as for every model.
 
-**How it is judged:** as ideas M and N (section 14), by paired comparison with checkpoint 3. Step 1 on `midas_val` and `val`; only if it passes, scored once on `test`, `midas_test`, DDI and DermaCon-IN; checkpoint 4 (or the next free number) if the gain is supported on at least one of `test`, `midas_test` or DDI and none is lower by a supported amount. If N or M has become checkpoint 4 by then, L is still judged against checkpoint 3 as written here, and whether to combine the two is a separate idea.
+**How it is judged:** as ideas M and N (section 14), by paired comparison with checkpoint 3. Step 1 on `midas_val` and `val`; only if it passes, scored once on `test`, `midas_test`, DDI and DermaCon-IN; checkpoint 4 (or the next free number) if the gain is supported on at least one of `test`, `midas_test` or DDI and none is lower by a supported amount. If N or M has become checkpoint 4 by then, L is still judged against checkpoint 3 as written here, and whether to combine the two is a separate idea. (Neither did. Step 1 was tightened on 14 Nov before L was trained: it now needs a supported gain on `midas_val`. See section 19.)
 
 **Expectation recorded now.** Self-supervised pretraining usually helps most when the unlabelled set is much larger than the labelled one. Here it is only about a third larger, so a small gain is the likely outcome. Its value for the outside sets is that it learns from SCIN's phone photos and Derm7pt without their labels steering it, which idea I showed can hurt.
 
@@ -410,6 +410,40 @@ Written after the photos were downloaded and before idea Q was trained. No model
 
 **A risk named now.** Cancers are about 70% of its photos and half of all its photos are BCC. Balanced drawing inside each dataset (checkpoint 1) removes the reward for recognising MILK10k's kind of photo, but the network may still lean towards BCC-like features.
 
-**Idea Q** (`configs/skinnet-idea-q.yaml`): checkpoint 3's recipe with MILK10k added. Three seeds, 60 epochs, test-time flips, seed average. Judged exactly as ideas M, N and L (section 14), by paired comparison with checkpoint 3: step 1 on `midas_val` and `val`; only if it passes, scored once on `test`, `midas_test`, DDI and DermaCon-IN; checkpoint 4 (or the next number) if the gain is supported on at least one of `test`, `midas_test` or DDI and none is lower by a supported amount.
+**Idea Q** (`configs/skinnet-idea-q.yaml`): checkpoint 3's recipe with MILK10k added. Three seeds, 60 epochs, test-time flips, seed average. Judged exactly as ideas M, N and L (section 14), by paired comparison with checkpoint 3: step 1 on `midas_val` and `val`; only if it passes, scored once on `test`, `midas_test`, DDI and DermaCon-IN; checkpoint 4 (or the next number) if the gain is supported on at least one of `test`, `midas_test` or DDI and none is lower by a supported amount. (Step 1 was tightened on 14 Nov, before Q's result was known: it now needs a supported gain on `midas_val`. See section 19.)
 
 **Order changed.** Q runs before L, after M (section 16 had L first). Q takes about an hour and a half, L about five and a half, and Q is the more likely of the two to move the outside scores.
+
+## 19. Team decisions after ideas M and N (14 Nov 2026)
+
+Decided by the team on 14 Nov, after ideas M and N (section 14) and before idea Q's result was known.
+
+**1. Step 1 now needs a gain outside.** From idea Q on, an idea passes step 1 only if the AUC on `midas_val` is higher by a supported amount and the within-source AUC on `val` is not lower by a supported amount. A gain on `val` alone no longer passes. Steps 2 and 3 are unchanged.
+
+- Why: the outside scores are the model's main weakness. Twice (ideas I and N) a gain on `val` came with a loss outside, and N spent a look at DDI, the only source no model has trained or been chosen on, before failing there.
+- The cost, accepted: `midas_val` has 414 images, so an outside gain smaller than about 0.04 cannot be shown as supported and will be discarded with the rest.
+- It applies to ideas Q and L, and to every idea after them.
+
+**2. Idea P runs as a reference comparison, not as a candidate.** The from-scratch rule (section 1) stays for every checkpoint. P measures what that rule costs, so the team and the supervisor can decide with numbers in hand.
+
+- SkinNet has no ImageNet weights, so P uses torchvision's ResNet-18 (11.2 million parameters). Two models, so a difference can be put on the weights and not on the network:
+  - `resnet18-imagenet` (`configs/resnet18-imagenet.yaml`): starts from torchvision's ImageNet weights (IMAGENET1K_V1), every layer trained.
+  - `resnet18-scratch` (`configs/resnet18-scratch.yaml`): the same network from random weights.
+- Both use checkpoint 3's recipe unchanged (MIDAS training share, balanced drawing inside each dataset, AdamW at 1e-3 with warm-up and cosine decay, 60 epochs, test-time flips, three seeds and their average), so the only difference from checkpoint 3 is the network, and between the two only the starting weights. The learning rate is not tuned for the ImageNet start; if it is lower than expected, that is the first thing to check.
+- Both are scored once on every set, test sets included, whatever their validation scores: they are measurements, not candidates. They are reported next to checkpoint 3 with the paired comparison and are never renamed to a checkpoint. They are named after their network, not `skinnet-`, because they are not SkinNet.
+- The images are normalised with ImageNet's mean and spread already (`data/dataset.py`), so nothing else changes.
+- They run after idea L.
+
+**3. Idea K only if Q helps.** ISIC 2019 is downloaded and tried only if idea Q becomes a checkpoint with a supported gain on `midas_test` or DDI. A gain at home alone does not count. If Q fails, K is dropped.
+
+**Outcome of idea Q, step 1 (14 Nov 2026): fails step 1 as tightened in section 19; held, not deleted, until the team confirms the rule.** 18,022 training images (4,908 from MILK10k). The seeds ended at within-source AUC on `val` 0.876, 0.894, 0.881. Paired comparison with checkpoint 3, both after test-time flips and the seed average:
+
+| Set | Score | Checkpoint 3 | Idea Q | Difference [95% interval] | Supported |
+| --- | --- | --- | --- | --- | --- |
+| `midas_val` (outside validation) | AUC | 0.793 | 0.818 | +0.026 [−0.005, +0.059] | no |
+| `val` | AUC | 0.898 | 0.900 | +0.002 [−0.007, +0.010] | no |
+| `val` | Within-source AUC | 0.882 | 0.905 | +0.024 [+0.009, +0.039] | yes |
+
+- Under section 19 (a supported gain on `midas_val` required) Q fails: the gain there is +0.026 and its interval reaches below zero. This is the cost section 19 named: an outside gain smaller than about 0.04 cannot be shown on 414 images.
+- Under the rule it replaced (section 14) Q would pass on `val` and go on to the test sets.
+- It is the largest gain on `midas_val` since checkpoint 3 and the only idea after it that rose on both validation sets at once. The team's answer on the rule was read as "require the outside gain"; because the reading matters here, Q's runs are kept and nothing is scored on the test sets until the team confirms. Not scored on any test set.

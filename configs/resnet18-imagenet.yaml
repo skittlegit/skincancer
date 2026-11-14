@@ -1,0 +1,8 @@
+# Idea P, reference comparison (DECISIONS.md, section 19): checkpoint 3's recipe on a torchvision
+# ResNet-18 starting from ImageNet weights. Never a checkpoint: it measures what the from-scratch
+# rule costs. Compare with resnet18-scratch to separate the weights from the network.
+extends: skinnet-c3.yaml
+name: resnet18-imagenet
+model:
+  arch: resnet18
+  weights: imagenet
