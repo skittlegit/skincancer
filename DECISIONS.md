@@ -424,6 +424,12 @@ Decided by the team on 14 Nov, after ideas M and N (section 14) and before idea 
 - The cost, accepted: `midas_val` has 414 images, so an outside gain smaller than about 0.04 cannot be shown as supported and will be discarded with the rest.
 - It applies to ideas Q and L, and to every idea after them.
 
+**1, corrected the same day: a gain on everything.** The team's answer had been read as above; the team corrected it after Q's validation result was known, and before any test set was scored for Q. The rule meant is a gain on every set, not a supported gain on one:
+
+- **Step 1:** higher on both `midas_val` (AUC) and `val` (within-source AUC), and neither lower by a supported amount. A gain on one set alone does not pass, so ideas I and N would still have failed (`midas_val` −0.064 and +0.002).
+- **Step 3 (checkpoint):** higher on every test set, `test`, `midas_test` and DDI, at least one of them by a supported amount, and none lower by a supported amount. DermaCon-IN tumours (65 images) is reported and must not be lower by a supported amount, but is too small to need a rise.
+- This replaces the version above and section 14's steps 1 and 3 for Q, L and every idea after them.
+
 **2. Idea P runs as a reference comparison, not as a candidate.** The from-scratch rule (section 1) stays for every checkpoint. P measures what that rule costs, so the team and the supervisor can decide with numbers in hand.
 
 - SkinNet has no ImageNet weights, so P uses torchvision's ResNet-18 (11.2 million parameters). Two models, so a difference can be put on the weights and not on the network:
@@ -436,7 +442,7 @@ Decided by the team on 14 Nov, after ideas M and N (section 14) and before idea 
 
 **3. Idea K only if Q helps.** ISIC 2019 is downloaded and tried only if idea Q becomes a checkpoint with a supported gain on `midas_test` or DDI. A gain at home alone does not count. If Q fails, K is dropped.
 
-**Outcome of idea Q, step 1 (14 Nov 2026): fails step 1 as tightened in section 19; held, not deleted, until the team confirms the rule.** 18,022 training images (4,908 from MILK10k). The seeds ended at within-source AUC on `val` 0.876, 0.894, 0.881. Paired comparison with checkpoint 3, both after test-time flips and the seed average:
+**Outcome of idea Q, step 1 (14 Nov 2026): passes under the corrected rule (section 19, "a gain on everything"): higher on both validation sets. It would have failed the first reading of section 19.** 18,022 training images (4,908 from MILK10k). The seeds ended at within-source AUC on `val` 0.876, 0.894, 0.881. Paired comparison with checkpoint 3, both after test-time flips and the seed average:
 
 | Set | Score | Checkpoint 3 | Idea Q | Difference [95% interval] | Supported |
 | --- | --- | --- | --- | --- | --- |
@@ -444,6 +450,19 @@ Decided by the team on 14 Nov, after ideas M and N (section 14) and before idea 
 | `val` | AUC | 0.898 | 0.900 | +0.002 [−0.007, +0.010] | no |
 | `val` | Within-source AUC | 0.882 | 0.905 | +0.024 [+0.009, +0.039] | yes |
 
-- Under section 19 (a supported gain on `midas_val` required) Q fails: the gain there is +0.026 and its interval reaches below zero. This is the cost section 19 named: an outside gain smaller than about 0.04 cannot be shown on 414 images.
-- Under the rule it replaced (section 14) Q would pass on `val` and go on to the test sets.
-- It is the largest gain on `midas_val` since checkpoint 3 and the only idea after it that rose on both validation sets at once. The team's answer on the rule was read as "require the outside gain"; because the reading matters here, Q's runs are kept and nothing is scored on the test sets until the team confirms. Not scored on any test set.
+- Under the first reading of section 19 (a supported gain on `midas_val`) Q would have failed: the gain there is +0.026 and its interval reaches below zero. Under the corrected rule it passes: it is higher on both validation sets, and it is the only idea since checkpoint 3 to rise on both at once.
+- Q was then scored once on the test sets.
+
+**Outcome of idea Q, step 3 (14 Nov 2026): narrowly misses "higher on every test set" (DDI −0.007, not supported); reported, the team decides.** Scored once on the test-only sets (ledger, 14 Nov):
+
+| Set | Score | Checkpoint 3 | Idea Q | Difference [95% interval] | Supported |
+| --- | --- | --- | --- | --- | --- |
+| `test` | AUC | 0.898 | 0.903 | +0.005 [−0.003, +0.013] | no |
+| `test` | Within-source AUC | 0.876 | 0.907 | +0.031 [+0.014, +0.052] | yes |
+| `midas_test` | AUC | 0.698 | 0.750 | +0.052 [+0.004, +0.098] | yes |
+| DDI | AUC | 0.657 | 0.650 | −0.007 [−0.034, +0.021] | no |
+| DermaCon-IN tumours | AUC | 0.841 | 0.818 | −0.023 [−0.088, +0.030] | no |
+
+- Supported gains on MIDAS test (the largest outside gain since checkpoint 3) and on our own test split; nothing lower by a supported amount anywhere.
+- DDI is flat: 0.007 lower, well inside its interval. Under section 19's corrected step 3 (higher on every test set) that misses; under section 18's rule as first written (a supported gain on one, no supported loss) Q would be checkpoint 4.
+- Q's runs are kept and not renamed until the team decides.
