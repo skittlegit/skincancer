@@ -349,7 +349,7 @@ def build(name: str, cfg: dict, check_duplicates: bool = True) -> pd.DataFrame:
     df.loc[df["label_binary"].isna(), "exclude_reason"] = "no_cancer_label"
     if "in_subsample" in df:
         df.loc[df["exclude_reason"].isna() & ~df.pop("in_subsample"), "exclude_reason"] = "not_in_subsample"
-    df.loc[~df["path"].map(lambda p: (root / p).exists()), "exclude_reason"] = "missing_image"
+    df.loc[df["exclude_reason"].isna() & ~df["path"].map(lambda p: (root / p).exists()), "exclude_reason"] = "missing_image"
     keep = df["exclude_reason"].isna()
     if check_duplicates:
         checked = drop_eval_duplicates(df[keep].reset_index(drop=True), pd.read_csv(cfg["manifest"], low_memory=False),
