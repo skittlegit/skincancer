@@ -1,0 +1,19 @@
+# Idea L (DECISIONS.md, section 17): checkpoint 3's recipe, but SkinNet starts from our own
+# self-supervised weights (SimCLR on unlabelled photos we may train on) instead of random ones.
+#   python -m skincancer.pretrain --config configs/skinnet-idea-l.yaml   # once, before the seeds
+extends: skinnet-c3.yaml
+name: skinnet-idea-l
+model:
+  init: runs/skinnet-idea-l/pretrain/backbone.pt
+pretrain:
+  seed: 0                      # one pretraining, shared by the three fine-tuning seeds
+  splits: [train, midas_train] # manifest splits; evaluation splits are refused
+  extra: [derm7pt, scin]       # data/extra/ sets (near-duplicates of evaluation images already dropped)
+  img_size: 224
+  epochs: 200
+  warmup_epochs: 10
+  batch_size: 256              # photos per step (two views each)
+  lr: 1.0e-3                   # AdamW, cosine to zero
+  weight_decay: 1.0e-4
+  temperature: 0.2
+  proj_dim: 128

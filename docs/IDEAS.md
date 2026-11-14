@@ -23,7 +23,7 @@ Rules for each idea are written in [DECISIONS.md](../DECISIONS.md) before it is 
 | I | SCIN photos added as not cancer | 13 Nov | Discarded |
 | N | Longer schedule (120 epochs) | 14 Nov | Running |
 | M | Wider network (four times the parameters) | 14 Nov | Queued after N |
-| L | Self-supervised pretraining on our own and other unlabelled photos | – | Not started |
+| L | Self-supervised pretraining on our own and other unlabelled photos | 14 Nov | Queued after M |
 | Q | More biopsy-confirmed tumour photos from new sources | – | Not started: needs a source |
 | P | Pretrained (ImageNet) weights | – | Not started: breaks the from-scratch rule, needs a team decision |
 | K | ISIC 2019 dermoscopy images added | – | Not started |
@@ -142,7 +142,7 @@ Letters were given when an idea was first listed, not when it was run, which is 
 ### L. Self-supervised pretraining on our own and other unlabelled photos
 
 - **What:** learn general skin features without labels, then train cancer / not cancer. Widened on 14 Nov (DECISIONS.md, section 16): besides our training photos, also the unlabelled photos on disk that no evaluation set uses (SCIN, Derm7pt clinical). Never any validation or test image. No outside weights.
-- **Status:** not started. Needs new training code and a few GPU hours.
+- **Status:** specified in DECISIONS.md, section 17: SimCLR for 200 epochs on about 17,000 photos (`src/skincancer/pretrain.py`), then checkpoint 3's recipe from those weights (`configs/skinnet-idea-l.yaml`). Queued to start after M (14 Nov).
 
 ### Q. More biopsy-confirmed tumour photos from new sources
 

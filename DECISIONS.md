@@ -341,3 +341,18 @@ Written before any of them was started.
 **Order.** N and M first (section 14), then L, then Q. P only if the rule is changed.
 
 **Resumed 14 Nov 2026.** N and M were restarted from seed 0, N first, M after it. They run with `scripts/run_idea.sh`, new today: it trains the seeds, averages them and compares with checkpoint 3 on `val` and `midas_val` only, so no test set is scored before step 1 is passed. The existing `scripts/run.sh` scores the test-only sets and is for a model that has passed step 1.
+
+## 17. Idea L: self-supervised pretraining on our own photos (14 Nov 2026)
+
+Written before the pretraining was run.
+
+**What.** SkinNet first learns from photos without their labels, then is trained on cancer / not cancer exactly as checkpoint 3 was. The only change from checkpoint 3 is where the weights start: from this pretraining instead of at random. No outside weights are used, so section 1 still holds.
+
+- **Pretraining** (`python -m skincancer.pretrain --config configs/skinnet-idea-l.yaml`): SimCLR. Two random views of each photo (crop, flips, rotations, brightness, contrast and saturation changes, blur; no hue change, as in training) pass through SkinNet and a small projection head; the loss pulls the two views of a photo together and pushes the other photos in the batch apart. 200 epochs, 256 photos per step, AdamW at 1e-3 with a 10-epoch warm-up and cosine decay, temperature 0.2. One pretraining (seed 0), shared by the three training seeds. The weights after the last epoch are used; nothing is chosen on a validation set.
+- **Photos used:** `train` and `midas_train` of the manifest (13,114) and the extra sets on disk, Derm7pt clinical (958) and SCIN (2,907): about 17,000. Their labels are not read. The extra sets already exclude near-duplicates of every validation and test image (`data/extra.py`). The code refuses any evaluation split.
+- **Training:** `configs/skinnet-idea-l.yaml`, checkpoint 3's recipe with `model.init` pointing at the pretrained backbone. Same learning rate, schedule, epochs, sampling and test-time flips, so a difference can be traced to the starting weights.
+- Weights and logs stay in the model's run folder: `runs/skinnet-idea-l/pretrain/` holds the pretraining, `s0`–`s2` and `avg` the trained model, as for every model.
+
+**How it is judged:** as ideas M and N (section 14), by paired comparison with checkpoint 3. Step 1 on `midas_val` and `val`; only if it passes, scored once on `test`, `midas_test`, DDI and DermaCon-IN; checkpoint 4 (or the next free number) if the gain is supported on at least one of `test`, `midas_test` or DDI and none is lower by a supported amount. If N or M has become checkpoint 4 by then, L is still judged against checkpoint 3 as written here, and whether to combine the two is a separate idea.
+
+**Expectation recorded now.** Self-supervised pretraining usually helps most when the unlabelled set is much larger than the labelled one. Here it is only about a third larger, so a small gain is the likely outcome. Its value for the outside sets is that it learns from SCIN's phone photos and Derm7pt without their labels steering it, which idea I showed can hurt.

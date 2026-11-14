@@ -73,6 +73,7 @@ configs/skinnet.yaml         the network and training recipe
 configs/data.yaml            dataset paths and split settings
 src/skincancer/models.py     SkinNet
 src/skincancer/train.py      training loop
+src/skincancer/pretrain.py   idea L: self-supervised (SimCLR) pretraining on unlabelled photos
 src/skincancer/predict.py    scoring a finished run; the test-set ledger
 src/skincancer/evaluate.py   metrics with confidence intervals
 src/skincancer/data/         label map, manifest, dedup, splits, dataset and augmentation

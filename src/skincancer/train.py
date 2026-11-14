@@ -92,7 +92,12 @@ def train(cfg: dict) -> dict:
     select_metric = t.get("select_metric", "auc")
     val_source = val_df["dataset"].to_numpy()
 
-    model = runs.build_model(cfg).to(dev)
+    model = runs.build_model(cfg)
+    init = cfg["model"].get("init")
+    if init:   # idea L: start from our own self-supervised SkinNet weights (skincancer.pretrain), never outside ones
+        model.backbone.load_state_dict(torch.load(init, map_location="cpu"))
+        print(f"[{cfg['name']} s{cfg['seed']}] backbone initialised from {init}")
+    model = model.to(dev)
     n_params = sum(p.numel() for p in model.parameters())
     print(f"[{cfg['name']} s{cfg['seed']}] train={len(train_df)} val={len(val_df)} "
           f"params={n_params / 1e6:.2f}M device={dev}")
