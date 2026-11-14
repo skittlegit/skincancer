@@ -14,10 +14,44 @@ Scores are the mean of three seeds. Details and confidence intervals are in [RES
 | Checkpoint 1 | `skinnet-c1` | `configs/skinnet-c1.yaml` |
 | Checkpoint 2 | `skinnet-c2` | `skinnet-c1`'s three seeds, predicting with test-time flips, and their average |
 | Checkpoint 3 | `skinnet-c3` | `configs/skinnet-c3.yaml` |
+| Checkpoint 4 | `skinnet-c4` | `configs/skinnet-c4.yaml` (was idea Q, `skinnet-idea-q`) |
 
-One name per model, the same for its config, run folder and result folder. A run folder `runs/<name>/` holds the seeds (`s0`, `s1`, `s2`) and their average (`avg`); `results/<name>/metrics.csv` is the model's full score table. An idea being tested is `skinnet-idea-<letter>`; if kept it is renamed to the next checkpoint, `skinnet-c4`, and if discarded it is deleted. The rule is in [DECISIONS.md](../DECISIONS.md), section 15.
+One name per model, the same for its config, run folder and result folder. A run folder `runs/<name>/` holds the seeds (`s0`, `s1`, `s2`) and their average (`avg`); `results/<name>/metrics.csv` is the model's full score table. An idea being tested is `skinnet-idea-<letter>`; if kept it is renamed to the next checkpoint, `skinnet-c5`, and if discarded it is deleted. The rule is in [DECISIONS.md](../DECISIONS.md), section 15.
 
-## Checkpoint 3 (13 Nov 2026): the current model
+## Checkpoint 4 (14 Nov 2026): the current model
+
+Checkpoint 3's recipe with 4,908 biopsy-confirmed clinical close-ups from MILK10k added to training (idea Q): cancers and the benign growths that resemble them, from five centres not otherwise in the data (Vienna, Ankara, Queensland, Memorial Sloan Kettering, Skopje). Predicts the same way (test-time flips, three-seed average).
+
+| | |
+| --- | --- |
+| Training data | 18,022 images: the 13,114 of checkpoint 3 plus 4,908 from MILK10k (3,620 cancer, 1,288 not cancer; training only) |
+| Training | 60 epochs, early stopping off, about 30 minutes per seed |
+| Config | `configs/skinnet-c4.yaml` |
+| Run folder | `runs/skinnet-c4`: seeds in `s0`, `s1`, `s2`, their average in `avg` |
+| Weights | `checkpoints/checkpoint-4/` (local, git-ignored) |
+| Git tag | `checkpoint-4` |
+
+| Score | Checkpoint 3 | Checkpoint 4 | Paired difference [95% interval] |
+| --- | --- | --- | --- |
+| MIDAS test part (414 images): AUC | 0.698 | **0.750** | +0.052 [+0.004, +0.098] |
+| DDI (outside, never seen): AUC | 0.657 | 0.650 | −0.007 [−0.034, +0.021] |
+| DermaCon-IN tumours (outside): AUC | 0.841 | 0.818 | −0.023 [−0.088, +0.030] |
+| Our test split: AUC | 0.898 | 0.903 | +0.005 [−0.003, +0.013] |
+| Our test split: within-source AUC | 0.876 | **0.907** | +0.031 [+0.014, +0.052] |
+| Our test split: AUC, cancers vs benign lookalikes | 0.775 | **0.831** | |
+| Our test split: cancers missed / false alarms | 10% / 34% | 9% / 33% | |
+| MIDAS test: cancers missed / false alarms | 33% / 41% | **29% / 29%** | |
+| DDI: cancers missed / false alarms | 16% / 67% | 14% / 69% | |
+| DermaCon-IN everyday conditions called cancer | 28% | 31% | |
+| Actinic keratoses called cancer (never trained on) | 80% | 88% | |
+
+**Where it stands.** The best model so far on the hard question, cancer against a benign growth: up 0.056 at home on lookalikes and 0.052 on MIDAS test, with false alarms on MIDAS test down from 41% to 29%. On DDI it is flat, and not because of skin tone: by DDI's skin-tone groups it is 0.676 → 0.645 on I–II, 0.679 → 0.713 on III–IV and 0.625 → 0.607 on V–VI, about 200 images each, all within noise. Why MILK10k helps on MIDAS and not on DDI is open. It calls actinic keratoses (pre-cancers, never trained on) cancer more often, which fits its training: half of MILK10k is basal cell carcinoma.
+
+**How it became a checkpoint.** The rule written before its test scores (DECISIONS.md, section 19) asked for a rise on every test set. It rose on our test split and MIDAS test, both supported, and was 0.007 lower on DDI, well inside the noise; nothing was lower by a supported amount. The team accepted it on 14 Nov, after seeing the result, as a narrow miss of the kind section 14 leaves to the team. Recorded here as such.
+
+**From now on** every new idea is compared with checkpoint 4. Idea L, specified against checkpoint 3 before checkpoint 4 existed, is still judged against checkpoint 3 as written.
+
+## Checkpoint 3 (13 Nov 2026)
 
 Checkpoint 1's recipe trained again with photos from a second kind of source: 552 biopsy-confirmed hospital photos from MIDAS. Predicts the same way as checkpoint 2 (test-time flips, three-seed average).
 

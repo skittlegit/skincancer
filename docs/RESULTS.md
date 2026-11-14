@@ -247,3 +247,28 @@ M failed step 1 and was not scored on any test set. N passed and was scored once
 - Width is not the limit. Four times the parameters on the same 13,000 images learns nothing more that carries to other hospitals.
 - Length is a limit at home only. N's seeds did best at epochs 80 to 107, long after checkpoint 3's schedule had ended, and our own test split rose from 0.898 to 0.930. On DDI, a hospital no model here has seen, it fell from 0.657 to 0.592. The extra epochs taught the network our two home datasets better, and part of what it learned does not hold anywhere else.
 - So the supervisor's point is right that 60 epochs was not the end of training, but more of it on the same photos widens the gap to other hospitals. The gap needs different photos or different starting weights (ideas Q, L and P), not more of the same training.
+
+## Idea Q: MILK10k photos in training, checkpoint 4 (14 Nov 2026)
+
+4,908 biopsy-confirmed clinical close-ups from MILK10k (five centres: Vienna, Ankara, Queensland, Memorial Sloan Kettering, Skopje) added to checkpoint 3's training images: 3,620 cancers (2,520 BCC, 652 SCC, 448 melanoma) and 1,288 benign growths. Three seeds, test-time flips, seed average, paired comparison with checkpoint 3.
+
+| Set | Score | Checkpoint 3 | Checkpoint 4 (idea Q) | Difference [95% interval] | Supported |
+| --- | --- | --- | --- | --- | --- |
+| `midas_val` (outside validation) | AUC | 0.793 | 0.818 | +0.026 [−0.005, +0.059] | no |
+| `val` | Within-source AUC | 0.882 | 0.905 | +0.024 [+0.009, +0.039] | yes |
+| `test` | AUC | 0.898 | 0.903 | +0.005 [−0.003, +0.013] | no |
+| `test` | Within-source AUC | 0.876 | 0.907 | +0.031 [+0.014, +0.052] | yes |
+| `midas_test` | AUC | 0.698 | 0.750 | +0.052 [+0.004, +0.098] | yes |
+| DDI | AUC | 0.657 | 0.650 | −0.007 [−0.034, +0.021] | no |
+| DermaCon-IN tumours | AUC | 0.841 | 0.818 | −0.023 [−0.088, +0.030] | no |
+
+At the threshold fixed on validation: MIDAS test false alarms 41% → 29% and missed cancers 33% → 29%; at home, cancers against benign lookalikes 0.775 → 0.831.
+
+**Outcome: checkpoint 4, by a decision of the team.** The rule (DECISIONS.md, section 19) asked for a rise on every test set; DDI was 0.007 lower, inside the noise, and nothing was lower by a supported amount.
+
+**Reading.**
+
+- The first idea since checkpoint 3 to rise on both validation sets, and the largest gain yet on the hard question: cancer against a benign growth that looks like one. That is what MILK10k is made of.
+- It helps on MIDAS, a hospital it has not trained on more than before, so the gain is not just learning MILK10k's photos.
+- DDI is flat, and skin tone does not explain it. A first guess was that MILK10k's mostly lighter-skinned centres would not help on DDI's darker skin, but by DDI's skin-tone groups (about 200 images each) checkpoint 4 is 0.676 → 0.645 on Fitzpatrick I–II, 0.679 → 0.713 on III–IV and 0.625 → 0.607 on V–VI: lower on the lightest group too, and every change within noise. Why it helps on MIDAS and not on DDI is open. One difference that may matter: MIDAS's cancers are all BCC, SCC and melanoma, the three types MILK10k has, while 40 of DDI's 171 cancers are rarer types (32 mycosis fungoides, 6 Kaposi sarcoma). In training those appear only in Fitzpatrick17k (236 photos), and adding MILK10k makes them a smaller share of what the network sees. A guess, not tested.
+- It calls actinic keratoses (pre-cancers, never trained on) cancer more often (80% → 88%), in line with a training set that is half basal cell carcinoma.

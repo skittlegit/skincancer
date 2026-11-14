@@ -1,6 +1,6 @@
 """Paired comparison of two models on the same images.
 
-    python -m skincancer.compare --a skinnet-c3 --b skinnet-idea-q --splits val midas_val
+    python -m skincancer.compare --a skinnet-c3 --b skinnet-idea-l --splits val midas_val
     python -m skincancer.compare --a skinnet-c2 --b skinnet-c3 --splits test ddi_test midas_test
 
 Two separate confidence intervals overlap long before a difference stops being real, because

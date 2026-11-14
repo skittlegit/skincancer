@@ -23,7 +23,7 @@ Rules for each idea are written in [DECISIONS.md](../DECISIONS.md) before it is 
 | I | SCIN photos added as not cancer | 13 Nov | Discarded |
 | N | Longer schedule (120 epochs) | 14 Nov | Discarded: big gain at home, loss on DDI |
 | M | Wider network (four times the parameters) | 14 Nov | Discarded |
-| Q | MILK10k's biopsied clinical photos added (five new centres) | 14 Nov | Running |
+| Q | MILK10k's biopsied clinical photos added (five new centres) | 14 Nov | **Kept: checkpoint 4** (`skinnet-c4`) |
 | L | Self-supervised pretraining on our own and other unlabelled photos | 14 Nov | Queued after Q |
 | P | Pretrained (ImageNet) weights | 14 Nov | Queued after L, as a reference comparison only (never a checkpoint) |
 | K | ISIC 2019 dermoscopy images added | – | Only if Q becomes a checkpoint with a gain outside |
@@ -152,7 +152,10 @@ Letters were given when an idea was first listed, not when it was run, which is 
 
 - **What:** clinical photos (not dermoscopy) of cancers and benign lookalikes from hospitals not yet in training. Idea O is the only change that moved a score on a source never seen, and it did so with photos of this kind.
 - **Source found (14 Nov):** MILK10k (ISIC archive; CC BY-NC 4.0): clinical close-ups of 5,240 lesions from Vienna, Ankara, Queensland, Memorial Sloan Kettering and Skopje, 5,016 confirmed by histopathology. None of the centres is Stanford or in India, so DDI stays unseen.
-- **Status:** specified in DECISIONS.md, section 18 (`configs/skinnet-idea-q.yaml`, `data/extra/milk10k.csv`). Queued after M, before L.
+- **What was trained:** checkpoint 3's recipe with 4,908 MILK10k close-ups added (3,620 cancer, 1,288 not cancer), 18,022 training images in all (DECISIONS.md, section 18).
+- **Compared on:** validation, then test and outside sets, paired comparison with checkpoint 3.
+- **Result:** MIDAS validation 0.793 → 0.818 and our validation split 0.882 → 0.905 (within-source), both higher. Test sets: MIDAS test 0.698 → 0.750 and our test split 0.876 → 0.907 (within-source), both supported gains; cancers against benign lookalikes at home 0.775 → 0.831; DDI 0.657 → 0.650, flat.
+- **Outcome:** kept. **Checkpoint 4** (`skinnet-c4`, 14 Nov). The rule asked for a rise on every test set and DDI was 0.007 lower, inside the noise; the team accepted it. The first new data to help on a second outside source since checkpoint 3; flat on DDI in every skin-tone group.
 
 ### P. Pretrained weights
 
