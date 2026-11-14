@@ -370,6 +370,7 @@ Written after the photos were downloaded and before idea Q was trained. No model
 - Cancer: ISIC-DX says malignant and the most specific diagnosis maps to a cancer type under the label map (BCC, SCC including in situ and keratoacanthoma, melanoma including in situ). Not cancer: ISIC-DX says benign (nevi, seborrheic and lichen-planus-like keratoses, solar lentigines, dermatofibromas and others). Actinic keratoses (123, never trained on, as in the manifest) and indeterminate lesions are left out.
 - Training only, kept outside the manifest, like Derm7pt and SCIN, so every validation and test image stays the same. Photos that near-duplicate a validation or test image are dropped.
 - No patient ids are published, so photos are grouped by lesion.
+- **Built 14 Nov:** 4,908 photos may be trained on, 3,620 cancers (2,520 BCC, 652 SCC, 448 melanoma) and 1,288 not cancer. 332 were left out (actinic keratoses, indeterminate lesions, not biopsied, or a diagnosis outside the label map). None near-duplicates a validation or test image.
 
 **Why it may help where earlier data did not.** It is the hard distinction, cancers against the benign growths that resemble them, all biopsied, from five new centres and in large numbers (several times MIDAS's 552). Idea O showed photos of that kind from one new hospital moved DDI; idea I showed new photos without tumours do not.
 
