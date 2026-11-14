@@ -159,7 +159,7 @@ Each idea has a letter, continuing from A to H above. The rule is the same for e
 
 Counts for SCIN and ISIC 2019 are from memory and must be confirmed at download. Data details are in [DATA_PLAN.md](DATA_PLAN.md).
 
-**Order (14 Nov 2026):** N and M are running. Then L (widened to unlabelled photos already on disk), then Q. P only if the team and the supervisor change the from-scratch rule. K last, as a with-and-without experiment. Reasons are in [DECISIONS.md](../DECISIONS.md), section 16.
+**Order (14 Nov 2026):** N and M are running. Then Q (MILK10k, section 18), then L (widened to unlabelled photos already on disk). P only if the team and the supervisor change the from-scratch rule. K last, as a with-and-without experiment. Reasons are in [DECISIONS.md](../DECISIONS.md), section 16.
 
 **Later stages, not ideas for this one:** which type of cancer it is, and whether darker skin needs its own model or one combined model.
 

@@ -303,3 +303,26 @@ def test_pretrained_backbone_loads_into_the_classifier(tmp_path):
     clf.backbone.load_state_dict(torch.load(tmp_path / "backbone.pt"))
     for a, b in zip(ssl.backbone.state_dict().values(), clf.backbone.state_dict().values()):
         assert torch.equal(a, b)
+
+
+def test_milk10k_labels_follow_biopsy_and_label_map(tmp_path):
+    import json
+    from skincancer.data.extra import milk10k_rows
+
+    def rec(i, top, dx3, confirm="histopathology", kind="clinical: close-up"):
+        return {"isic_id": f"ISIC_{i}", "files": {"full": {"url": "x"}},
+                "metadata": {"acquisition": {"image_type": kind},
+                             "clinical": {"diagnosis_1": top, "diagnosis_3": dx3, "diagnosis_confirm_type": confirm,
+                                          "lesion_id": f"IL_{i}", "anatom_site_1": "Trunk"}}}
+    rows = [rec(1, "Malignant", "Basal cell carcinoma"), rec(2, "Benign", "Nevus"),
+            rec(3, "Indeterminate", "Solar or actinic keratosis"), rec(4, "Malignant", "Melanoma in situ"),
+            rec(5, "Benign", "Seborrheic keratosis", confirm="single contributor clinical assessment"),
+            rec(6, "Malignant", "Squamous cell carcinoma, Invasive", kind="dermoscopic")]
+    (tmp_path / "milk10k").mkdir()
+    (tmp_path / "milk10k" / "metadata.json").write_text(json.dumps(rows), encoding="utf-8")
+    df = milk10k_rows(tmp_path).set_index("image_id")
+    assert list(df.index) == [f"milk10k_ISIC_{i}" for i in (1, 2, 3, 4, 5)]   # dermoscopic photo left out
+    lab = df["label_cancer"]
+    assert lab["milk10k_ISIC_1"] == "cancer" and lab["milk10k_ISIC_4"] == "cancer"
+    assert lab["milk10k_ISIC_2"] == "not_cancer"
+    assert lab[["milk10k_ISIC_3", "milk10k_ISIC_5"]].isna().all()   # actinic keratosis; not biopsied

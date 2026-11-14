@@ -1,0 +1,6 @@
+# Idea Q (DECISIONS.md, section 18): checkpoint 3's recipe with MILK10k's biopsied clinical
+# close-ups added as training-only data (data/extra/milk10k.csv).
+extends: skinnet-c3.yaml
+name: skinnet-idea-q
+data:
+  extra_train: [milk10k]

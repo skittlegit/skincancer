@@ -23,8 +23,8 @@ Rules for each idea are written in [DECISIONS.md](../DECISIONS.md) before it is 
 | I | SCIN photos added as not cancer | 13 Nov | Discarded |
 | N | Longer schedule (120 epochs) | 14 Nov | Running |
 | M | Wider network (four times the parameters) | 14 Nov | Queued after N |
-| L | Self-supervised pretraining on our own and other unlabelled photos | 14 Nov | Queued after M |
-| Q | More biopsy-confirmed tumour photos from new sources | – | Not started: needs a source |
+| Q | MILK10k's biopsied clinical photos added (five new centres) | 14 Nov | Queued after M |
+| L | Self-supervised pretraining on our own and other unlabelled photos | 14 Nov | Queued after Q |
 | P | Pretrained (ImageNet) weights | – | Not started: breaks the from-scratch rule, needs a team decision |
 | K | ISIC 2019 dermoscopy images added | – | Not started |
 
@@ -142,12 +142,13 @@ Letters were given when an idea was first listed, not when it was run, which is 
 ### L. Self-supervised pretraining on our own and other unlabelled photos
 
 - **What:** learn general skin features without labels, then train cancer / not cancer. Widened on 14 Nov (DECISIONS.md, section 16): besides our training photos, also the unlabelled photos on disk that no evaluation set uses (SCIN, Derm7pt clinical). Never any validation or test image. No outside weights.
-- **Status:** specified in DECISIONS.md, section 17: SimCLR for 200 epochs on about 17,000 photos (`src/skincancer/pretrain.py`), then checkpoint 3's recipe from those weights (`configs/skinnet-idea-l.yaml`). Queued to start after M (14 Nov).
+- **Status:** specified in DECISIONS.md, section 17: SimCLR for 200 epochs on about 17,000 photos (`src/skincancer/pretrain.py`), then checkpoint 3's recipe from those weights (`configs/skinnet-idea-l.yaml`). Queued to start after Q (14 Nov).
 
 ### Q. More biopsy-confirmed tumour photos from new sources
 
 - **What:** clinical photos (not dermoscopy) of cancers and benign lookalikes from hospitals not yet in training. Idea O is the only change that moved a score on a source never seen, and it did so with photos of this kind.
-- **Status:** not started (DECISIONS.md, section 16). First step is to find such sets and check licences and overlap with our evaluation images.
+- **Source found (14 Nov):** MILK10k (ISIC archive; CC BY-NC 4.0): clinical close-ups of 5,240 lesions from Vienna, Ankara, Queensland, Memorial Sloan Kettering and Skopje, 5,016 confirmed by histopathology. None of the centres is Stanford or in India, so DDI stays unseen.
+- **Status:** specified in DECISIONS.md, section 18 (`configs/skinnet-idea-q.yaml`, `data/extra/milk10k.csv`). Queued after M, before L.
 
 ### P. Pretrained weights
 

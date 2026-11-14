@@ -356,3 +356,25 @@ Written before the pretraining was run.
 **How it is judged:** as ideas M and N (section 14), by paired comparison with checkpoint 3. Step 1 on `midas_val` and `val`; only if it passes, scored once on `test`, `midas_test`, DDI and DermaCon-IN; checkpoint 4 (or the next free number) if the gain is supported on at least one of `test`, `midas_test` or DDI and none is lower by a supported amount. If N or M has become checkpoint 4 by then, L is still judged against checkpoint 3 as written here, and whether to combine the two is a separate idea.
 
 **Expectation recorded now.** Self-supervised pretraining usually helps most when the unlabelled set is much larger than the labelled one. Here it is only about a third larger, so a small gain is the likely outcome. Its value for the outside sets is that it learns from SCIN's phone photos and Derm7pt without their labels steering it, which idea I showed can hurt.
+
+## 18. Idea Q: MILK10k's biopsied clinical photos in training (14 Nov 2026)
+
+Written after the photos were downloaded and before idea Q was trained. No model has been trained or scored with them.
+
+**The source.** MILK10k (ISIC archive, collection 425; the MILK study team; CC BY-NC 4.0): 5,240 lesions, each with one clinical close-up and one dermoscopic photo, from five centres: Medical University of Vienna, Ankara University, the University of Queensland's Mayne Academy of General Practice, Memorial Sloan Kettering, and a practice in Skopje. None is Stanford (DDI, MIDAS) or in India (DermaCon-IN), so DDI stays a source no model has seen, with no shared patients.
+
+**What is used** (`python -m skincancer.data.extra milk10k`, written to `data/extra/milk10k.csv`):
+
+- The clinical close-ups only, one per lesion. The dermoscopic photos are a different kind of image and are not used.
+- Only the 5,016 lesions confirmed by histopathology. The 224 that rest on one clinician's opinion are left out.
+- Cancer: ISIC-DX says malignant and the most specific diagnosis maps to a cancer type under the label map (BCC, SCC including in situ and keratoacanthoma, melanoma including in situ). Not cancer: ISIC-DX says benign (nevi, seborrheic and lichen-planus-like keratoses, solar lentigines, dermatofibromas and others). Actinic keratoses (123, never trained on, as in the manifest) and indeterminate lesions are left out.
+- Training only, kept outside the manifest, like Derm7pt and SCIN, so every validation and test image stays the same. Photos that near-duplicate a validation or test image are dropped.
+- No patient ids are published, so photos are grouped by lesion.
+
+**Why it may help where earlier data did not.** It is the hard distinction, cancers against the benign growths that resemble them, all biopsied, from five new centres and in large numbers (several times MIDAS's 552). Idea O showed photos of that kind from one new hospital moved DDI; idea I showed new photos without tumours do not.
+
+**A risk named now.** Cancers are about 70% of its photos and half of all its photos are BCC. Balanced drawing inside each dataset (checkpoint 1) removes the reward for recognising MILK10k's kind of photo, but the network may still lean towards BCC-like features.
+
+**Idea Q** (`configs/skinnet-idea-q.yaml`): checkpoint 3's recipe with MILK10k added. Three seeds, 60 epochs, test-time flips, seed average. Judged exactly as ideas M, N and L (section 14), by paired comparison with checkpoint 3: step 1 on `midas_val` and `val`; only if it passes, scored once on `test`, `midas_test`, DDI and DermaCon-IN; checkpoint 4 (or the next number) if the gain is supported on at least one of `test`, `midas_test` or DDI and none is lower by a supported amount.
+
+**Order changed.** Q runs before L, after M (section 16 had L first). Q takes about an hour and a half, L about five and a half, and Q is the more likely of the two to move the outside scores.
