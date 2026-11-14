@@ -114,6 +114,8 @@ Seven models were trained on the way to checkpoint 1, and two ideas for using it
 | J | Checkpoint 1's recipe with 552 MIDAS training photos added | validation only (ours and the MIDAS validation part) | MIDAS validation AUC 0.689 → 0.782, but within-source AUC on our validation split 0.888 → 0.876, a supported loss, mostly one seed stopped early at epoch 25 | Discarded at the first step; not scored on test sets. Replaced by O |
 | O | J with early stopping off (all seeds run 60 epochs) | test and outside sets, paired comparison with checkpoint 2 | MIDAS test 0.645 → 0.698 and DDI 0.629 → 0.657, both supported. Our test split 0.904 → 0.898, a small supported loss | **Kept: checkpoint 3** (see above for how) |
 | I | Checkpoint 3's recipe with 2,907 SCIN phone photos of everyday conditions added as not cancer | validation only (ours and the MIDAS validation part), paired comparison with checkpoint 3 | Our validation split: within-source AUC 0.882 → 0.902, supported. MIDAS validation part: AUC 0.793 → 0.729, a supported loss | Discarded at the first step; not scored on test sets |
+| M | Checkpoint 3's recipe with the network at twice the width (11.2 million parameters against 2.8 million) | validation only, paired comparison with checkpoint 3 | Our validation split: within-source AUC 0.882 → 0.885, not supported. MIDAS validation part: AUC 0.793 → 0.773, a supported loss | Discarded at the first step (14 Nov); not scored on test sets |
+| N | Checkpoint 3's recipe trained for 120 epochs, not 60 | validation, then test and outside sets, paired comparison with checkpoint 3 | Our test split: AUC 0.898 → 0.930, supported. MIDAS test 0.698 → 0.733, not supported. DDI 0.657 → 0.592, a supported loss | Discarded (14 Nov): the extra training learns our home datasets, not other hospitals |
 | G+H | Both together | test and outside sets, paired comparison | Our test split: AUC 0.890 → 0.904, false alarms 40% → 33%, a supported gain. MIDAS +0.006 and DDI +0.006, neither supported | **Kept: checkpoint 2** (see above for how) |
 
 The deciding score on validation was the within-source AUC: the AUC inside each dataset, averaged. Seeds of one model differ by about 0.01 on it, so B to F are "no better than A", not "clearly worse".
@@ -152,14 +154,12 @@ Each idea has a letter, continuing from A to H above. The rule is the same for e
 | --- | --- | --- | --- | --- |
 | K | **Add ISIC 2019 to training:** about 8,500 cancers, 12,900 nevi | Far more cancers | Large download; dermoscopy, a different kind of image | Uncertain: may not carry over to ordinary photos |
 | L | **Self-supervised pretraining on our own images:** learn general skin features from all our photos without labels, then train cancer / not cancer. No outside weights | Getting more from the images we have | New training code; a few GPU hours | A real gain is plausible; the standard remedy for a small labelled set |
-| M | **A larger network** (about four times the parameters) | Capacity | One training round, longer epochs | Modest at home, little outside |
-| N | **A longer schedule** (more than 60 epochs) | Training was still improving slightly at epoch 60 | One longer training round | Small |
 | Q | **More biopsy-confirmed tumour photos from new sources** (clinical, not dermoscopy) | The outside gap: the only lever that has moved DDI | Finding and checking sources | The most likely to help outside, if sources exist |
 | P | **Pretrained (ImageNet) weights** | The outside gap | Breaks the from-scratch rule: a team decision first | Large, by everything published |
 
 Counts for SCIN and ISIC 2019 are from memory and must be confirmed at download. Data details are in [DATA_PLAN.md](DATA_PLAN.md).
 
-**Order (14 Nov 2026):** N and M are running. Then Q (MILK10k, section 18), then L (widened to unlabelled photos already on disk). P only if the team and the supervisor change the from-scratch rule. K last, as a with-and-without experiment. Reasons are in [DECISIONS.md](../DECISIONS.md), section 16.
+**Order (14 Nov 2026):** N and M are done, both discarded (table above). Q is running (MILK10k, section 18), then L (widened to unlabelled photos already on disk). P only if the team and the supervisor change the from-scratch rule. K last, as a with-and-without experiment. Reasons are in [DECISIONS.md](../DECISIONS.md), section 16.
 
 **Later stages, not ideas for this one:** which type of cancer it is, and whether darker skin needs its own model or one combined model.
 

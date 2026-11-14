@@ -1,5 +1,0 @@
-# Idea N (DECISIONS.md, section 14): checkpoint 3's recipe trained for twice as many epochs.
-extends: skinnet-c3.yaml
-name: skinnet-idea-n
-train:
-  epochs: 120

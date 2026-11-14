@@ -1,5 +1,0 @@
-# Idea M (DECISIONS.md, section 14): checkpoint 3's recipe with the network at twice the width.
-extends: skinnet-c3.yaml
-name: skinnet-idea-m
-model:
-  width: 64

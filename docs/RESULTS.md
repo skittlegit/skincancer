@@ -217,3 +217,33 @@ SCIN is a public set of phone photos of everyday skin conditions (eczema, contac
 - On the MIDAS validation part it gives back most of what checkpoint 3 gained (0.793 → 0.729; checkpoint 2 was 0.689). MIDAS is all tumours: the question there is cancer against a benign growth, and SCIN has no growths at all.
 - The likely cause is dilution. In the balanced drawing SCIN took about 18% of every epoch, all of it easy "rash, so not cancer" examples, and the share of draws going to the hard tumour-against-tumour cases fell.
 - So more photos from a new source is not enough on its own. What helped in checkpoint 3 was photos of the hard distinction from a new source.
+
+## Ideas M and N: a wider network, a longer schedule (14 Nov 2026)
+
+Both are checkpoint 3's recipe with one thing changed: M has the network at twice the width (11.2 million parameters against 2.8 million), N trains for 120 epochs instead of 60. Three seeds each, test-time flips and the seed average, paired comparison with checkpoint 3.
+
+**Step 1, validation:**
+
+| Set | Score | Checkpoint 3 | Idea M | Idea N |
+| --- | --- | --- | --- | --- |
+| `midas_val` (outside validation) | AUC | 0.793 | 0.773 (−0.020, supported loss) | 0.795 (+0.002, not supported) |
+| `val` | AUC | 0.898 | 0.897 (−0.001) | 0.930 (+0.032, supported) |
+| `val` | Within-source AUC | 0.882 | 0.885 (+0.004) | 0.921 (+0.039, supported) |
+
+M failed step 1 and was not scored on any test set. N passed and was scored once on the test sets:
+
+| Set | Score | Checkpoint 3 | Idea N | Difference [95% interval] | Supported |
+| --- | --- | --- | --- | --- | --- |
+| `test` | AUC | 0.898 | 0.930 | +0.032 [+0.022, +0.041] | yes |
+| `test` | Within-source AUC | 0.876 | 0.924 | +0.048 [+0.030, +0.071] | yes |
+| `midas_test` | AUC | 0.698 | 0.733 | +0.034 [−0.010, +0.075] | no |
+| DDI | AUC | 0.657 | 0.592 | −0.064 [−0.096, −0.035] | yes |
+| DermaCon-IN tumours | AUC | 0.841 | 0.814 | −0.028 [−0.175, +0.097] | no |
+
+**Outcome: both discarded.** M has no gain anywhere and a loss on the MIDAS validation part. N has the largest gain at home in the project and a supported loss on DDI, which the rule does not allow.
+
+**Reading.**
+
+- Width is not the limit. Four times the parameters on the same 13,000 images learns nothing more that carries to other hospitals.
+- Length is a limit at home only. N's seeds did best at epochs 80 to 107, long after checkpoint 3's schedule had ended, and our own test split rose from 0.898 to 0.930. On DDI, a hospital no model here has seen, it fell from 0.657 to 0.592. The extra epochs taught the network our two home datasets better, and part of what it learned does not hold anywhere else.
+- So the supervisor's point is right that 60 epochs was not the end of training, but more of it on the same photos widens the gap to other hospitals. The gap needs different photos or different starting weights (ideas Q, L and P), not more of the same training.

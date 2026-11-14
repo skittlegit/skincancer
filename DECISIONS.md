@@ -310,6 +310,40 @@ An idea that fails step 1 is discarded and not scored on the test sets. If one m
 
 **Expectation recorded now.** Idea E (larger images) suggested detail is not the limit, and 13,000 images is little for an 11-million-parameter network trained from scratch, so M may overfit and do no better. N is the more likely of the two to help, since two of checkpoint 3's three seeds had their best epoch after epoch 45.
 
+**Outcome of idea M (14 Nov 2026): failed step 1, discarded, not scored on any test set.** 11.2 million parameters; the seeds' best epochs were 41, 42 and 59 (within-source AUC on `val` 0.866, 0.866, 0.863, against checkpoint 3's 0.867, 0.866, 0.875). Paired comparison with checkpoint 3, both after test-time flips and the seed average:
+
+| Set | Score | Checkpoint 3 | Idea M | Difference [95% interval] | Supported |
+| --- | --- | --- | --- | --- | --- |
+| `midas_val` (outside validation) | AUC | 0.793 | 0.773 | −0.020 [−0.037, −0.002] | yes |
+| `val` | AUC | 0.898 | 0.897 | −0.001 [−0.007, +0.005] | no |
+| `val` | Within-source AUC | 0.882 | 0.885 | +0.004 [−0.006, +0.013] | no |
+
+No gain anywhere and a supported loss on `midas_val`, as expected: four times the parameters on the same 13,000 images learns no more that carries to other hospitals. Its config and runs are deleted. The width is not what holds the network back.
+
+**Outcome of idea N, step 1 (14 Nov 2026): passed.** The seeds' best epochs were 80, 107 and 91 (within-source AUC on `val` 0.897, 0.898, 0.895), all after checkpoint 3's whole schedule had ended. Paired comparison with checkpoint 3, both after test-time flips and the seed average:
+
+| Set | Score | Checkpoint 3 | Idea N | Difference [95% interval] | Supported |
+| --- | --- | --- | --- | --- | --- |
+| `midas_val` (outside validation) | AUC | 0.793 | 0.795 | +0.002 [−0.037, +0.042] | no |
+| `val` | AUC | 0.898 | 0.930 | +0.032 [+0.023, +0.042] | yes |
+| `val` | Within-source AUC | 0.882 | 0.921 | +0.039 [+0.024, +0.056] | yes |
+
+The gain on `val` is supported and `midas_val` is not lower, so by rule 1 N goes on to the test sets. The gain is at home only so far: on the outside validation part it is flat. N was then scored once on the test sets.
+
+**Outcome of idea N, step 3 (14 Nov 2026): failed, discarded.** Scored once on the test-only sets (ledger, 14 Nov):
+
+| Set | Score | Checkpoint 3 | Idea N | Difference [95% interval] | Supported |
+| --- | --- | --- | --- | --- | --- |
+| `test` | AUC | 0.898 | 0.930 | +0.032 [+0.022, +0.041] | yes |
+| `test` | Within-source AUC | 0.876 | 0.924 | +0.048 [+0.030, +0.071] | yes |
+| `midas_test` | AUC | 0.698 | 0.733 | +0.034 [−0.010, +0.075] | no |
+| DDI | AUC | 0.657 | 0.592 | −0.064 [−0.096, −0.035] | yes |
+| DermaCon-IN tumours | AUC | 0.841 | 0.814 | −0.028 [−0.175, +0.097] | no |
+
+The gain condition is met on `test`; the no-loss condition fails on DDI by a wide margin, not narrowly, so this is not a case for the team and N is discarded. Its config and runs are deleted. The reading: the second half of the longer schedule taught the network more about our two home datasets (the largest gain at home in the project) and less that holds on a hospital it has never seen. DDI falls below checkpoint 2 (0.629) and the baseline (0.65). It also answers the question from section 16: more training on the same photos widens the gap to other hospitals, it does not close it.
+
+**A suggestion for the team, not adopted.** Twice now (ideas I and N) a gain on `val` alone has come with a loss outside: `val` is two datasets we train on, and it rewards learning them better. Step 1 could require a supported gain on `midas_val` and not only on `val`, which would have stopped N before it spent a look at the test sets. Changing the rule is the team's call, so ideas Q and L are still judged as written.
+
 **Renamed 13 Nov 2026.** The kept models are now named after their checkpoint: `skinnet` (baseline), `skinnet-c1`, `skinnet-c2`, `skinnet-c3`. Configs, run folders, result folders, the test-set ledger and every mention in the documents, including earlier sections of this file, use the new names. Only names changed: no model was retrained or re-scored. The old names were `skinnet_src` (now `skinnet-c1`), `skinnet_src_tta_ens` (`skinnet-c2`) and `skinnet_midas_full_tta_ens` (`skinnet-c3`); git history before this date uses them.
 
 ## 15. Naming rule (13 Nov 2026)

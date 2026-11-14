@@ -21,9 +21,9 @@ Rules for each idea are written in [DECISIONS.md](../DECISIONS.md) before it is 
 | J | MIDAS photos added to training | 13 Nov | Discarded; led to O |
 | O | J with early stopping off | 13 Nov | **Kept: checkpoint 3** (`skinnet-c3`) |
 | I | SCIN photos added as not cancer | 13 Nov | Discarded |
-| N | Longer schedule (120 epochs) | 14 Nov | Running |
-| M | Wider network (four times the parameters) | 14 Nov | Queued after N |
-| Q | MILK10k's biopsied clinical photos added (five new centres) | 14 Nov | Queued after M |
+| N | Longer schedule (120 epochs) | 14 Nov | Discarded: big gain at home, loss on DDI |
+| M | Wider network (four times the parameters) | 14 Nov | Discarded |
+| Q | MILK10k's biopsied clinical photos added (five new centres) | 14 Nov | Running |
 | L | Self-supervised pretraining on our own and other unlabelled photos | 14 Nov | Queued after Q |
 | P | Pretrained (ImageNet) weights | – | Not started: breaks the from-scratch rule, needs a team decision |
 | K | ISIC 2019 dermoscopy images added | – | Not started |
@@ -131,13 +131,17 @@ Letters were given when an idea was first listed, not when it was run, which is 
 
 ### N. Longer schedule
 
-- **What:** checkpoint 3's recipe trained for 120 epochs, not 60 (`configs/skinnet-idea-n.yaml`).
-- **Status:** specified in DECISIONS.md, section 14. Stopped on 13 Nov before any seed finished; restarted from seed 0 on 14 Nov (`scripts/run_idea.sh n`).
+- **What:** checkpoint 3's recipe trained for 120 epochs, not 60.
+- **Compared on:** validation, then test and outside sets, paired comparison with checkpoint 3.
+- **Result:** validation: within-source AUC 0.882 → 0.921 (supported), MIDAS validation 0.793 → 0.795 (flat). Test sets: our test split 0.898 → 0.930 (supported gain), MIDAS test 0.698 → 0.733 (not supported), DDI 0.657 → 0.592 (supported loss).
+- **Outcome:** discarded (14 Nov). The largest gain at home in the project, paid for on the hospital never seen. The seeds peaked at epochs 80 to 107, so 60 epochs did cut training short, but the extra training learns our home datasets, not skin cancer in general.
 
 ### M. Wider network
 
-- **What:** checkpoint 3's recipe with the network at twice the width, 11.2 million parameters against 2.8 million (`configs/skinnet-idea-m.yaml`).
-- **Status:** specified in DECISIONS.md, section 14. Queued to train after N (14 Nov).
+- **What:** checkpoint 3's recipe with the network at twice the width, 11.2 million parameters against 2.8 million.
+- **Compared on:** validation only (ours and the MIDAS validation part), paired comparison with checkpoint 3.
+- **Result:** within-source AUC on our validation split 0.882 → 0.885, not supported; MIDAS validation AUC 0.793 → 0.773, a supported loss.
+- **Outcome:** discarded at the first step (14 Nov), not scored on test sets. Width is not what holds the network back: four times the parameters on the same images learns nothing more that carries to other hospitals.
 
 ### L. Self-supervised pretraining on our own and other unlabelled photos
 
